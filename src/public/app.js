@@ -353,6 +353,8 @@
       this.toolCallElements = new Map();
       this.pendingFiles = new Map();
       this.openedFiles = new Set();
+      this.activeSubAgents = [];
+      this.subAgentToolMap = new Map();
       this.floatingEl = null;
       this.sessionNum = parseInt(id.replace("session-", ""), 10);
 
@@ -525,6 +527,9 @@
         }
 
         case "delta":
+          if (msg.parentToolCallId && this._routeDeltaToSubAgent(msg)) {
+            break;
+          }
           this.questionCheckPending = true;
           this.appendDelta(msg.text);
           break;
@@ -557,6 +562,9 @@
 
         case "tool_start": {
           this.showToolIndicator(msg.toolName, true, msg.parentToolCallId);
+          if (msg.parentToolCallId) {
+            this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, true);
+          }
           let toolArgs = msg.toolArgs;
           if (typeof toolArgs === "string") {
             try { toolArgs = JSON.parse(toolArgs); } catch {}
@@ -569,6 +577,9 @@
 
         case "tool_complete":
           this.showToolIndicator(msg.toolName, false, msg.parentToolCallId);
+          if (msg.parentToolCallId) {
+            this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, false);
+          }
           this.checkPendingFile(msg.toolName);
           break;
 
@@ -588,10 +599,12 @@
 
         case "subagent_start":
           this.appendSystemMessage("Sub-agent started: " + (msg.agentDisplayName || msg.agentName), "info");
+          this._openSubAgentTab(msg.agentName, msg.agentDisplayName || msg.agentName);
           break;
 
         case "subagent_complete":
           this.appendSystemMessage("Sub-agent completed: " + (msg.agentDisplayName || msg.agentName), "info");
+          this._completeSubAgentTab(msg.agentName);
           break;
 
         case "task_complete":
@@ -602,6 +615,7 @@
 
         case "intent":
           this.setStatus(msg.text);
+          this._updateSubAgentIntent(msg.text);
           break;
 
         case "capabilities_loaded":
@@ -792,6 +806,128 @@
 
     scrollToBottom() {
       this.dom.body.scrollTop = this.dom.body.scrollHeight;
+    }
+
+    // ─── Sub-agent tab helpers ──────────────────────────
+    _openSubAgentTab(agentName, displayName) {
+      const tabId = "agent-" + (++tabCounter);
+      const tab = document.createElement("div");
+      tab.className = "tab";
+      tab.dataset.tab = tabId;
+      tab.innerHTML =
+        '<span class="tab-icon">\ud83e\udd16</span>' +
+        '<span class="tab-label">' + escapeHtml(displayName) + '</span>' +
+        '<span class="tab-close" title="Close tab">\u2715</span>';
+      tab.addEventListener("click", (e) => {
+        if (!e.target.classList.contains("tab-close")) {
+          switchTab(tabId);
+        }
+      });
+      tab.querySelector(".tab-close").addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeTab(tabId);
+      });
+      tabBar.appendChild(tab);
+
+      const panel = document.createElement("div");
+      panel.className = "tab-panel";
+      panel.id = "panel-" + tabId;
+
+      const agentPanel = document.createElement("div");
+      agentPanel.className = "agent-tab-panel";
+
+      const header = document.createElement("div");
+      header.className = "agent-tab-header";
+      header.innerHTML =
+        '<span class="spinner"></span>' +
+        '<span class="agent-tab-name">' + escapeHtml(displayName) + '</span>' +
+        '<span class="agent-tab-status running">running</span>' +
+        '<span class="agent-tab-intent"></span>';
+
+      const content = document.createElement("div");
+      content.className = "agent-tab-content";
+
+      agentPanel.appendChild(header);
+      agentPanel.appendChild(content);
+      panel.appendChild(agentPanel);
+      tabPanels.appendChild(panel);
+
+      const entry = { agentName, displayName, tabId, headerEl: header, contentEl: content, panelEl: agentPanel };
+      this.activeSubAgents.push(entry);
+
+      switchTab(tabId);
+    }
+
+    _getActiveSubAgent() {
+      return this.activeSubAgents.length > 0 ? this.activeSubAgents[this.activeSubAgents.length - 1] : null;
+    }
+
+    _routeDeltaToSubAgent(msg) {
+      const agent = this._getActiveSubAgent();
+      if (!agent) return false;
+      if (!agent._textBuffer) agent._textBuffer = "";
+      agent._textBuffer += msg.text;
+      agent.contentEl.textContent = agent._textBuffer;
+      this._autoScrollAgent(agent);
+      return true;
+    }
+
+    _routeToolToSubAgent(toolName, parentToolCallId, running) {
+      const agent = this._getActiveSubAgent();
+      if (!agent) return;
+      const key = parentToolCallId + ":" + toolName;
+      if (running) {
+        const el = document.createElement("div");
+        el.className = "agent-tool";
+        el.dataset.toolKey = key;
+        el.innerHTML = '<span class="spinner"></span> Running ' + escapeHtml(toolName);
+        agent.contentEl.appendChild(el);
+        this._autoScrollAgent(agent);
+      } else {
+        const el = agent.contentEl.querySelector('[data-tool-key="' + CSS.escape(key) + '"]');
+        if (el) {
+          el.classList.add("done");
+          el.innerHTML = '\u2713 ' + escapeHtml(toolName);
+        }
+      }
+    }
+
+    _updateSubAgentIntent(text) {
+      const agent = this._getActiveSubAgent();
+      if (!agent) return;
+      const intentEl = agent.headerEl.querySelector(".agent-tab-intent");
+      if (intentEl) intentEl.textContent = text;
+    }
+
+    _completeSubAgentTab(agentName) {
+      const idx = this.activeSubAgents.findIndex(a => a.agentName === agentName);
+      if (idx === -1) return;
+      const agent = this.activeSubAgents[idx];
+      this.activeSubAgents.splice(idx, 1);
+
+      const statusEl = agent.headerEl.querySelector(".agent-tab-status");
+      if (statusEl) {
+        statusEl.className = "agent-tab-status done";
+        statusEl.textContent = "\u2713 completed";
+      }
+      const spinnerEl = agent.headerEl.querySelector(".spinner");
+      if (spinnerEl) spinnerEl.remove();
+
+      // Add badge if not active tab
+      const tab = tabBar.querySelector('[data-tab="' + agent.tabId + '"]');
+      if (tab && !tab.classList.contains("active")) {
+        const badge = document.createElement("span");
+        badge.className = "tab-badge";
+        tab.appendChild(badge);
+      }
+    }
+
+    _autoScrollAgent(agent) {
+      const panel = agent.panelEl;
+      const isNearBottom = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 60;
+      if (isNearBottom) {
+        panel.scrollTop = panel.scrollHeight;
+      }
     }
 
     setProcessing(processing) {

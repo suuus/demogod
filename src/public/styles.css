@@ -1618,3 +1618,17 @@ body.recording #record-icon {
 }
 .pty-close-btn:hover { background: var(--surface0); color: var(--body-text); }
 .pty-container { flex: 1; overflow: hidden; padding: 4px; }
+
+/* ─── Sub-agent Activity Tabs ─────────────────────── */
+.agent-tab-panel { padding: 16px; overflow-y: auto; height: 100%; font-family: var(--font-mono); font-size: 13px; }
+.agent-tab-header { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--surface0); margin-bottom: 12px; }
+.agent-tab-header .spinner { width: 14px; height: 14px; border: 2px solid rgba(137, 180, 250, 0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.agent-tab-name { font-weight: 600; color: var(--body-text); }
+.agent-tab-intent { color: var(--body-dim); font-size: 12px; font-style: italic; }
+.agent-tab-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.agent-tab-status.running { background: rgba(137, 180, 250, 0.15); color: var(--accent); }
+.agent-tab-status.done { background: rgba(166, 227, 161, 0.15); color: var(--green); }
+.agent-tab-content { white-space: pre-wrap; word-wrap: break-word; color: var(--body-text); line-height: 1.6; }
+.agent-tab-content .agent-tool { color: var(--body-dim); font-size: 12px; padding: 4px 0; }
+.agent-tab-content .agent-tool .spinner { display: inline-block; width: 10px; height: 10px; border-width: 1.5px; }
+.agent-tab-content .agent-tool.done { color: var(--green); }
