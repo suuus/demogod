@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 260" width="800" height="260">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="4" height="4">
+      <rect width="4" height="2" fill="rgba(255,255,255,0.015)"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="260" rx="16" fill="#0d1117"/>
+  <rect width="800" height="260" rx="16" fill="url(#scanlines)"/>
+
+  <!-- Terminal window border -->
+  <rect x="16" y="16" width="768" height="228" rx="12"
+        fill="none" stroke="#30363d" stroke-width="1.5"/>
+
+  <!-- Title bar dots -->
+  <circle cx="44" cy="38" r="6" fill="#ff5f57" opacity="0.9"/>
+  <circle cx="64" cy="38" r="6" fill="#febc2e" opacity="0.9"/>
+  <circle cx="84" cy="38" r="6" fill="#28c840" opacity="0.9"/>
+
+  <!-- Prompt chevron -->
+  <text x="48" y="152" font-family="monospace" font-weight="700" font-size="28"
+        fill="#58ff58" filter="url(#glow)">❯</text>
+
+  <!-- "Demo" -->
+  <text x="92" y="152" font-family="monospace" font-weight="800" font-size="84"
+        fill="#e0ffe0" filter="url(#glow)">Demo</text>
+
+  <!-- "God" with golden color -->
+  <text x="336" y="152" font-family="monospace" font-weight="800" font-size="84"
+        fill="#ffd700" filter="url(#glow-strong)">God</text>
+
+  <!-- Halo over the "G" -->
+  <ellipse cx="368" cy="68" rx="42" ry="10"
+           fill="none" stroke="#ffd700" stroke-width="2" filter="url(#glow-strong)"/>
+
+  <!-- Sparkles -->
+  <text x="320" y="58" font-size="10" fill="#ffd700">✦</text>
+  <text x="415" y="55" font-size="8" fill="#ffd700">✦</text>
+  <text x="345" y="48" font-size="6" fill="#ffec80">✦</text>
+
+  <!-- Cursor -->
+  <text x="518" y="152" font-family="monospace" font-size="22" fill="#58ff58" filter="url(#glow)">█</text>
+
+  <!-- Subtitle -->
+  <text x="92" y="195" font-family="monospace" font-size="16" fill="#88cc88">
+    demo video generator for copilot cli
+  </text>
+
+  <!-- Film emoji -->
+  <text x="700" y="152" font-size="48">🎬</text>
+</svg>

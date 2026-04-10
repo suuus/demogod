@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 260" width="800" height="260">
+  <defs>
+    <!-- Terminal green glow -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Subtle scanline pattern -->
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="4" height="4">
+      <rect width="4" height="2" fill="rgba(255,255,255,0.015)"/>
+    </pattern>
+  </defs>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&amp;display=swap');
+
+    /* Typing cursor blink */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Prompt chevron pulse */
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    /* Title letter reveal - staggered */
+    @keyframes revealLetter {
+      0% { opacity: 0; fill: #0ff; }
+      15% { opacity: 1; fill: #0ff; }
+      40% { fill: #58ff58; }
+      100% { fill: #e0ffe0; }
+    }
+
+    /* Subtitle fade in */
+    @keyframes fadeIn {
+      0%, 70% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    /* God part golden shimmer */
+    @keyframes shimmer {
+      0% { fill: #ffd700; }
+      50% { fill: #ffec80; }
+      100% { fill: #ffd700; }
+    }
+
+    /* Window border draw-in */
+    @keyframes drawBorder {
+      0% { stroke-dashoffset: 1200; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    /* Halo ring */
+    @keyframes haloGlow {
+      0%, 100% { opacity: 0.4; stroke-width: 1.5; }
+      50% { opacity: 0.8; stroke-width: 2.5; }
+    }
+
+    /* Stars twinkle */
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 0.9; }
+    }
+
+    .title-demo { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 84px; }
+    .title-god { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 84px; }
+    .subtitle { font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 16px; fill: #88cc88; }
+    .prompt { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 28px; }
+    .cursor-char { font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 22px; }
+  </style>
+
+  <!-- Background -->
+  <rect width="800" height="260" rx="16" fill="#0d1117"/>
+  <rect width="800" height="260" rx="16" fill="url(#scanlines)"/>
+
+  <!-- Terminal window border (animated draw-in) -->
+  <rect x="16" y="16" width="768" height="228" rx="12"
+        fill="none" stroke="#30363d" stroke-width="1.5"
+        stroke-dasharray="1200" stroke-dashoffset="1200"
+        style="animation: drawBorder 1.5s ease-out 0.2s forwards;"/>
+
+  <!-- Title bar dots -->
+  <circle cx="44" cy="38" r="6" fill="#ff5f57" opacity="0.9"/>
+  <circle cx="64" cy="38" r="6" fill="#febc2e" opacity="0.9"/>
+  <circle cx="84" cy="38" r="6" fill="#28c840" opacity="0.9"/>
+
+  <!-- Prompt chevron -->
+  <text x="48" y="152" class="prompt" fill="#58ff58" filter="url(#glow)"
+        style="animation: pulse 2s ease-in-out infinite;">❯</text>
+
+  <!-- "Demo" letters - typing reveal -->
+  <text x="92" y="152" class="title-demo" fill="#e0ffe0" filter="url(#glow)"
+        style="animation: revealLetter 2s ease-out 0.3s both;">D</text>
+  <text x="148" y="152" class="title-demo" fill="#e0ffe0" filter="url(#glow)"
+        style="animation: revealLetter 2s ease-out 0.45s both;">e</text>
+  <text x="202" y="152" class="title-demo" fill="#e0ffe0" filter="url(#glow)"
+        style="animation: revealLetter 2s ease-out 0.6s both;">m</text>
+  <text x="268" y="152" class="title-demo" fill="#e0ffe0" filter="url(#glow)"
+        style="animation: revealLetter 2s ease-out 0.75s both;">o</text>
+
+  <!-- "God" letters - golden shimmer -->
+  <text x="336" y="152" class="title-god" fill="#ffd700" filter="url(#glow-strong)"
+        style="animation: revealLetter 1.5s ease-out 1s both, shimmer 3s ease-in-out 2.5s infinite;">G</text>
+  <text x="400" y="152" class="title-god" fill="#ffd700" filter="url(#glow-strong)"
+        style="animation: revealLetter 1.5s ease-out 1.15s both, shimmer 3s ease-in-out 2.65s infinite;">o</text>
+  <text x="458" y="152" class="title-god" fill="#ffd700" filter="url(#glow-strong)"
+        style="animation: revealLetter 1.5s ease-out 1.3s both, shimmer 3s ease-in-out 2.8s infinite;">d</text>
+
+  <!-- Halo over the "G" - nerdy angel halo -->
+  <ellipse cx="368" cy="68" rx="42" ry="10"
+           fill="none" stroke="#ffd700" stroke-width="2"
+           filter="url(#glow-strong)"
+           style="animation: haloGlow 2.5s ease-in-out 2s infinite;"/>
+
+  <!-- Tiny sparkle stars around the halo -->
+  <text x="320" y="58" font-size="10" fill="#ffd700"
+        style="animation: twinkle 1.8s ease-in-out 2.2s infinite;">✦</text>
+  <text x="415" y="55" font-size="8" fill="#ffd700"
+        style="animation: twinkle 2.1s ease-in-out 2.5s infinite;">✦</text>
+  <text x="345" y="48" font-size="6" fill="#ffec80"
+        style="animation: twinkle 1.5s ease-in-out 2.8s infinite;">✦</text>
+
+  <!-- Blinking cursor after "God" -->
+  <text x="518" y="152" class="cursor-char" fill="#58ff58" filter="url(#glow)"
+        style="animation: blink 1s step-end infinite;">█</text>
+
+  <!-- Subtitle -->
+  <text x="92" y="195" class="subtitle"
+        style="animation: fadeIn 3s ease-out forwards;">
+    demo video generator for copilot cli
+  </text>
+
+  <!-- Emoji wink face - the friendly nerdy touch -->
+  <text x="700" y="152" font-size="48"
+        style="animation: fadeIn 4s ease-out forwards;">🎬</text>
+</svg>

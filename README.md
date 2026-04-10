@@ -1,5 +1,9 @@
 # DemoGod 🎬
 
+<p align="center">
+  <img src="docs/logo.svg" alt="DemoGod logo" width="700" />
+</p>
+
 > Demo video generator for GitHub Copilot CLI
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
