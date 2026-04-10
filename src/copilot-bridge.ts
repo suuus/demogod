@@ -118,9 +118,11 @@ export class CopilotBridge extends EventEmitter {
               ? (() => { try { return JSON.parse(input.toolArgs); } catch { return {}; } })()
               : (input.toolArgs || {});
             const agentName = args.name || args.agent_type || "sub-agent";
-            const agentDisplayName = args.description || args.name || args.agent_type || "Sub-agent";
+            // Build a nice display name: prefer description, then humanize the name
+            const humanName = (args.name || "").replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+            const agentDisplayName = args.description || humanName || args.agent_type || "Sub-agent";
             this.activeTaskAgents.push({ agentName, agentDisplayName });
-            this.emit("subagent_start", { agentName, agentDisplayName });
+            this.emit("subagent_start", { agentName, agentDisplayName, agentType: args.agent_type });
           }
         },
         onPostToolUse: (input) => {

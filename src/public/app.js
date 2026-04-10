@@ -597,7 +597,7 @@
 
         case "subagent_start":
           this.appendSystemMessage("Sub-agent started: " + (msg.agentDisplayName || msg.agentName), "info");
-          if (FEAT_AGENT_TABS) this._openSubAgentTab(msg.agentName, msg.agentDisplayName || msg.agentName);
+          if (FEAT_AGENT_TABS) this._openSubAgentTab(msg.agentName, msg.agentDisplayName || msg.agentName, msg.agentType);
           break;
 
         case "subagent_complete":
@@ -806,16 +806,19 @@
     }
 
     // ─── Sub-agent tab helpers ──────────────────────────
-    _openSubAgentTab(agentName, displayName) {
+    _openSubAgentTab(agentName, displayName, agentType) {
       // Deduplicate — don't open a second tab for the same agent
       if (this.activeSubAgents.find(a => a.agentName === agentName)) return;
+
+      const typeIcon = { explore: "\ud83d\udd0d", task: "\u2699\ufe0f", "general-purpose": "\ud83e\udde0", "code-review": "\ud83d\udcdd" }[agentType] || "\ud83e\udd16";
+      const typeBadge = agentType ? ' <span class="agent-type-badge">' + escapeHtml(agentType) + '</span>' : "";
 
       const tabId = "agent-" + (++tabCounter);
       const tab = document.createElement("div");
       tab.className = "tab";
       tab.dataset.tab = tabId;
       tab.innerHTML =
-        '<span class="tab-icon">\ud83e\udd16</span>' +
+        '<span class="tab-icon">' + typeIcon + '</span>' +
         '<span class="tab-label">' + escapeHtml(displayName) + '</span>' +
         '<span class="tab-close" title="Close tab">\u2715</span>';
       tab.addEventListener("click", (e) => {
@@ -840,7 +843,7 @@
       header.className = "agent-tab-header";
       header.innerHTML =
         '<span class="spinner"></span>' +
-        '<span class="agent-tab-name">' + escapeHtml(displayName) + '</span>' +
+        '<span class="agent-tab-name">' + escapeHtml(displayName) + typeBadge + '</span>' +
         '<span class="agent-tab-status running">running</span>' +
         '<span class="agent-tab-intent"></span>';
 
