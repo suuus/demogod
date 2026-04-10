@@ -482,7 +482,10 @@
           const scEl = this.dom.statusBar.querySelector(".status-cwd");
           if (msg.model && smEl) {
             smEl.textContent = msg.model;
-            this.selectedModel = msg.model;
+            // Don't store "(default)" as selectedModel — it's a display label, not a valid model ID
+            if (msg.model !== "(default)") {
+              this.selectedModel = msg.model;
+            }
           }
           if (dir && scEl) {
             scEl.textContent = "\ud83d\udcc2 " + dir;
