@@ -2642,12 +2642,14 @@
 
   const settingsOverlay = $("#settings-overlay");
   const settingBg = $("#setting-bg");
+  const settingVersion = $("#setting-version");
   const settingDialogMode = $("#setting-dialog-mode");
   const settingTerminal = $("#setting-terminal");
   const settingAgentTabs = $("#setting-agent-tabs");
 
   // Init settings from localStorage
   settingBg.value = localStorage.getItem("dg-bg") || "bg-chroma";
+  settingVersion.checked = localStorage.getItem("dg-show-version") === "1";
   settingDialogMode.value = localStorage.getItem("dg-dialog-mode") || "inline";
   settingTerminal.checked = localStorage.getItem("dg-terminal") === "1";
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
@@ -2657,6 +2659,11 @@
     localStorage.setItem("dg-bg", cls);
     backdrop.className = cls;
     bgIndex = bgOptions.findIndex(o => o.cls === cls);
+  });
+
+  settingVersion.addEventListener("change", () => {
+    localStorage.setItem("dg-show-version", settingVersion.checked ? "1" : "0");
+    if (versionBadge) versionBadge.classList.toggle("hidden", !settingVersion.checked);
   });
 
   settingDialogMode.addEventListener("change", () => {
@@ -2699,10 +2706,13 @@
     }, 3800);
   }
 
-  // Show version in control bar
+  // Show version badge
   const dgVersion = document.querySelector('meta[name="dg-version"]')?.getAttribute("content");
-  const versionEl = document.getElementById("version-label");
-  if (versionEl && dgVersion) versionEl.textContent = "v" + dgVersion;
+  const versionBadge = document.getElementById("version-badge");
+  if (versionBadge && dgVersion) {
+    versionBadge.textContent = "v" + dgVersion;
+    if (localStorage.getItem("dg-show-version") === "1") versionBadge.classList.remove("hidden");
+  }
 
   // ═══════════════════════════════════════════════════════════
   // ─── INTEGRATED TERMINAL (xterm.js + node-pty) ────────────
