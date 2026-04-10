@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Copilot CLI Demo</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/vendor/xterm.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
@@ -91,6 +92,10 @@
         <span>🎨</span>
         <span id="bg-label">Background</span>
       </button>
+      <button id="btn-terminal" class="ctrl-btn" title="Toggle integrated terminal" style="display:none">
+        <span>⬛</span>
+        <span>Terminal</span>
+      </button>
       <button id="btn-shell" class="ctrl-btn" title="Select shell for desktop app" style="display:none">
         <span>🐚</span>
         <span id="shell-label">Shell</span>
@@ -133,6 +138,15 @@
 
   <!-- Floating window container (for floating mode) -->
   <div id="floating-container" class="floating-container" style="display:none"></div>
+
+  <!-- Integrated terminal panel -->
+  <div id="pty-panel" class="pty-panel" style="display:none">
+    <div class="pty-titlebar">
+      <span class="pty-title">Terminal</span>
+      <button id="pty-close" class="pty-close-btn" title="Close terminal">✕</button>
+    </div>
+    <div id="pty-container" class="pty-container"></div>
+  </div>
 
   <!-- Project picker overlay -->
   <div id="picker-overlay" class="hidden">
@@ -239,6 +253,8 @@
     </div>
   </div>
 
+  <script src="/vendor/xterm.js"></script>
+  <script src="/vendor/xterm-addon-fit.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

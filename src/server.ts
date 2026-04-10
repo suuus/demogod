@@ -5,9 +5,10 @@ import { fileURLToPath } from "url";
 import { dirname, join, resolve, normalize } from "path";
 import { readFile, readdir, stat, mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
-import { homedir } from "os";
+import { homedir, platform } from "os";
 import { randomBytes } from "crypto";
 import { CopilotBridge } from "./copilot-bridge.js";
+import * as pty from "node-pty";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -364,40 +365,51 @@ app.get("/", async (_req, res) => {
 
 app.use(express.static(PUBLIC_DIR));
 
+// Serve xterm.js vendor files from node_modules
+const NODE_MODULES = join(__dirname, "..", "node_modules");
+app.get("/vendor/xterm.css", (_req, res) => res.sendFile(join(NODE_MODULES, "@xterm/xterm/css/xterm.css")));
+app.get("/vendor/xterm.js", (_req, res) => res.sendFile(join(NODE_MODULES, "@xterm/xterm/lib/xterm.js")));
+app.get("/vendor/xterm-addon-fit.js", (_req, res) => res.sendFile(join(NODE_MODULES, "@xterm/addon-fit/lib/addon-fit.js")));
+
 const server = createServer(app);
 
-// ─── WebSocket server with origin + token verification ──────────────────────
-const wss = new WebSocketServer({
-  server,
-  verifyClient: (info, done) => {
-    // 1. Origin check: only allow localhost origins (or no origin for Tauri/native)
-    const origin = info.origin || info.req.headers.origin;
-    if (origin) {
-      try {
-        const url = new URL(origin);
-        const allowed = ["localhost", "127.0.0.1", "[::1]", "tauri.localhost"].includes(url.hostname);
-        if (!allowed) {
-          console.warn(`[Security] Rejected WS from origin: ${origin}`);
-          done(false, 403, "Forbidden origin");
-          return;
-        }
-      } catch {
-        done(false, 403, "Invalid origin");
+// ─── WebSocket servers (manual upgrade for path routing) ─────────────────────
+function verifyWsClient(info: { origin: string; secure: boolean; req: import("http").IncomingMessage }, done: (result: boolean, code?: number, message?: string) => void) {
+  const origin = info.origin || info.req.headers.origin;
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      const allowed = ["localhost", "127.0.0.1", "[::1]", "tauri.localhost"].includes(url.hostname);
+      if (!allowed) {
+        console.warn(`[Security] Rejected WS from origin: ${origin}`);
+        done(false, 403, "Forbidden origin");
         return;
       }
-    }
-
-    // 2. Token check: must provide valid token as query param
-    const url = new URL(info.req.url || "/", `http://${info.req.headers.host}`);
-    const token = url.searchParams.get("token");
-    if (token !== SESSION_TOKEN) {
-      console.warn("[Security] Rejected WS connection: invalid token");
-      done(false, 401, "Unauthorized");
+    } catch {
+      done(false, 403, "Invalid origin");
       return;
     }
+  }
+  const url = new URL(info.req.url || "/", `http://${info.req.headers.host}`);
+  const token = url.searchParams.get("token");
+  if (token !== SESSION_TOKEN) {
+    console.warn("[Security] Rejected WS connection: invalid token");
+    done(false, 401, "Unauthorized");
+    return;
+  }
+  done(true);
+}
 
-    done(true);
-  },
+const wss = new WebSocketServer({ noServer: true, verifyClient: verifyWsClient });
+const wssPty = new WebSocketServer({ noServer: true, verifyClient: verifyWsClient });
+
+server.on("upgrade", (req, socket, head) => {
+  const pathname = new URL(req.url || "/", `http://${req.headers.host}`).pathname;
+  if (pathname === "/pty") {
+    wssPty.handleUpgrade(req, socket, head, (ws) => wssPty.emit("connection", ws, req));
+  } else {
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+  }
 });
 
 // Shared bridge instance for listing models before a session exists
@@ -969,6 +981,62 @@ function safeSend(ws: WebSocket, data: object) {
     ws.send(JSON.stringify(data));
   }
 }
+
+// ─── PTY WebSocket bridge ───────────────────────────────────────────────────
+function getDefaultShell(): string {
+  if (platform() === "win32") return "powershell.exe";
+  return process.env.SHELL || "/bin/bash";
+}
+
+wssPty.on("connection", (ws, req) => {
+  const url = new URL(req.url || "/", `http://${req.headers.host}`);
+  const shell = url.searchParams.get("shell") || getDefaultShell();
+  const cwd = url.searchParams.get("cwd") || homedir();
+  const cols = parseInt(url.searchParams.get("cols") || "120", 10);
+  const rows = parseInt(url.searchParams.get("rows") || "30", 10);
+
+  console.log(`[PTY] Spawning: ${shell} (${cols}x${rows}) in ${cwd}`);
+
+  let term: pty.IPty;
+  try {
+    term = pty.spawn(shell, [], { name: "xterm-256color", cols, rows, cwd, env: process.env as Record<string, string> });
+  } catch (err: any) {
+    ws.send(JSON.stringify({ type: "error", message: `Failed to spawn shell: ${err.message}` }));
+    ws.close();
+    return;
+  }
+
+  term.onData((data) => {
+    if (ws.readyState === WebSocket.OPEN) ws.send(data);
+  });
+
+  term.onExit(({ exitCode }) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "exit", exitCode }));
+      ws.close();
+    }
+  });
+
+  ws.on("message", (msg) => {
+    const str = msg.toString();
+    // JSON messages for resize, plain text for input
+    if (str.startsWith("{")) {
+      try {
+        const cmd = JSON.parse(str);
+        if (cmd.type === "resize" && cmd.cols && cmd.rows) {
+          term.resize(cmd.cols, cmd.rows);
+        }
+      } catch { /* not JSON, treat as input */ term.write(str); }
+    } else {
+      term.write(str);
+    }
+  });
+
+  ws.on("close", () => {
+    console.log("[PTY] Client disconnected");
+    term.kill();
+  });
+});
 
 // ─── Terminal startup animation ──────────────────────────────────────────────
 const GOLD = "\x1b[33m";
