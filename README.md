@@ -35,15 +35,18 @@ DemoGod is a web-based tool that creates interactive demo videos for GitHub Copi
 - **Multi-Session Support**: Run multiple Copilot sessions in tabs or floating windows with grid snapping
 - **Settings Panel**: Configure appearance, feature flags, and experimental options from ⚙️ Settings
 - **Screen Recording**: Built-in recording button (bottom-right) — records the browser tab and downloads as `.webm`
+- **Copy & Paste**: Select and copy response text (⌘C/Ctrl+C), paste into prompts (⌘V/Ctrl+V)
 - **Desktop App**: Native desktop experience via Tauri with system-level keyboard shortcuts
 
 ## Desktop App
 
 DemoGod ships as a native desktop app built with [Tauri v2](https://v2.tauri.app/). The Tauri shell wraps the same web UI and spawns the Node.js server as a sidecar process (`node --import tsx src/server.ts`). It is a **native window wrapper**, not a standalone zero-dependency installer — you still need the prerequisites below installed on your machine.
 
-### Shell Picker (v0.0.4+)
+### Shell Picker
 
-The desktop app includes a **shell picker** (🐚) in the control bar. On Windows, you can choose to spawn the server via **WSL**, **PowerShell**, **CMD**, or your **native shell**. The selection is saved to `~/.demogod/config.json` and applied on every launch, with a native shell fallback if config is missing.
+> **Note:** The shell picker is currently hidden while cross-platform shell support is being stabilized. The underlying API (`/api/shell`) still exists for future use.
+
+The desktop app includes a shell picker in the control bar. On Windows, you can choose to spawn the server via **WSL**, **PowerShell**, **CMD**, or your **native shell**. The selection is saved to `~/.demogod/config.json` and applied on every launch, with a native shell fallback if config is missing.
 
 ### Prerequisites
 
@@ -392,6 +395,11 @@ The project uses `tsx` for TypeScript execution with hot reload during developme
 
 ### Common Issues
 
+**Integrated terminal not working (macOS):**
+- The `node-pty` native addon requires an executable `spawn-helper` binary
+- Run `npm run postinstall` to fix permissions (this runs automatically on `npm install`)
+- If you switched Node versions, run `npm rebuild node-pty`
+
 **Port already in use:**
 ```bash
 # Change the port
@@ -431,6 +439,7 @@ DEBUG=* npm start
 - [x] Sub-agent activity tabs
 - [x] Live demo mode (real Copilot prompts)
 - [x] Demo UI automation (layout, model, tile)
+- [x] Copy & paste in session windows
 - [ ] Custom themes and styling options
 - [ ] Saved layout presets
 

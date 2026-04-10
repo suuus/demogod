@@ -1,9 +1,10 @@
 {
   "name": "demogod",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "type": "module",
   "description": "Demo video generator for GitHub Copilot CLI",
   "scripts": {
+    "postinstall": "node -e \"if(process.platform!=='win32'){const g=require('path').join('node_modules','node-pty','prebuilds');require('child_process').execSync('find '+g+' -name spawn-helper -exec chmod +x {} +',{stdio:'ignore'})}\" || true",
     "start": "tsx src/server.ts",
     "dev": "tsx watch src/server.ts",
     "tauri": "tauri",

@@ -12,6 +12,7 @@
 
   // Feature flags
   const FEAT_AGENT_TABS = localStorage.getItem("dg-agent-tabs") === "1";
+  const FEAT_TODO_PANEL = localStorage.getItem("dg-todo-panel") !== "0"; // on by default
 
   function escapeHtml(str) {
     const div = document.createElement("div");
@@ -369,6 +370,12 @@
       this.subAgentToolMap = new Map();
       this.floatingEl = null;
       this.sessionNum = parseInt(id.replace("session-", ""), 10);
+      this.promptHistory = [];
+      this.historyIndex = -1;
+      this.historySavedInput = "";
+      this.todos = new Map();
+      this.todoPanelVisible = false;
+      this._pendingSqlQuery = null;
 
       this.dom = this._createDOM();
     }
@@ -412,15 +419,61 @@
 
       body.appendChild(output);
       body.appendChild(inputLine);
-      container.appendChild(body);
+
+      // Todo side panel
+      const todoPanel = document.createElement("div");
+      todoPanel.className = "todo-panel";
+      todoPanel.innerHTML =
+        '<div class="todo-panel-header">' +
+          '<span class="todo-panel-title">\u2611 Tasks</span>' +
+          '<button class="todo-panel-close" title="Hide">\u00d7</button>' +
+        '</div>' +
+        '<div class="todo-panel-list"></div>';
+      todoPanel.querySelector(".todo-panel-close").addEventListener("click", () => this._toggleTodoPanel(false));
+
+      const mainArea = document.createElement("div");
+      mainArea.className = "session-main";
+      mainArea.appendChild(body);
+      mainArea.appendChild(todoPanel);
+
+      container.appendChild(mainArea);
       container.appendChild(statusBar);
 
       const inputEl = inputLine.querySelector(".session-input");
       inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowUp" && !e.shiftKey) {
+          if (this.promptHistory.length === 0) return;
+          e.preventDefault();
+          if (this.historyIndex === -1) {
+            this.historySavedInput = inputEl.textContent;
+            this.historyIndex = this.promptHistory.length - 1;
+          } else if (this.historyIndex > 0) {
+            this.historyIndex--;
+          }
+          inputEl.textContent = this.promptHistory[this.historyIndex];
+          this._placeCaretAtEnd(inputEl);
+          return;
+        }
+        if (e.key === "ArrowDown" && !e.shiftKey) {
+          if (this.historyIndex === -1) return;
+          e.preventDefault();
+          if (this.historyIndex < this.promptHistory.length - 1) {
+            this.historyIndex++;
+            inputEl.textContent = this.promptHistory[this.historyIndex];
+          } else {
+            this.historyIndex = -1;
+            inputEl.textContent = this.historySavedInput;
+          }
+          this._placeCaretAtEnd(inputEl);
+          return;
+        }
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           const text = inputEl.textContent.trim();
           if (!text || this.isProcessing) return;
+          this.promptHistory.push(text);
+          this.historyIndex = -1;
+          this.historySavedInput = "";
           this.addCommandEntry(text);
           inputEl.textContent = "";
           this.setProcessing(true);
@@ -432,11 +485,201 @@
       body.addEventListener("click", (e) => {
         if (this.mode === "live" && !this.isProcessing) {
           if (e.target.closest(".inline-question-form")) return;
+          const sel = window.getSelection();
+          if (sel && sel.toString().length > 0) return;
           inputEl.focus();
         }
       });
 
-      return { container, body, output, inputLine, inputEl, statusBar };
+      inputEl.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+        document.execCommand("insertText", false, text);
+      });
+
+      inputEl.addEventListener("focus", () => {
+        inputEl.classList.add("touched");
+      });
+
+      return { container, body, output, inputLine, inputEl, statusBar, todoPanel };
+    }
+
+    _placeCaretAtEnd(el) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    // ── Todo panel logic ──────────────────────────────
+
+    _parseTodoFromSql(query, result) {
+      if (!query) return;
+      const q = query.toUpperCase();
+      const isTodoQuery = /\bTODOS\b/.test(q);
+      if (!isTodoQuery) return;
+
+      // Parse INSERT INTO todos
+      if (/INSERT\s+INTO\s+TODOS/i.test(query)) {
+        this._parseTodoInsert(query);
+      }
+      // Parse UPDATE todos SET status
+      if (/UPDATE\s+TODOS\s+SET/i.test(query)) {
+        this._parseTodoUpdate(query);
+      }
+      // Also parse result rows (from SELECTs or INSERT returning)
+      if (result) {
+        this._parseTodoResult(result);
+      }
+      this._renderTodos();
+    }
+
+    _parseTodoInsert(query) {
+      // Match: INSERT INTO todos (cols) VALUES (row1), (row2), ...
+      const colMatch = query.match(/INSERT\s+INTO\s+todos\s*\(([^)]+)\)\s*VALUES\s*/i);
+      if (!colMatch) return;
+      const cols = colMatch[1].split(",").map(c => c.trim().toLowerCase());
+      const valuesStr = query.slice(colMatch.index + colMatch[0].length);
+      // Extract each (...) tuple
+      const tupleRe = /\(([^)]+)\)/g;
+      let m;
+      while ((m = tupleRe.exec(valuesStr)) !== null) {
+        const vals = this._splitSqlValues(m[1]);
+        const row = {};
+        cols.forEach((col, i) => { row[col] = this._unquoteSql(vals[i] || ""); });
+        if (row.id) {
+          this.todos.set(row.id, {
+            id: row.id,
+            title: row.title || row.id,
+            description: row.description || "",
+            status: row.status || "pending",
+          });
+        }
+      }
+    }
+
+    _parseTodoUpdate(query) {
+      // UPDATE todos SET status = 'done' WHERE id = 'x'
+      const statusMatch = query.match(/SET\s+status\s*=\s*'([^']+)'/i);
+      const idMatch = query.match(/WHERE\s+id\s*=\s*'([^']+)'/i);
+      if (statusMatch && idMatch) {
+        const todo = this.todos.get(idMatch[1]);
+        if (todo) todo.status = statusMatch[1];
+      }
+      // UPDATE todos SET status = 'x', description = '...' WHERE id = '...'
+      if (!idMatch && statusMatch) {
+        // Batch: UPDATE todos SET status = 'x' WHERE id IN (...)
+        const inMatch = query.match(/WHERE\s+id\s+IN\s*\(([^)]+)\)/i);
+        if (inMatch) {
+          const ids = this._splitSqlValues(inMatch[1]).map(v => this._unquoteSql(v));
+          ids.forEach(id => {
+            const todo = this.todos.get(id);
+            if (todo) todo.status = statusMatch[1];
+          });
+        }
+      }
+    }
+
+    _parseTodoResult(result) {
+      let text = typeof result === "string" ? result : JSON.stringify(result);
+      // Try to find JSON array of rows
+      try {
+        const parsed = typeof result === "string" ? JSON.parse(result) : result;
+        const rows = Array.isArray(parsed) ? parsed : (parsed?.rows || parsed?.results || []);
+        if (Array.isArray(rows)) {
+          for (const row of rows) {
+            if (row?.id && (row.title || row.status)) {
+              this.todos.set(row.id, {
+                id: row.id,
+                title: row.title || row.id,
+                description: row.description || "",
+                status: row.status || "pending",
+              });
+            }
+          }
+        }
+      } catch {}
+    }
+
+    _splitSqlValues(str) {
+      // Split SQL values respecting quoted strings
+      const vals = [];
+      let current = "";
+      let inQuote = false;
+      let quoteChar = "";
+      for (let i = 0; i < str.length; i++) {
+        const ch = str[i];
+        if (inQuote) {
+          if (ch === quoteChar && str[i + 1] === quoteChar) {
+            current += ch;
+            i++;
+          } else if (ch === quoteChar) {
+            inQuote = false;
+          }
+          current += ch;
+        } else if (ch === "'" || ch === '"') {
+          inQuote = true;
+          quoteChar = ch;
+          current += ch;
+        } else if (ch === ",") {
+          vals.push(current.trim());
+          current = "";
+        } else {
+          current += ch;
+        }
+      }
+      vals.push(current.trim());
+      return vals;
+    }
+
+    _unquoteSql(val) {
+      if (!val) return "";
+      const trimmed = val.trim();
+      if ((trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+          (trimmed.startsWith('"') && trimmed.endsWith('"'))) {
+        return trimmed.slice(1, -1).replace(/''/g, "'");
+      }
+      return trimmed;
+    }
+
+    _toggleTodoPanel(show) {
+      this.todoPanelVisible = typeof show === "boolean" ? show : !this.todoPanelVisible;
+      this.dom.todoPanel.classList.toggle("visible", this.todoPanelVisible);
+    }
+
+    _renderTodos() {
+      const list = this.dom.todoPanel.querySelector(".todo-panel-list");
+      if (!list) return;
+      if (this.todos.size === 0) return;
+
+      // Auto-show panel on first todo
+      if (!this.todoPanelVisible) this._toggleTodoPanel(true);
+
+      const statusIcons = {
+        pending: "\u23f3",
+        in_progress: "\ud83d\udd04",
+        done: "\u2705",
+        blocked: "\ud83d\udeab",
+      };
+      const statusOrder = { in_progress: 0, pending: 1, blocked: 2, done: 3 };
+      const sorted = [...this.todos.values()].sort((a, b) =>
+        (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1)
+      );
+
+      list.innerHTML = sorted.map(t => {
+        const icon = statusIcons[t.status] || "\u23f3";
+        const cls = "todo-item todo-" + (t.status || "pending");
+        const desc = t.description ? '<div class="todo-desc">' + escapeHtml(t.description) + '</div>' : "";
+        return '<div class="' + cls + '">' +
+          '<span class="todo-icon">' + icon + '</span>' +
+          '<div class="todo-content">' +
+            '<div class="todo-title">' + escapeHtml(t.title) + '</div>' +
+            desc +
+          '</div>' +
+        '</div>';
+      }).join("");
     }
 
     _createFloatingChrome() {
@@ -580,6 +823,9 @@
           if (["create", "edit", "view", "show_file"].includes(msg.toolName) && toolArgs?.path) {
             this.trackPendingFile(msg.toolName, toolArgs.path);
           }
+          if (FEAT_TODO_PANEL && msg.toolName === "sql" && toolArgs?.query) {
+            this._pendingSqlQuery = toolArgs.query;
+          }
           break;
         }
 
@@ -588,6 +834,10 @@
           if (FEAT_AGENT_TABS && msg.toolName === "task") break;
           this.showToolIndicator(msg.toolName, false, msg.parentToolCallId);
           this.checkPendingFile(msg.toolName);
+          if (FEAT_TODO_PANEL && msg.toolName === "sql") {
+            this._parseTodoFromSql(this._pendingSqlQuery, msg.toolResult);
+            this._pendingSqlQuery = null;
+          }
           break;
 
         case "tool_partial":
@@ -1187,12 +1437,23 @@
       submitBtn.addEventListener("click", () => {
         const values = collectValues();
         disableForm();
-        self.setProcessing(true);
-        self.send("user_input_response", { requestId, values });
+        if (requestId === "__auto_question__") {
+          const answer = values.response || Object.values(values)[0] || "";
+          if (answer) {
+            self.addCommandEntry(answer);
+            self.setProcessing(true);
+            self.setStatus("Thinking...");
+            self.send("send_prompt", { prompt: answer });
+          }
+        } else {
+          self.setProcessing(true);
+          self.send("user_input_response", { requestId, values });
+        }
       });
 
       cancelBtn.addEventListener("click", () => {
         disableForm();
+        if (requestId === "__auto_question__") return;
         self.setProcessing(true);
         self.send("user_input_response", { requestId, values: {} });
       });
@@ -1645,6 +1906,9 @@
 
       if (this.layoutMode === "floating") {
         this.floatingManager.bringToFront(id);
+        for (const [sid, s] of this.sessions) {
+          if (s.floatingEl) s.floatingEl.classList.toggle("active", sid === id);
+        }
       }
     }
 
@@ -1795,6 +2059,7 @@
         if (layoutLabel) layoutLabel.textContent = "Float";
         if (layoutIcon) layoutIcon.textContent = "\ud83e\ude9f";
         this.floatingManager.tileAll();
+        this.switchTo(this.activeSessionId);
       }
     }
   }
@@ -2556,8 +2821,7 @@
     setTimeout(() => openCapPicker("skill"), 300);
   });
   const btnShell = $("#btn-shell");
-  // Only show shell picker inside Tauri desktop app
-  if (window.__TAURI_INTERNALS__) btnShell.style.display = "";
+  // Shell switcher hidden for now (TODO: revisit when cross-platform shell support is stable)
   btnShell.addEventListener("click", async () => {
     await loadShellConfig();
     openCapPicker("shell");
@@ -2720,6 +2984,7 @@
   const settingDialogMode = $("#setting-dialog-mode");
   const settingTerminal = $("#setting-terminal");
   const settingAgentTabs = $("#setting-agent-tabs");
+  const settingTodoPanel = $("#setting-todo-panel");
 
   // Init settings from localStorage
   settingBg.value = localStorage.getItem("dg-bg") || "bg-chroma";
@@ -2727,6 +2992,7 @@
   settingDialogMode.value = localStorage.getItem("dg-dialog-mode") || "inline";
   settingTerminal.checked = localStorage.getItem("dg-terminal") === "1";
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
+  settingTodoPanel.checked = localStorage.getItem("dg-todo-panel") !== "0";
 
   settingBg.addEventListener("change", () => {
     const cls = settingBg.value;
@@ -2755,6 +3021,10 @@
     localStorage.setItem("dg-agent-tabs", settingAgentTabs.checked ? "1" : "0");
   });
 
+  settingTodoPanel.addEventListener("change", () => {
+    localStorage.setItem("dg-todo-panel", settingTodoPanel.checked ? "1" : "0");
+  });
+
   function openSettings() { settingsOverlay.classList.remove("hidden"); }
   function closeSettings() { settingsOverlay.classList.add("hidden"); }
 
@@ -2769,7 +3039,8 @@
   const manager = new SessionManager();
   manager.createSession();
   loadModels();
-  if (window.__TAURI_INTERNALS__) loadShellConfig();
+  // Shell config loading disabled while shell switcher is hidden
+  // if (window.__TAURI_INTERNALS__) loadShellConfig();
 
   // Dismiss splash after animation plays
   const splash = document.getElementById("splash");

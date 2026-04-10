@@ -692,6 +692,93 @@ html, body {
   overflow: hidden;
 }
 
+.session-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Todo Side Panel ────────────────────────────── */
+.todo-panel {
+  width: 0;
+  overflow: hidden;
+  border-left: 1px solid transparent;
+  background: var(--mantle);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.2s ease, border-color 0.2s ease;
+}
+.todo-panel.visible {
+  width: 240px;
+  border-left-color: var(--surface0);
+}
+.todo-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--surface0);
+  flex-shrink: 0;
+}
+.todo-panel-title {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--body-text);
+  letter-spacing: 0.02em;
+}
+.todo-panel-close {
+  background: none;
+  border: none;
+  color: var(--body-dim);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.todo-panel-close:hover { background: var(--surface0); color: var(--body-text); }
+.todo-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface1) transparent;
+}
+.todo-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-bottom: 2px;
+  align-items: flex-start;
+  transition: opacity 0.15s ease;
+}
+.todo-item:hover { background: rgba(255,255,255,0.03); }
+.todo-icon { font-size: 12px; flex-shrink: 0; line-height: 1.5; }
+.todo-content { flex: 1; min-width: 0; }
+.todo-title {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--body-text);
+  line-height: 1.5;
+}
+.todo-desc {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--body-dim);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.todo-done .todo-title { text-decoration: line-through; opacity: 0.5; }
+.todo-done .todo-desc { opacity: 0.4; }
+.todo-in_progress .todo-title { color: var(--accent); }
+.todo-blocked .todo-title { color: var(--red, #f38ba8); }
+
 /* ─── Terminal Body ───────────────────────────────── */
 .window-body {
   flex: 1;
@@ -709,6 +796,7 @@ html, body {
   flex: 1;
   overflow-y: auto;
   padding: 16px 24px;
+  min-width: 0;
 }
 
 .window-body::-webkit-scrollbar {
@@ -727,6 +815,7 @@ html, body {
 /* ─── Terminal Output ─────────────────────────────── */
 .terminal-output {
   min-height: 0;
+  user-select: text;
 }
 
 .entry {
@@ -897,6 +986,9 @@ html, body {
   content: 'Ask Copilot anything...';
   color: var(--overlay0);
   font-weight: 400;
+}
+.session-input.touched:empty::before {
+  content: none;
 }
 
 .cursor {
@@ -1504,6 +1596,13 @@ body.recording #record-icon {
   pointer-events: auto;
   min-width: 400px;
   min-height: 300px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  opacity: 0.85;
+}
+.floating-window.active {
+  border-color: rgba(88, 166, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(88, 166, 255, 0.35), 0 0 12px rgba(88, 166, 255, 0.15);
+  opacity: 1;
 }
 
 .floating-titlebar {
