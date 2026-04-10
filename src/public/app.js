@@ -30,6 +30,15 @@
   }
 
   function renderMarkdown(text) {
+    // Convert <system_notification> tags into styled notification lines
+    text = text.replace(/<system_notification>([\s\S]*?)<\/system_notification>/g, (_, body) => {
+      return `\n🔔 ${body.trim()}\n`;
+    });
+    // Strip other internal XML tags (reminders, hints, etc.)
+    text = text.replace(/<\/?(reminder|todo_status|sql_tables|current_datetime|plan_mode)[^>]*>/g, "");
+    // Clean up leftover blank lines from stripped tags
+    text = text.replace(/\n{3,}/g, "\n\n");
+
     let html = escapeHtml(text);
 
     // Code blocks
