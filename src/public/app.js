@@ -2466,6 +2466,15 @@
   loadModels();
   if (window.__TAURI_INTERNALS__) loadShellConfig();
 
+  // Dismiss splash after animation plays
+  const splash = document.getElementById("splash");
+  if (splash) {
+    setTimeout(() => {
+      splash.classList.add("fade-out");
+      setTimeout(() => splash.remove(), 600);
+    }, 3200);
+  }
+
   // Show version in control bar
   const dgVersion = document.querySelector('meta[name="dg-version"]')?.getAttribute("content");
   const versionEl = document.getElementById("version-label");
