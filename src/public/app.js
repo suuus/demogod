@@ -866,8 +866,13 @@
     }
 
     _routeDeltaToSubAgent(msg) {
-      const agent = this._getActiveSubAgent();
-      if (!agent) return false;
+      let agent = this._getActiveSubAgent();
+      if (!agent) {
+        // Auto-create tab for orphan deltas with parentToolCallId
+        this._openSubAgentTab(msg.parentToolCallId, "Sub-agent");
+        agent = this._getActiveSubAgent();
+        if (!agent) return false;
+      }
       if (!agent._textBuffer) agent._textBuffer = "";
       agent._textBuffer += msg.text;
       agent.contentEl.textContent = agent._textBuffer;

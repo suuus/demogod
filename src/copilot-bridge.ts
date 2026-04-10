@@ -110,12 +110,31 @@ export class CopilotBridge extends EventEmitter {
             toolName: input.toolName,
             toolArgs: input.toolArgs,
           });
+          // Detect sub-agent launch via the "task" tool
+          if (input.toolName === "task") {
+            const args = typeof input.toolArgs === "string"
+              ? (() => { try { return JSON.parse(input.toolArgs); } catch { return {}; } })()
+              : (input.toolArgs || {});
+            this.emit("subagent_start", {
+              agentName: args.name || args.agent_type || "sub-agent",
+              agentDisplayName: args.description || args.name || args.agent_type || "Sub-agent",
+            });
+          }
         },
         onPostToolUse: (input) => {
           this.emit("tool_complete", {
             toolName: input.toolName,
             toolResult: input.toolResult,
           });
+          // Detect sub-agent completion
+          if (input.toolName === "task") {
+            const args = typeof input.toolArgs === "string"
+              ? (() => { try { return JSON.parse(input.toolArgs); } catch { return {}; } })()
+              : (input.toolArgs || {});
+            this.emit("subagent_complete", {
+              agentName: args.name || args.agent_type || "sub-agent",
+            });
+          }
         },
       },
     });
