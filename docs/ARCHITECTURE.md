@@ -71,8 +71,8 @@ src/
 │                        #   event forwarding, user input handling
 └── public/
     ├── index.html       # Page structure, overlays, dialogs
-    ├── app.js           # ~2450 lines — all frontend logic (class-based, vanilla JS)
-    └── styles.css       # ~1250 lines — theming, terminal look, dialogs
+    ├── app.js           # ~2500 lines — all frontend logic (class-based, vanilla JS)
+    └── styles.css       # ~1480 lines — theming, terminal look, dialogs
 
 src-tauri/
 ├── src/                 # Rust entry point, sidecar spawning logic
@@ -190,7 +190,7 @@ Plays back JSON demo scripts with realistic timing:
 
 #### `app.js` — Application Logic
 
-Class-based architecture (~2450 lines). Major sections:
+Class-based architecture (~2500 lines). Major sections:
 
 | Section | Description |
 |---------|-------------|
@@ -205,7 +205,7 @@ Class-based architecture (~2450 lines). Major sections:
 | **Capability pickers** | Model, agent, skill, and mode selection dialogs |
 | **Screen recording** | MediaRecorder API for capturing demos as video |
 | **Background customization** | Chroma key green or custom colors for video compositing |
-| **TerminalSession** | Encapsulates a single Copilot session — its own WS connection, terminal state, and DOM output area |
+| **TerminalSession** | Encapsulates a single Copilot session — its own WS connection, terminal state, and DOM output area. `_displayName()` returns "projectname · Session N" for tab/window titles; `_updateTitles()` refreshes all title surfaces when the project changes |
 | **SessionManager** | Creates, destroys, and switches between `TerminalSession` instances (tab bar or keyboard shortcuts) |
 | **FloatingWindowManager** | Detaches sessions into draggable, resizable floating windows with grid snap zones |
 | **Tab system** | Chat tab + dynamically opened file/report tabs |
@@ -258,7 +258,7 @@ When a session is created, the server creates a fresh `CopilotBridge` on the cor
 
 ### Tab Mode (default)
 
-Sessions appear as tabs in the terminal tab bar. Only one session is visible at a time. Keyboard shortcuts cycle through tabs.
+Sessions appear as tabs in the terminal tab bar, showing the project name and session number (e.g. "demogod · Session 1") via `_displayName()`. Only one session is visible at a time. Keyboard shortcuts cycle through tabs.
 
 ### Floating Window Mode
 
@@ -272,6 +272,13 @@ Users can mix modes — some sessions in tabs, others floating.
 ## Tauri Desktop Integration
 
 DemoGod optionally runs as a native desktop app using [Tauri v2](https://v2.tauri.app/). The Tauri layer is in `src-tauri/`.
+
+### Prerequisites
+
+The desktop app is a **native window wrapper**, not a standalone installer. The host machine must have:
+- **Node.js** v20+ and **npm** — the Rust sidecar spawns `node --import tsx src/server.ts`
+- **npm dependencies installed** — `npm install` before first launch
+- **GitHub CLI** authenticated — `gh auth login` for Copilot session access
 
 ### Sidecar Pattern
 

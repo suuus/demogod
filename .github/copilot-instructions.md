@@ -17,7 +17,7 @@ src/
 ├── copilot-bridge.ts    # @github/copilot-sdk wrapper, event forwarding
 └── public/
     ├── index.html       # Page structure, overlays, control bar
-    ├── app.js           # All frontend logic — class-based vanilla JS, ~2450 lines
+    ├── app.js           # All frontend logic — class-based vanilla JS, ~2500 lines
     └── styles.css       # Theming, terminal chrome, CSS custom properties
 
 demos/                   # JSON demo scripts (loaded via /api/demos/:name)
@@ -94,9 +94,9 @@ JSON files in `demos/` with a `steps` array. Each step is either:
 
 ## Multi-Session Architecture
 
-The frontend (`app.js`, ~2450 lines) uses a class-based architecture for multi-session support:
+The frontend (`app.js`, ~2500 lines) uses a class-based architecture for multi-session support:
 
-- **`TerminalSession`** — encapsulates one Copilot session: its own WebSocket, terminal state, and DOM output area.
+- **`TerminalSession`** — encapsulates one Copilot session: its own WebSocket, terminal state, and DOM output area. `_displayName()` returns "projectname · Session N" for tab and floating window titles.
 - **`SessionManager`** — creates/destroys/switches sessions. Manages the tab bar and keyboard shortcut routing.
 - **`FloatingWindowManager`** — detaches sessions into draggable, resizable floating windows with grid snap zones.
 

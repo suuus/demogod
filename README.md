@@ -7,7 +7,7 @@
 > Demo video generator for GitHub Copilot CLI
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-v16+-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Desktop Build](https://github.com/suuus/demogod/actions/workflows/desktop-build.yml/badge.svg)](https://github.com/suuus/demogod/actions/workflows/desktop-build.yml)
 
@@ -35,7 +35,17 @@ DemoGod is a web-based tool that creates interactive demo videos for GitHub Copi
 
 ## Desktop App
 
-DemoGod ships as a native desktop app built with [Tauri v2](https://v2.tauri.app/). The Tauri shell wraps the same web UI and bundles the Node.js server as a sidecar process.
+DemoGod ships as a native desktop app built with [Tauri v2](https://v2.tauri.app/). The Tauri shell wraps the same web UI and spawns the Node.js server as a sidecar process (`node --import tsx src/server.ts`). It is a **native window wrapper**, not a standalone zero-dependency installer — you still need the prerequisites below installed on your machine.
+
+### Prerequisites
+
+The desktop app requires these to be installed on the host machine:
+
+- **Node.js** v20+ and **npm** — the Rust sidecar spawns `node` to run the server
+- **npm dependencies installed** — run `npm install` before launching
+- **GitHub CLI** authenticated — run `gh auth login` so Copilot sessions work
+
+### Usage
 
 ```bash
 # Development (launches Tauri dev window + Node server with hot reload)
@@ -86,7 +96,7 @@ For a deep dive into components, data flows, and extension points, see **[`docs/
 
 ### Prerequisites
 
-- **Node.js** v16 or higher ([Download](https://nodejs.org/))
+- **Node.js** v20 or higher ([Download](https://nodejs.org/))
 - **npm** or **yarn** package manager
 - **GitHub Copilot CLI** access (for live sessions)
 - Optional: **Python 3.9+** and **Azure Functions Core Tools** (for Azure Function features)
@@ -95,7 +105,7 @@ For a deep dive into components, data flows, and extension points, see **[`docs/
 
 ```bash
 # Clone the repository (if not already cloned)
-# git clone <repository-url>
+# git clone https://github.com/suuus/demogod.git
 # cd demogod
 
 # Install Node.js dependencies
