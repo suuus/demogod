@@ -694,6 +694,10 @@
           this.appendSystemMessage("Demo complete \u2713");
           this.setProcessing(false);
           break;
+
+        case "demo_action":
+          this._handleDemoAction(msg);
+          break;
       }
     }
 
@@ -1195,6 +1199,34 @@
         const firstInput = formContainer.querySelector("input, select");
         if (firstInput) firstInput.focus();
       });
+    }
+
+    _handleDemoAction(msg) {
+      const action = msg.action;
+      const value = msg.value;
+      switch (action) {
+        case "layout":
+          this.manager.setLayoutMode(value || "floating");
+          break;
+        case "tile":
+          this.manager.floatingManager.tileAll();
+          break;
+        case "model":
+          if (value) {
+            this.selectedModel = value;
+            const smEl = this.dom.statusBar.querySelector(".status-model");
+            if (smEl) smEl.textContent = value;
+            this.send("set_model", { model: value });
+            this.manager._syncControlBar(this);
+          }
+          break;
+        case "open_file":
+          if (value) this.send("open_file", { path: value });
+          break;
+        case "new_session":
+          this.manager.addSession();
+          break;
+      }
     }
 
     async playScriptedCommand(text, speed = 45) {

@@ -867,6 +867,10 @@ wss.on("connection", (ws) => {
 
           const words = step.response.split(/\s+/).length;
           await cancellableSleep(words * 35 + 1000, signal);
+        } else if (step.type === "action") {
+          // Send a UI action to the frontend (layout switch, model pick, open file, etc.)
+          safeSend(ws, { type: "demo_action", action: step.action, value: step.value });
+          await cancellableSleep(step.pauseAfter || 1500, signal);
         }
       }
 
