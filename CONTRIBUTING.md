@@ -123,6 +123,8 @@ Before submitting a PR, verify:
 - [ ] Demo names are sanitized (`[a-zA-Z0-9_-]` only)
 - [ ] No secrets or credentials in code or config
 - [ ] WebSocket messages validate input before acting
+- [ ] Session token auth is intact — do not disable or bypass `verifyClient` token verification in `server.ts`. The session token is generated at startup and injected into `index.html`; the frontend passes it on every WS connection.
+- [ ] Localhost-only binding (`127.0.0.1`) is preserved — do not change to `0.0.0.0`
 
 ## Submitting a Pull Request
 

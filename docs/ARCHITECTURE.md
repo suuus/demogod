@@ -65,7 +65,7 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 
 ```
 src/
-├── server.ts            # ~860 lines — Express server, WS handler, REST API,
+├── server.ts            # ~920 lines — Express server, WS handler, REST API,
 │                        #   plugin scanners (skills + agents), demo engine
 ├── copilot-bridge.ts    # ~350 lines — CopilotClient/Session wrapper,
 │                        #   event forwarding, user input handling
@@ -155,6 +155,10 @@ Discovers skills and agents from `~/.copilot/installed-plugins/`:
 | `GET /api/models` | List available Copilot models | None (local only) |
 
 #### WebSocket Handler (lines ~472–846)
+
+WebSocket connections go through a `verifyClient` gate before the upgrade handshake completes. `verifyClient` validates two things:
+1. The `?token=` query parameter matches the session token generated at startup.
+2. The `Origin` header is a localhost address (rejects external origins to prevent CSRF).
 
 Per-connection state:
 - `bridge` — `CopilotBridge` instance (one per WS connection)
@@ -373,6 +377,9 @@ Both scanners walk up to 3 levels deep, check `plugin.json` for configuration, a
 | File browsing (`/api/browse`, `/api/browse-files`) | Path must be under `homedir()` |
 | File reading (`/api/file`) | Path under `homedir()` + allowlisted extensions only |
 | Demo loading (`/api/demos/:name`) | Name sanitized to `[a-zA-Z0-9_-]`, resolved path must start with `DEMOS_DIR` |
+| WebSocket token auth | Session token (`randomBytes(32)`) generated at startup, injected into `index.html` via `<meta name="dg-token">`, verified in `verifyClient` on every WS upgrade |
+| Origin checking | `verifyClient` rejects WS connections from non-localhost origins (prevents CSRF) |
+| Localhost binding | `server.listen(PORT, "127.0.0.1")` — server is never accessible from the network |
 | WebSocket | One bridge per connection, input validated per message type |
 | Copilot permissions | `approveAll` — auto-approves for demo purposes |
 

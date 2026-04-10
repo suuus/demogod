@@ -41,6 +41,7 @@ docs/ARCHITECTURE.md     # Deep architecture reference
 3. **Use `session.send()`, never `session.sendAndWait()`** — sub-agent tasks can run indefinitely.
 4. **All file access must be restricted to `homedir()`.** Check every new endpoint.
 5. **Sanitize demo names** — `[a-zA-Z0-9_-]` only, resolved path must be under `DEMOS_DIR`.
+6. **Do NOT remove or weaken `verifyClient`** — it's the primary WS auth layer (token + origin checks).
 
 ## Key Patterns
 
@@ -80,6 +81,9 @@ JSON files in `demos/` with a `steps` array. Each step is either:
 | File paths under `homedir()` | `/api/browse`, `/api/browse-files`, `/api/file` all enforce this |
 | Demo name sanitization | `safeDemoPath()` strips non-`[a-zA-Z0-9_-]` chars, verifies resolved path |
 | Text-file-only reading | `/api/file` allowlists extensions via regex |
+| Session token auth | `verifyClient` in `server.ts` validates the `?token=` query param against the startup-generated session token |
+| Origin checking | `verifyClient` rejects WS connections from non-localhost origins |
+| Localhost-only binding | `server.listen(PORT, "127.0.0.1")` — never bind to `0.0.0.0` or a public interface |
 | `approveAll` is local-only | This is for demo/dev use — never expose to untrusted networks |
 
 ## User Interaction — MANDATORY

@@ -229,10 +229,18 @@ The WebSocket connection supports the following message types:
 
 ## Security
 
+DemoGod runs three layers of WebSocket security (added in v0.0.3):
+
+1. **Session token auth** — A random 256-bit token is generated at server startup and injected into `index.html` via a `<meta name="dg-token">` tag. The frontend passes `?token=TOKEN` on every WebSocket connection. The WS `verifyClient` callback rejects connections without a valid token.
+2. **Origin checking** — `verifyClient` rejects WebSocket upgrade requests from non-localhost origins, preventing CSRF attacks from malicious websites.
+3. **Localhost binding** — The server binds to `127.0.0.1` only (`server.listen(PORT, "127.0.0.1")`), ensuring it is never accessible from the network.
+
+Additional protections:
+
 - File browsing is restricted to the user's home directory
 - Demo names are sanitized to prevent path traversal
 - Only text-based files can be read via the file API
-- WebSocket connections are validated before execution
+- WebSocket messages validate input before acting
 
 ## Azure Function
 
