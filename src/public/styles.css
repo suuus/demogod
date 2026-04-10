@@ -1635,6 +1635,7 @@ body.recording #record-icon {
 .agent-tab-result { margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
 .agent-tab-result pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 13px; line-height: 1.5; color: var(--body-text); font-family: var(--font-mono, monospace); }
 .agent-type-badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); color: var(--body-dim); margin-left: 6px; vertical-align: middle; text-transform: lowercase; }
+.agent-tab-desc { font-size: 12px; color: var(--body-dim); margin-top: 2px; font-style: italic; }
 
 /* ─── Settings Panel ─────────────────────────────── */
 #settings-overlay {

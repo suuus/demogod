@@ -597,12 +597,16 @@
 
         case "subagent_start":
           this.appendSystemMessage("Sub-agent started: " + (msg.agentDisplayName || msg.agentName), "info");
-          if (FEAT_AGENT_TABS) this._openSubAgentTab(msg.agentName, msg.agentDisplayName || msg.agentName, msg.agentType);
+          if (FEAT_AGENT_TABS) this._openSubAgentTab(msg.agentName, msg.agentDisplayName || msg.agentName, msg.agentType, msg.agentDescription);
           break;
 
         case "subagent_complete":
           this.appendSystemMessage("Sub-agent completed: " + (msg.agentDisplayName || msg.agentName), "info");
           if (FEAT_AGENT_TABS) this._completeSubAgentTab(msg.agentName, msg.result);
+          break;
+
+        case "subagent_output":
+          if (FEAT_AGENT_TABS) this._appendSubAgentOutput(msg.agentName, msg.result);
           break;
 
         case "task_complete":
@@ -806,12 +810,13 @@
     }
 
     // ─── Sub-agent tab helpers ──────────────────────────
-    _openSubAgentTab(agentName, displayName, agentType) {
+    _openSubAgentTab(agentName, displayName, agentType, description) {
       // Deduplicate — don't open a second tab for the same agent
       if (this.activeSubAgents.find(a => a.agentName === agentName)) return;
 
       const typeIcon = { explore: "\ud83d\udd0d", task: "\u2699\ufe0f", "general-purpose": "\ud83e\udde0", "code-review": "\ud83d\udcdd" }[agentType] || "\ud83e\udd16";
       const typeBadge = agentType ? ' <span class="agent-type-badge">' + escapeHtml(agentType) + '</span>' : "";
+      const subtitle = description ? '<div class="agent-tab-desc">' + escapeHtml(description) + '</div>' : "";
 
       const tabId = "agent-" + (++tabCounter);
       const tab = document.createElement("div");
@@ -845,7 +850,7 @@
         '<span class="spinner"></span>' +
         '<span class="agent-tab-name">' + escapeHtml(displayName) + typeBadge + '</span>' +
         '<span class="agent-tab-status running">running</span>' +
-        '<span class="agent-tab-intent"></span>';
+        subtitle;
 
       const content = document.createElement("div");
       content.className = "agent-tab-content";
@@ -862,10 +867,8 @@
     }
 
     _completeSubAgentTab(agentName, result) {
-      const idx = this.activeSubAgents.findIndex(a => a.agentName === agentName);
-      if (idx === -1) return;
-      const agent = this.activeSubAgents[idx];
-      this.activeSubAgents.splice(idx, 1);
+      const agent = this.activeSubAgents.find(a => a.agentName === agentName);
+      if (!agent) return;
 
       const statusEl = agent.headerEl.querySelector(".agent-tab-status");
       const spinnerEl = agent.headerEl.querySelector(".spinner");
@@ -873,6 +876,7 @@
       // Parse structured result — extract meaningful content
       let displayText = "";
       let isBackground = false;
+      let agentId = "";
       if (result) {
         displayText = result;
         try {
@@ -882,26 +886,72 @@
           } else if (parsed.textResultForLlm) {
             displayText = parsed.textResultForLlm;
           }
-          // Background agents — task tool returns immediately, agent still running
           if (parsed.resultType === "success" && parsed.toolTelemetry?.properties?.execution_mode === "background") {
             isBackground = true;
-            const agentId = parsed.toolTelemetry?.restrictedProperties?.agent_id || "";
+            agentId = parsed.toolTelemetry?.restrictedProperties?.agent_id || "";
+            agent._agentId = agentId;
             if (statusEl) { statusEl.className = "agent-tab-status running"; statusEl.textContent = "\u23f3 background"; }
-            const intentEl = agent.headerEl.querySelector(".agent-tab-intent");
-            if (intentEl) intentEl.textContent = agentId ? "agent: " + agentId : "";
           }
-        } catch {
-          // Not JSON — use as-is
-        }
+        } catch {}
       }
 
       if (!isBackground) {
+        // Sync agent done — remove from active list
+        const idx = this.activeSubAgents.indexOf(agent);
+        if (idx !== -1) this.activeSubAgents.splice(idx, 1);
         if (statusEl) { statusEl.className = "agent-tab-status done"; statusEl.textContent = "\u2713 completed"; }
         if (spinnerEl) spinnerEl.remove();
+        if (displayText) {
+          const resultEl = document.createElement("div");
+          resultEl.className = "agent-tab-result";
+          const pre = document.createElement("pre");
+          pre.textContent = displayText;
+          resultEl.appendChild(pre);
+          agent.contentEl.appendChild(resultEl);
+          this._autoScrollAgent(agent);
+        }
       }
+      // Background agents stay in activeSubAgents so _appendSubAgentOutput can find them
 
-      // Show result content (skip raw prompt dump for background agents)
-      if (displayText && !isBackground) {
+      // Add badge if not active tab
+      const tab = tabBar.querySelector('[data-tab="' + agent.tabId + '"]');
+      if (tab && !tab.classList.contains("active")) {
+        const badge = document.createElement("span");
+        badge.className = "tab-badge";
+        tab.appendChild(badge);
+      }
+    }
+
+    _appendSubAgentOutput(agentName, result) {
+      // Find by agentName or by _agentId
+      const agent = this.activeSubAgents.find(
+        a => a.agentName === agentName || a._agentId === agentName
+      );
+      if (!agent) return;
+
+      let displayText = result || "";
+      let isDone = false;
+      try {
+        const parsed = typeof result === "string" ? JSON.parse(result) : result;
+        // read_agent returns turn history or final result
+        if (parsed.status === "completed" || parsed.status === "failed") {
+          isDone = true;
+        }
+        // Extract the actual content — could be in turns, result, or response
+        if (parsed.response) {
+          displayText = parsed.response;
+        } else if (parsed.turns && Array.isArray(parsed.turns)) {
+          displayText = parsed.turns.map(t => t.response || t.content || "").filter(Boolean).join("\n\n");
+        } else if (parsed.result) {
+          displayText = typeof parsed.result === "string" ? parsed.result : JSON.stringify(parsed.result, null, 2);
+        } else if (parsed.textResultForLlm) {
+          displayText = parsed.textResultForLlm;
+        }
+      } catch {}
+
+      // Append or replace content
+      if (displayText) {
+        agent.contentEl.innerHTML = "";
         const resultEl = document.createElement("div");
         resultEl.className = "agent-tab-result";
         const pre = document.createElement("pre");
@@ -911,12 +961,14 @@
         this._autoScrollAgent(agent);
       }
 
-      // Add badge if not active tab
-      const tab = tabBar.querySelector('[data-tab="' + agent.tabId + '"]');
-      if (tab && !tab.classList.contains("active")) {
-        const badge = document.createElement("span");
-        badge.className = "tab-badge";
-        tab.appendChild(badge);
+      if (isDone) {
+        const statusEl = agent.headerEl.querySelector(".agent-tab-status");
+        if (statusEl) { statusEl.className = "agent-tab-status done"; statusEl.textContent = "\u2713 completed"; }
+        const spinnerEl = agent.headerEl.querySelector(".spinner");
+        if (spinnerEl) spinnerEl.remove();
+        // Remove from active list
+        const idx = this.activeSubAgents.indexOf(agent);
+        if (idx !== -1) this.activeSubAgents.splice(idx, 1);
       }
     }
 

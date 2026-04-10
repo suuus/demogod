@@ -669,6 +669,10 @@ wss.on("connection", (ws) => {
       safeSend(ws, { type: "subagent_complete", ...data });
     });
 
+    bridge.on("subagent_output", (data: any) => {
+      safeSend(ws, { type: "subagent_output", ...data });
+    });
+
     bridge.on("task_complete", (data: any) => {
       safeSend(ws, { type: "task_complete", summary: data.summary });
     });

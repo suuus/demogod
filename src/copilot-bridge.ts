@@ -36,6 +36,8 @@ export class CopilotBridge extends EventEmitter {
   private inputCounter = 0;
   // Track active task tool calls so we can match start→complete with args
   private activeTaskAgents: { agentName: string; agentDisplayName: string }[] = [];
+  // Map background agent IDs to their agentName for routing read_agent results
+  private backgroundAgentMap = new Map<string, string>();
 
   constructor() {
     super();
@@ -118,11 +120,12 @@ export class CopilotBridge extends EventEmitter {
               ? (() => { try { return JSON.parse(input.toolArgs); } catch { return {}; } })()
               : (input.toolArgs || {});
             const agentName = args.name || args.agent_type || "sub-agent";
-            // Build a nice display name: prefer description, then humanize the name
+            // Tab title = humanized agent name; description goes as subtitle
             const humanName = (args.name || "").replace(/[-_]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-            const agentDisplayName = args.description || humanName || args.agent_type || "Sub-agent";
+            const agentDisplayName = humanName || args.agent_type || "Sub-agent";
+            const agentDescription = args.description || "";
             this.activeTaskAgents.push({ agentName, agentDisplayName });
-            this.emit("subagent_start", { agentName, agentDisplayName, agentType: args.agent_type });
+            this.emit("subagent_start", { agentName, agentDisplayName, agentType: args.agent_type, agentDescription });
           }
         },
         onPostToolUse: (input) => {
@@ -133,13 +136,37 @@ export class CopilotBridge extends EventEmitter {
           // Detect sub-agent completion — pop from stack and include result
           if (input.toolName === "task") {
             const entry = this.activeTaskAgents.pop();
-            const result = typeof input.toolResult === "string"
+            const resultStr = typeof input.toolResult === "string"
               ? input.toolResult
               : (input.toolResult ? JSON.stringify(input.toolResult) : "");
+            // Track background agent ID for routing read_agent results later
+            try {
+              const parsed = typeof input.toolResult === "string" ? JSON.parse(input.toolResult) : input.toolResult;
+              if (parsed?.toolTelemetry?.properties?.execution_mode === "background") {
+                const agentId = parsed.toolTelemetry?.restrictedProperties?.agent_id;
+                if (agentId && entry) {
+                  this.backgroundAgentMap.set(agentId, entry.agentName);
+                }
+              }
+            } catch {}
             this.emit("subagent_complete", {
               agentName: entry?.agentName || "sub-agent",
-              result,
+              result: resultStr,
             });
+          }
+          // Detect read_agent — route output to the matching background agent tab
+          if (input.toolName === "read_agent") {
+            const args = typeof input.toolArgs === "string"
+              ? (() => { try { return JSON.parse(input.toolArgs); } catch { return {}; } })()
+              : (input.toolArgs || {});
+            const agentId = args.agent_id;
+            const agentName = agentId ? this.backgroundAgentMap.get(agentId) : undefined;
+            if (agentName) {
+              const resultStr = typeof input.toolResult === "string"
+                ? input.toolResult
+                : (input.toolResult ? JSON.stringify(input.toolResult) : "");
+              this.emit("subagent_output", { agentName, agentId, result: resultStr });
+            }
           }
         },
       },
