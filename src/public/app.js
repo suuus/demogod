@@ -355,6 +355,24 @@
       this.dom = this._createDOM();
     }
 
+    _displayName() {
+      const proj = this.selectedProject ? this.selectedProject.split("/").pop() : "";
+      return proj ? proj + " · Session " + this.sessionNum : "Session " + this.sessionNum;
+    }
+
+    _updateTitles() {
+      const name = this._displayName();
+      const tab = document.querySelector('[data-session-tab="' + this.id + '"]');
+      if (tab) {
+        const label = tab.querySelector(".session-tab-name");
+        if (label) label.textContent = name;
+      }
+      if (this.floatingEl) {
+        const ft = this.floatingEl.querySelector(".floating-title");
+        if (ft) ft.textContent = name;
+      }
+    }
+
     _createDOM() {
       const container = document.createElement("div");
       container.className = "session-container";
@@ -407,7 +425,7 @@
       const chrome = document.createElement("div");
       chrome.className = "floating-titlebar";
       chrome.innerHTML = `
-        <span class="floating-title">Session ${this.sessionNum}</span>
+        <span class="floating-title">${escapeHtml(this._displayName())}</span>
         <div class="floating-controls">
           <button class="floating-btn floating-minimize" title="Minimize">\u2212</button>
           <button class="floating-btn floating-maximize" title="Maximize">\u25A1</button>
@@ -492,6 +510,7 @@
             scEl.textContent = "\ud83d\udcc2 " + short;
             scEl.title = dir;
           }
+          this._updateTitles();
           this.send("list_agents");
           this.send("list_skills");
           this.send("get_mode");
@@ -1033,6 +1052,7 @@
       this.setProcessing(false);
       this.setStatus("Switching project...");
       this.send("create_session", { workingDirectory: this.selectedProject, model: this.selectedModel || undefined });
+      this._updateTitles();
       this._syncControlBarIfActive();
     }
   }
@@ -1407,7 +1427,7 @@
       tab.dataset.sessionTab = session.id;
       tab.innerHTML =
         '<span class="session-tab-dot" style="background: #28c840"></span>' +
-        '<span class="session-tab-name">Session ' + session.sessionNum + '</span>' +
+        '<span class="session-tab-name">' + escapeHtml(session._displayName()) + '</span>' +
         '<span class="session-tab-close" title="Close">\u00d7</span>';
 
       tab.addEventListener("click", (e) => {
