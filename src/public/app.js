@@ -6,6 +6,10 @@
   // ─── UTILITIES ─────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════
 
+  // API base URL: in Tauri production the frontend is served from tauri://
+  // so API calls must target the actual Express server on localhost:3456
+  const API_BASE = window.__TAURI_INTERNALS__ ? "http://localhost:3456" : "";
+
   function escapeHtml(str) {
     const div = document.createElement("div");
     div.textContent = str;
@@ -447,9 +451,10 @@
     }
 
     connect() {
-      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      const wsHost = window.__TAURI_INTERNALS__ ? "localhost:3456" : location.host;
+      const protocol = window.__TAURI_INTERNALS__ ? "ws:" : (location.protocol === "https:" ? "wss:" : "ws:");
       const token = document.querySelector('meta[name="dg-token"]')?.getAttribute("content") || "";
-      this.ws = new WebSocket(`${protocol}//${location.host}?token=${encodeURIComponent(token)}`);
+      this.ws = new WebSocket(`${protocol}//${wsHost}?token=${encodeURIComponent(token)}`);
       this.ws.onopen = () => {
         this.setStatus("Connected", "\u25cf");
         this.send("create_session", {
@@ -1695,7 +1700,7 @@
     const normalPath = filePath.replace(/^\/+/, "/");
     if (globalOpenedFiles.has(normalPath)) {
       try {
-        const res = await fetch("/api/file?path=" + encodeURIComponent(filePath));
+        const res = await fetch(API_BASE + "/api/file?path=" + encodeURIComponent(filePath));
         if (!res.ok) return;
         const data = await res.json();
         const tabId = "file-" + hashPath(normalPath);
@@ -1710,7 +1715,7 @@
     globalOpenedFiles.add(normalPath);
 
     try {
-      const res = await fetch("/api/file?path=" + encodeURIComponent(filePath));
+      const res = await fetch(API_BASE + "/api/file?path=" + encodeURIComponent(filePath));
       if (!res.ok) return;
       const data = await res.json();
       const filename = data.filename || filePath.split("/").pop();
@@ -2113,7 +2118,7 @@
 
   async function loadModels() {
     try {
-      const res = await fetch("/api/models");
+      const res = await fetch(API_BASE + "/api/models");
       if (!res.ok) throw new Error("Failed to fetch models");
       cachedModels = await res.json();
     } catch (err) {
@@ -2132,7 +2137,7 @@
 
   async function loadShellConfig() {
     try {
-      const res = await fetch("/api/shell");
+      const res = await fetch(API_BASE + "/api/shell");
       const data = await res.json();
       cachedShellConfig = data;
       const label = document.getElementById("shell-label");
@@ -2245,7 +2250,7 @@
       sel.removeAllRanges();
       sel.addRange(range);
     } else if (mode === "shell") {
-      fetch("/api/shell", {
+      fetch(API_BASE + "/api/shell", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shell: id }),
