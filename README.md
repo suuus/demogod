@@ -24,13 +24,17 @@ DemoGod is a web-based tool that creates interactive demo videos for GitHub Copi
 ## Features
 
 - **Interactive Terminal UI**: Web-based terminal interface for demonstrations
-- **Scripted Demos**: Execute pre-recorded demo scripts with realistic typing animations
+- **Scripted & Live Demos**: Execute pre-recorded demo scripts or run live demos that send real prompts to Copilot
+- **Demo Picker**: Choose from available demo scripts via the mode button — includes UI automation (layout switches, model changes, file opens)
 - **Live Copilot Integration**: Connect to real Copilot CLI sessions via WebSocket bridge
 - **Project Browser**: Browse and select working directories for Copilot sessions
 - **Real-time Streaming**: See Copilot responses as they are generated
 - **Tool Execution Visualization**: Watch tool calls and their results in real-time
+- **Sub-Agent Activity Tabs** *(experimental)*: Track sub-agent tasks in dedicated tabs — see agent type, name, and results
 - **File Change Tracking**: Monitor file modifications during demo execution
 - **Multi-Session Support**: Run multiple Copilot sessions in tabs or floating windows with grid snapping
+- **Settings Panel**: Configure appearance, feature flags, and experimental options from ⚙️ Settings
+- **Screen Recording**: Built-in recording button (bottom-right) — records the browser tab and downloads as `.webm`
 - **Desktop App**: Native desktop experience via Tauri with system-level keyboard shortcuts
 
 ## Desktop App
@@ -141,13 +145,15 @@ PORT=8080 npm start
 demogod/
 ├── src/
 │   ├── server.ts           # Express + WS server, REST API, plugin scanners, demo engine
-│   ├── copilot-bridge.ts   # Copilot SDK wrapper, event forwarding
+│   ├── copilot-bridge.ts   # Copilot SDK wrapper, event forwarding, sub-agent detection
 │   └── public/             # Static frontend (HTML/CSS/vanilla JS — no build step)
 ├── src-tauri/              # Tauri desktop app (Rust + config)
 │   ├── src/                # Rust entry point and sidecar management
 │   ├── Cargo.toml          # Rust dependencies
 │   └── tauri.conf.json     # Tauri window, sidecar, and build config
-├── demos/                  # Demo script JSON files
+├── demo/
+│   └── sample-app/         # Tiny Node.js project for demo showcase
+├── demos/                  # Demo script JSON files (intro.json, showcase.json)
 ├── docs/
 │   └── ARCHITECTURE.md     # Detailed architecture reference
 ├── .github/
@@ -161,7 +167,44 @@ demogod/
 
 ## Demo Scripts
 
-Demo scripts are JSON files located in the `demos/` directory. Each script defines a sequence of steps:
+Demo scripts are JSON files in `demos/`. The mode button (⌨️) opens a picker to choose which demo to run.
+
+### Step Types
+
+| Type | Description |
+|------|-------------|
+| `command` | Typed prompt + canned response (scripted) |
+| `question` | Typed prompt + dialog with auto-fill + canned response |
+| `live` | Typed prompt sent as a **real** Copilot prompt — waits for idle before next step |
+| `action` | UI automation — switch layout, change model, tile windows, open files |
+
+### Example — Live Demo
+
+```json
+{
+  "title": "Feature Showcase",
+  "steps": [
+    { "type": "live", "text": "What is this project?", "typingSpeed": 40, "pauseAfter": 3000 },
+    { "type": "action", "action": "layout", "value": "floating", "pauseAfter": 2000 },
+    { "type": "action", "action": "tile", "pauseAfter": 1500 },
+    { "type": "action", "action": "model", "value": "claude-sonnet-4", "pauseAfter": 1000 },
+    { "type": "live", "text": "Run the tests", "typingSpeed": 40, "pauseAfter": 3000 },
+    { "type": "action", "action": "layout", "value": "tabs", "pauseAfter": 1500 }
+  ]
+}
+```
+
+### Available Actions
+
+| Action | Value | Effect |
+|--------|-------|--------|
+| `layout` | `"tabs"` or `"floating"` | Switch layout mode |
+| `tile` | — | Tile all floating windows |
+| `model` | model ID string | Switch the active model |
+| `open_file` | file path | Open a file in a tab |
+| `new_session` | — | Create a new session |
+
+### Example — Scripted Demo
 
 ```json
 {
@@ -171,21 +214,14 @@ Demo scripts are JSON files located in the `demos/` directory. Each script defin
       "text": "what can you help me with?",
       "typingSpeed": 45,
       "response": "I can help you with software engineering tasks..."
-    },
-    {
-      "type": "question",
-      "text": "create a REST API",
-      "typingSpeed": 45,
-      "question": {
-        "message": "What framework would you like to use?",
-        "schema": { ... }
-      },
-      "answer": "Express",
-      "response": "I'll create an Express REST API..."
     }
   ]
 }
 ```
+
+### Sample Project
+
+A tiny demo project is included at `demo/sample-app/` — a Node.js task tracker with tests, TODOs, and FIXMEs. Point DemoGod's project picker at it for a great demo experience.
 
 ## API Endpoints
 
@@ -198,6 +234,10 @@ Browse directories for project selection
 Read file contents
 - Query param: `path` (required)
 - Returns: File content and metadata
+
+### `GET /api/demos`
+List available demo scripts
+- Returns: Array of `{name, title, description}`
 
 ### `GET /api/demos/:name`
 Load a demo script
@@ -234,11 +274,17 @@ The WebSocket connection supports the following message types:
 - `idle`: Copilot is ready for next input
 - `tool_start`: Tool execution started
 - `tool_complete`: Tool execution finished
+- `tool_partial`: Partial tool output
+- `tool_progress`: Tool progress update
 - `intent`: Current task intent
 - `file_changed`: File was modified
+- `subagent_start`: Sub-agent task started (agent name, type, description)
+- `subagent_complete`: Sub-agent task finished (with result)
+- `subagent_output`: Background agent output streamed via `read_agent`
 - `demo_step_command`: Demo command to display
 - `demo_step_response`: Demo response to display
 - `demo_step_question`: Show question dialog
+- `demo_action`: UI automation action (layout, model, tile, open_file)
 - `demo_complete`: Demo finished
 - `error`: Error occurred
 
@@ -377,11 +423,16 @@ DEBUG=* npm start
 ## Roadmap
 
 - [ ] Add more demo script templates
-- [ ] Support for recording terminal sessions
+- [x] Support for recording terminal sessions
 - [ ] Export demos as video files
 - [ ] Enhanced UI with syntax highlighting
 - [x] Multiple session management
+- [x] Settings panel with feature flags
+- [x] Sub-agent activity tabs
+- [x] Live demo mode (real Copilot prompts)
+- [x] Demo UI automation (layout, model, tile)
 - [ ] Custom themes and styling options
+- [ ] Saved layout presets
 
 ## License
 

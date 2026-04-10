@@ -17,11 +17,12 @@ Open `http://localhost:3456` in your browser.
 
 | Path | What lives here |
 |------|----------------|
-| `src/server.ts` | Express + WebSocket server, REST API routes, demo runner, plugin scanners |
-| `src/copilot-bridge.ts` | Wrapper around `@github/copilot-sdk` — session lifecycle, event forwarding |
-| `src/public/` | Static frontend — `index.html`, `app.js` (~2450 lines, class-based vanilla JS), `styles.css` |
+| `src/server.ts` | Express + WebSocket server, REST API routes, demo runner (live + scripted), plugin scanners |
+| `src/copilot-bridge.ts` | Wrapper around `@github/copilot-sdk` — session lifecycle, event forwarding, sub-agent detection |
+| `src/public/` | Static frontend — `index.html`, `app.js` (~2900 lines, class-based vanilla JS), `styles.css` |
 | `src-tauri/` | Tauri desktop shell — Rust entry point, sidecar config, `tauri.conf.json` |
-| `demos/` | JSON demo scripts loaded by the demo engine |
+| `demo/sample-app/` | Tiny Node.js task tracker project for demo showcases |
+| `demos/` | JSON demo scripts — scripted (`intro.json`) and live (`showcase.json`) |
 | `docs/` | Architecture and design docs |
 | `.github/copilot-instructions.md` | Context file for GitHub Copilot |
 
@@ -88,8 +89,9 @@ The desktop app includes a **shell picker** (v0.0.4+) for selecting which shell 
 ### Adding a new demo script
 
 1. Create a `.json` file in `demos/`.
-2. Follow the schema in `demos/intro.json` — steps are `command` or `question` objects.
-3. The demo is accessible via `GET /api/demos/<name>` (without `.json`).
+2. Steps can be: `command` (scripted), `question` (dialog), `live` (real Copilot prompt), or `action` (UI automation).
+3. The demo appears in the mode picker via `GET /api/demos`.
+4. See `demos/showcase.json` for a full-featured example with live prompts and layout switching.
 
 ### Modifying the Copilot Bridge
 

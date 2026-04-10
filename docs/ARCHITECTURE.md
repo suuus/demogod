@@ -65,28 +65,34 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 
 ```
 src/
-├── server.ts            # ~920 lines — Express server, WS handler, REST API,
-│                        #   plugin scanners (skills + agents), demo engine
-├── copilot-bridge.ts    # ~350 lines — CopilotClient/Session wrapper,
-│                        #   event forwarding, user input handling
+├── server.ts            # ~1100 lines — Express server, WS handler, REST API,
+│                        #   plugin scanners (skills + agents), demo engine (live + scripted)
+├── copilot-bridge.ts    # ~270 lines — CopilotClient/Session wrapper,
+│                        #   event forwarding, sub-agent detection, user input handling
 └── public/
-    ├── index.html       # Page structure, overlays, dialogs
-    ├── app.js           # ~2500 lines — all frontend logic (class-based, vanilla JS)
-    └── styles.css       # ~1480 lines — theming, terminal look, dialogs
+    ├── index.html       # Page structure, overlays, dialogs, settings panel, bottom-right controls
+    ├── app.js           # ~2900 lines — all frontend logic (class-based, vanilla JS)
+    └── styles.css       # ~1750 lines — theming, terminal look, dialogs, settings, agent tabs
 
 src-tauri/
 ├── src/                 # Rust entry point, sidecar spawning logic
 ├── Cargo.toml           # Rust crate config
 └── tauri.conf.json      # Tauri window config, sidecar definition, build settings
 
+demo/
+└── sample-app/          # Tiny Node.js task tracker project for demo showcases
+
 demos/
-└── intro.json           # Example scripted demo (command + question steps)
+├── intro.json           # Scripted demo (command + question steps)
+└── showcase.json        # Live demo with UI automation (layout, tile, sub-agents)
 
 docs/
 └── ARCHITECTURE.md      # This file
 
-.github/workflows/
-└── desktop-build.yml    # CI workflow for cross-platform Tauri builds
+.github/
+├── copilot-instructions.md  # Context for GitHub Copilot
+└── workflows/
+    └── desktop-build.yml    # CI workflow for cross-platform Tauri builds
 ```
 
 ## Key Components
@@ -122,7 +128,9 @@ The bridge wraps the `@github/copilot-sdk` and translates SDK events into simple
 | `tool_progress` | `{toolCallId, progressMessage}` | Tool progress update |
 | `intent` | `(text)` | Agent reports current intent |
 | `file_changed` | `{path, operation}` | Workspace file modified |
-| `subagent_start/complete` | `{agentName, agentDisplayName}` | Sub-agent lifecycle |
+| `subagent_start` | `{agentName, agentDisplayName, type, description}` | `task` tool detected in `onPreToolUse` |
+| `subagent_complete` | `{agentName, agentDisplayName, toolResult}` | `task` tool completed in `onPostToolUse` |
+| `subagent_output` | `{agentId, agentName, output}` | `read_agent` tool completed — background agent results |
 | `task_complete` | `{summary}` | Task finished |
 | `capabilities_loaded` | `{kind, items, ...}` | Skills/agents/MCP/extensions loaded |
 | `mcp_status` | `{serverName, status}` | MCP server status change |
@@ -354,17 +362,58 @@ SDK calls onUserInputRequest or onElicitationRequest
 ### Scripted Demo Playback
 
 ```
-User selects "Scripted" mode, picks a demo
-  → app.js sends {type:"start_demo", demo:"intro"}
-    → server.ts runDemo("intro")
-      → Reads demos/intro.json
-      → For each step:
-        → safeSend({type:"demo_step_command", text, typingSpeed})
-        → cancellableSleep(typing duration)
-        → safeSend({type:"demo_step_response", text})
-        → cancellableSleep(reading duration)
-      → safeSend({type:"demo_complete"})
+User clicks ⌨️ Mode button
+  → app.js fetches GET /api/demos → list of available demos
+  → Opens demo picker (cappicker with mode="demo")
+  → User selects a demo (e.g. "showcase")
+    → app.js sends {type:"start_demo", demo:"showcase"}
+      → server.ts runDemo("showcase")
+        → Reads demos/showcase.json
+        → For each step:
+          "command" → safeSend(demo_step_command) → sleep → safeSend(demo_step_response)
+          "question" → safeSend(demo_step_command) → safeSend(demo_step_question) → sleep → safeSend(demo_step_response)
+          "live"    → safeSend(demo_step_command) → handlePrompt(text) → waitForIdle() → sleep
+          "action"  → safeSend({type:"demo_action", action, value}) → sleep
+        → safeSend({type:"demo_complete"})
 ```
+
+### Demo Actions (UI Automation)
+
+The `"action"` step type sends a `demo_action` WS message that the frontend handles in `_handleDemoAction()`:
+
+| Action | Value | Effect |
+|--------|-------|--------|
+| `layout` | `"tabs"` or `"floating"` | Switch layout mode |
+| `tile` | — | Tile all floating windows |
+| `model` | model ID string | Switch the active model |
+| `open_file` | file path | Open a file in a tab |
+| `new_session` | — | Create a new session |
+
+### Sub-Agent Tab Architecture (v0.0.7)
+
+Sub-agents are detected via the `task` tool in `onPreToolUse`/`onPostToolUse` hooks (the SDK does **not** emit `subagent.started`/`subagent.completed` events):
+
+```
+Copilot calls task tool
+  → onPreToolUse: detects tool_name === "task"
+    → Push to activeTaskAgents stack
+    → Emit subagent_start {agentName, type, description}
+      → server.ts forwards via WS
+        → app.js _openSubAgentTab(): creates tab with type icon + name
+  → onPostToolUse: detects task tool complete
+    → Pop from activeTaskAgents stack
+    → Parse toolResult for backgroundAgentMap registration
+    → Emit subagent_complete {agentName, toolResult}
+      → app.js _completeSubAgentTab(): shows parsed result in tab
+
+Background agent output:
+  → Copilot calls read_agent tool
+    → onPostToolUse: matches agent_id in backgroundAgentMap
+    → Emit subagent_output {agentId, agentName, output}
+      → app.js _appendSubAgentOutput(): routes to matching tab
+```
+
+**Key limitations**: SDK doesn't stream sub-agent internals (deltas/tool events) to the parent session. With parallel agents, there's no reliable way to route events to specific agent tabs — only start and complete events are tracked.
 
 ## Plugin System
 
@@ -423,8 +472,17 @@ Both scanners walk up to 3 levels deep, check `plugin.json` for configuration, a
 
 ### Adding new demo step types
 1. Add the step handling logic in `runDemo()` in `server.ts`
-2. Add corresponding `demo_step_*` message handling in `app.js`
+2. Add corresponding `demo_step_*` or `demo_action` handling in `app.js`
 3. Document the step schema in the demo script section of `README.md`
+
+### Adding new demo actions
+1. Add the action case in `_handleDemoAction()` in `app.js`
+2. Use it in demo JSON: `{"type": "action", "action": "your_action", "value": "..."}`
+
+### Adding a new setting
+1. Add HTML toggle/dropdown in `#settings-window` in `index.html`
+2. Add a `dg-*` localStorage key
+3. Wire up event listener + init in the settings panel section of `app.js`
 
 ## Dependencies
 
@@ -433,6 +491,8 @@ Both scanners walk up to 3 levels deep, check `plugin.json` for configuration, a
 | `@github/copilot-sdk` | Core Copilot integration | Official SDK — the only way to programmatically talk to Copilot CLI |
 | `express` | HTTP server | Lightweight, well-known, serves static files + JSON API |
 | `ws` | WebSocket server | De facto Node.js WebSocket library, minimal overhead |
+| `node-pty` | Terminal emulator | Native PTY for integrated terminal (experimental) |
+| `@xterm/xterm` | Terminal UI | Standard terminal component for the integrated terminal (experimental) |
 | `tsx` | TypeScript runner (dev) | Zero-config TS execution with watch mode for development |
 | `typescript` | Type checking (dev) | Strict mode type checking, not used at runtime |
 

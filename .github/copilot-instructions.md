@@ -14,12 +14,13 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 ```
 src/
 ├── server.ts            # Express + WS server, REST API, plugin scanners, demo engine
-├── copilot-bridge.ts    # @github/copilot-sdk wrapper, event forwarding
+├── copilot-bridge.ts    # @github/copilot-sdk wrapper, event forwarding, sub-agent detection
 └── public/
-    ├── index.html       # Page structure, overlays, control bar
-    ├── app.js           # All frontend logic — class-based vanilla JS, ~2500 lines
+    ├── index.html       # Page structure, overlays, control bar, settings panel
+    ├── app.js           # All frontend logic — class-based vanilla JS, ~2900 lines
     └── styles.css       # Theming, terminal chrome, CSS custom properties
 
+demo/sample-app/         # Tiny Node.js project for demo showcases
 demos/                   # JSON demo scripts (loaded via /api/demos/:name)
 src-tauri/               # Tauri desktop app (Rust shell + config)
 docs/ARCHITECTURE.md     # Deep architecture reference
@@ -70,9 +71,32 @@ Plugins from `~/.copilot/installed-plugins/` are scanned at server startup:
 
 ### Demo Scripts
 
-JSON files in `demos/` with a `steps` array. Each step is either:
-- `"type": "command"` — typed prompt + canned response
-- `"type": "question"` — typed prompt + dialog with auto-fill + response
+JSON files in `demos/` with a `steps` array. Each step has a `type`:
+- `"command"` — typed prompt + canned response (scripted playback)
+- `"question"` — typed prompt + dialog with auto-fill + canned response
+- `"live"` — typed prompt sent as a **real** Copilot prompt, waits for idle before next step
+- `"action"` — UI automation: `layout`, `tile`, `model`, `open_file`, `new_session`
+
+### Settings Panel
+
+The ⚙️ Settings button opens a panel with three sections:
+- **Appearance**: Background color, dialog mode (inline/popup), show version badge
+- **Features**: (reserved for future toggles)
+- **Experimental**: Integrated terminal, sub-agent activity tabs
+
+Settings are persisted to `localStorage` with a `dg-` prefix.
+
+### Sub-Agent Tab Detection (v0.0.7)
+
+Sub-agents are detected via the `task` tool in `onPreToolUse`/`onPostToolUse` hooks:
+- `activeTaskAgents` stack tracks start→complete matching
+- `backgroundAgentMap` (Map<agentId, agentName>) tracks background agents
+- `subagent_output` event: emitted when `read_agent` completes, routed to matching tab
+- SDK does **not** stream sub-agent internals — tabs show result on completion, not live output
+
+### System Notification Rendering
+
+The markdown renderer strips internal XML tags (`<reminder>`, `<todo_status>`, etc.) and converts `<system_notification>` tags into styled 🔔 alert lines.
 
 ## Security — Do Not Break These
 
@@ -98,10 +122,10 @@ JSON files in `demos/` with a `steps` array. Each step is either:
 
 ## Multi-Session Architecture
 
-The frontend (`app.js`, ~2500 lines) uses a class-based architecture for multi-session support:
+The frontend (`app.js`, ~2900 lines) uses a class-based architecture for multi-session support:
 
-- **`TerminalSession`** — encapsulates one Copilot session: its own WebSocket, terminal state, and DOM output area. `_displayName()` returns "projectname · Session N" for tab and floating window titles.
-- **`SessionManager`** — creates/destroys/switches sessions. Manages the tab bar and keyboard shortcut routing.
+- **`TerminalSession`** — encapsulates one Copilot session: its own WebSocket, terminal state, DOM output area, and sub-agent tab tracking. `_displayName()` returns "projectname · Session N" for tab and floating window titles.
+- **`SessionManager`** — creates/destroys/switches sessions. Manages the tab bar, keyboard shortcut routing, and settings panel.
 - **`FloatingWindowManager`** — detaches sessions into draggable, resizable floating windows with grid snap zones.
 
 Each session gets its own `CopilotBridge` on the server side, so sessions are fully isolated.
@@ -109,6 +133,11 @@ Each session gets its own `CopilotBridge` on the server side, so sessions are fu
 ### Layout Modes
 - **Tab mode** (default) — sessions as tabs, one visible at a time.
 - **Floating window mode** — pop sessions out into independent draggable windows with edge snapping.
+
+### UI Layout
+- **Control bar** (top center): Mode, Open, Model, Agent, Skill, Copilot Mode, Layout, Tile, Settings
+- **Bottom-right corner**: Version badge (toggle in settings), ↻ restart, ⏺ record
+- **Settings panel**: Appearance / Features / Experimental sections
 
 ## Tauri Desktop App
 
@@ -154,6 +183,8 @@ These are handled in `SessionManager` inside `app.js`.
 | Add UI button | HTML in `index.html` `#controls`, CSS in `styles.css`, JS handler in `app.js` |
 | Add SDK event | Handle in `copilot-bridge.ts` `session.on()`, emit, wire through `server.ts` → `app.js` |
 | Add demo step type | Handle in `runDemo()` in `server.ts`, add `demo_step_*` handling in `app.js` |
+| Add setting | HTML toggle in `#settings-window`, localStorage `dg-*` key, wire in settings panel init in `app.js` |
+| Add demo action | Handle in `_handleDemoAction()` in `app.js`, use in demo JSON `{"type":"action","action":"name"}` |
 | Type-check | `npx tsc --noEmit` |
 | Run dev server | `npm run dev` (hot reload on :3456) |
 | Run desktop dev | `npm run desktop` (Tauri + Node hot reload) |
