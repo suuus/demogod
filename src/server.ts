@@ -970,10 +970,50 @@ function safeSend(ws: WebSocket, data: object) {
   }
 }
 
+// ─── Terminal startup animation ──────────────────────────────────────────────
+const GOLD = "\x1b[33m";
+const GREEN = "\x1b[32m";
+const DIM = "\x1b[2m";
+const CYAN = "\x1b[36m";
+const BOLD = "\x1b[1m";
+const RESET = "\x1b[0m";
+
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+async function startupAnimation() {
+  const lines = [
+    `${DIM}  ┌──────────────────────────────────────────┐${RESET}`,
+    `${DIM}  │${RESET}  ${DIM}●${RESET} ${DIM}●${RESET} ${DIM}●${RESET}                                    ${DIM}│${RESET}`,
+    `${DIM}  │${RESET}                                          ${DIM}│${RESET}`,
+    `${DIM}  │${RESET}   ${GREEN}❯${RESET} ${BOLD}${GREEN}Demo${RESET}${BOLD}${GOLD}God${RESET}  ${GOLD}✦${RESET}                        ${DIM}│${RESET}`,
+    `${DIM}  │${RESET}                                          ${DIM}│${RESET}`,
+    `${DIM}  │${RESET}   ${DIM}demo video generator for copilot cli${RESET}   ${DIM}│${RESET}`,
+    `${DIM}  └──────────────────────────────────────────┘${RESET}`,
+  ];
+
+  // Draw border first
+  process.stdout.write("\n");
+  for (const line of lines) {
+    process.stdout.write(line + "\n");
+    await sleep(60);
+  }
+  process.stdout.write("\n");
+
+  // Info lines with typing effect
+  const info = [
+    `  ${CYAN}🎬${RESET}  v${APP_VERSION}`,
+    `  ${GREEN}🌐${RESET}  http://localhost:${PORT}`,
+    `  ${GREEN}🔒${RESET}  Bound to 127.0.0.1`,
+    `  ${DIM}🔑  ${SESSION_TOKEN.slice(0, 8)}…${RESET}`,
+  ];
+
+  for (const line of info) {
+    process.stdout.write(line + "\n");
+    await sleep(80);
+  }
+  process.stdout.write("\n");
+}
+
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`\n  🎬 DemoGod — Copilot CLI Demo Video Generator`);
-  console.log(`  ────────────────────────────────────────────`);
-  console.log(`  Open http://localhost:${PORT} in your browser`);
-  console.log(`  🔒 Bound to 127.0.0.1 — not accessible from network`);
-  console.log(`  🔑 Session token: ${SESSION_TOKEN}\n`);
+  startupAnimation();
 });
