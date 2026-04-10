@@ -564,6 +564,8 @@
           break;
 
         case "tool_start": {
+          // Don't show generic tool chip for task tool when agent tabs handle it
+          if (FEAT_AGENT_TABS && msg.toolName === "task") break;
           this.showToolIndicator(msg.toolName, true, msg.parentToolCallId);
           if (FEAT_AGENT_TABS && msg.parentToolCallId) {
             this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, true);
@@ -579,6 +581,8 @@
         }
 
         case "tool_complete":
+          // Don't show generic tool chip for task tool when agent tabs handle it
+          if (FEAT_AGENT_TABS && msg.toolName === "task") break;
           this.showToolIndicator(msg.toolName, false, msg.parentToolCallId);
           if (FEAT_AGENT_TABS && msg.parentToolCallId) {
             this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, false);
@@ -918,11 +922,32 @@
 
       // Show the agent's result in the tab content
       if (result) {
+        // Parse structured result — extract the meaningful content
+        let displayText = result;
+        try {
+          const parsed = typeof result === "string" ? JSON.parse(result) : result;
+          // Prefer sessionLog (actual agent output), fall back to textResultForLlm
+          if (parsed.sessionLog) {
+            displayText = parsed.sessionLog;
+          } else if (parsed.textResultForLlm) {
+            displayText = parsed.textResultForLlm;
+          }
+          // For background agents, note they're still running
+          if (parsed.resultType === "success" && parsed.toolTelemetry?.properties?.execution_mode === "background") {
+            const agentId = parsed.toolTelemetry?.restrictedProperties?.agent_id || "";
+            const statusLine = "⏳ Running in background" + (agentId ? " (" + agentId + ")" : "");
+            const intentEl = agent.headerEl.querySelector(".agent-tab-intent");
+            if (intentEl) intentEl.textContent = statusLine;
+            const st = agent.headerEl.querySelector(".agent-tab-status");
+            if (st) { st.className = "agent-tab-status running"; st.textContent = "background"; }
+          }
+        } catch {
+          // Not JSON — use as-is
+        }
         const resultEl = document.createElement("div");
         resultEl.className = "agent-tab-result";
-        // Render as pre-formatted text (result may be markdown/plain text)
         const pre = document.createElement("pre");
-        pre.textContent = result;
+        pre.textContent = displayText;
         resultEl.appendChild(pre);
         agent.contentEl.appendChild(resultEl);
         this._autoScrollAgent(agent);
