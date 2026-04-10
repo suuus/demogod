@@ -9,6 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v16+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Desktop Build](https://github.com/suuus/demogod/actions/workflows/desktop-build.yml/badge.svg)](https://github.com/suuus/demogod/actions/workflows/desktop-build.yml)
 
 ## Overview
 
