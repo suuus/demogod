@@ -31,7 +31,7 @@
         <span>📄</span>
         <span>Open</span>
       </button>
-      <button id="btn-new-session" class="ctrl-btn" title="New session">↻</button>
+      <button id="btn-new-session" class="ctrl-btn" title="Reset session">↻</button>
       <button id="btn-model" class="ctrl-btn" title="Select model">
         <span>🧪</span>
         <span id="model-label">Model</span>
@@ -47,6 +47,14 @@
       <button id="btn-copilot-mode" class="ctrl-btn" title="Switch Copilot mode">
         <span>🎯</span>
         <span id="copilot-mode-label">Interactive</span>
+      </button>
+      <button id="btn-layout" class="ctrl-btn" title="Toggle layout mode">
+        <span id="layout-icon">📑</span>
+        <span id="layout-label">Tabs</span>
+      </button>
+      <button id="btn-tile" class="ctrl-btn hidden" title="Tile all windows">
+        <span>⊞</span>
+        <span>Tile</span>
       </button>
       <button id="btn-record" class="ctrl-btn" title="Record screen (Esc to stop)">
         <span id="record-icon">⏺</span>
@@ -73,32 +81,26 @@
       </div>
       <div class="window-titlebar-spacer"></div>
     </div>
+    <!-- Session tab bar -->
+    <div class="session-tab-bar" id="session-tab-bar">
+      <button class="session-tab-add" id="btn-add-session" title="New session">+</button>
+    </div>
+    <!-- Inner tab bar (file/report tabs) -->
     <div class="tab-bar" id="tab-bar">
       <div class="tab active" data-tab="chat">
         <span class="tab-icon">❯</span>
         <span class="tab-label">Chat</span>
       </div>
     </div>
-    <div class="tab-panels">
+    <div class="tab-panels" id="session-panels">
       <div class="tab-panel active" id="panel-chat">
-        <div class="window-body" id="terminal-body">
-          <div id="terminal-output"></div>
-          <div id="terminal-input-line" class="input-line">
-            <span class="prompt-symbol">❯</span>
-            <span id="input-text" contenteditable="true" spellcheck="false"></span>
-            <span class="cursor" id="cursor"></span>
-          </div>
-        </div>
+        <!-- Session containers are added here dynamically in tab mode -->
       </div>
     </div>
-    <div class="window-statusbar" id="statusbar">
-      <span id="status-text">Ready</span>
-      <span id="status-cwd" class="status-dim"></span>
-      <span id="status-agent" class="status-dim"></span>
-      <span id="status-mode" class="status-dim"></span>
-      <span id="status-model" class="status-dim"></span>
-    </div>
   </div>
+
+  <!-- Floating window container (for floating mode) -->
+  <div id="floating-container" class="floating-container" style="display:none"></div>
 
   <!-- Project picker overlay -->
   <div id="picker-overlay" class="hidden">
