@@ -1467,6 +1467,8 @@ html, body {
 body.recording #btn-record {
   background: rgba(255, 40, 40, 0.85);
   color: #fff;
+  opacity: 1;
+  animation: rec-pulse 1.2s ease-in-out infinite;
 }
 body.recording #record-icon {
   color: #fff;
