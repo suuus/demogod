@@ -29,6 +29,8 @@ safe-outputs:
     reviewers: [copilot]
     draft: false
     auto-merge: true
+    allowed-files:
+      - .github/copilot-instructions.md
 
 tools:
   cache-memory: true
