@@ -2122,6 +2122,25 @@
     }
   }
 
+  let cachedShellConfig = { current: "native", available: ["native", "wsl", "powershell", "cmd"] };
+  const shellDisplayNames = {
+    native: "Native (Direct)",
+    wsl: "WSL (Windows Subsystem for Linux)",
+    powershell: "PowerShell",
+    cmd: "CMD (Command Prompt)",
+  };
+
+  async function loadShellConfig() {
+    try {
+      const res = await fetch("/api/shell");
+      const data = await res.json();
+      cachedShellConfig = data;
+      const label = document.getElementById("shell-label");
+      if (label) label.textContent = data.current === "native" ? "Native" : data.current.toUpperCase();
+      return data;
+    } catch { return null; }
+  }
+
   function openCapPicker(mode) {
     const session = manager.getActive();
     if (!session) return;
@@ -2162,6 +2181,16 @@
         desc: s.description || "",
         meta: s.source || "",
         selected: false,
+      })));
+    } else if (mode === "shell") {
+      cappickerIcon.textContent = "🐚";
+      cappickerTitle.textContent = "Select Shell";
+      renderCapList(cachedShellConfig.available.map((s) => ({
+        id: s,
+        name: shellDisplayNames[s] || s,
+        desc: "",
+        meta: s,
+        selected: s === cachedShellConfig.current,
       })));
     }
 
@@ -2215,6 +2244,19 @@
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
+    } else if (mode === "shell") {
+      fetch("/api/shell", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shell: id }),
+      }).then((r) => r.json()).then(() => {
+        cachedShellConfig.current = id;
+        const label = document.getElementById("shell-label");
+        if (label) label.textContent = id === "native" ? "Native" : id.toUpperCase();
+        session.appendSystemMessage("Shell changed to " + (shellDisplayNames[id] || id) + ". Restart the app to apply.", "info");
+      }).catch((err) => {
+        session.appendSystemMessage("Failed to update shell: " + err.message, "error");
+      });
     }
   }
 
@@ -2257,6 +2299,10 @@
     const session = manager.getActive();
     if (session) session.send("list_skills");
     setTimeout(() => openCapPicker("skill"), 300);
+  });
+  $("#btn-shell").addEventListener("click", async () => {
+    await loadShellConfig();
+    openCapPicker("shell");
   });
 
   $("#btn-copilot-mode").addEventListener("click", () => {
@@ -2415,6 +2461,7 @@
   const manager = new SessionManager();
   manager.createSession();
   loadModels();
+  loadShellConfig();
 
   // Show version in control bar
   const dgVersion = document.querySelector('meta[name="dg-version"]')?.getAttribute("content");

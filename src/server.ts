@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { fileURLToPath } from "url";
 import { dirname, join, resolve, normalize } from "path";
-import { readFile, readdir, stat } from "fs/promises";
+import { readFile, readdir, stat, mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { homedir } from "os";
 import { randomBytes } from "crypto";
@@ -516,6 +516,42 @@ app.get("/api/demos/:name", async (req, res) => {
 });
 
 // List available models
+// ── Shell config ──────────────────────────────────────────
+const DG_CONFIG_DIR = join(homedir(), ".demogod");
+const DG_CONFIG_PATH = join(DG_CONFIG_DIR, "config.json");
+
+async function readShellConfig(): Promise<{shell: string}> {
+  try {
+    const content = await readFile(DG_CONFIG_PATH, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return { shell: "native" };
+  }
+}
+
+async function writeShellConfig(shell: string): Promise<void> {
+  await mkdir(DG_CONFIG_DIR, { recursive: true });
+  await writeFile(DG_CONFIG_PATH, JSON.stringify({ shell }, null, 2), "utf-8");
+}
+
+app.get("/api/shell", async (_req, res) => {
+  const config = await readShellConfig();
+  res.json({
+    current: config.shell,
+    available: ["native", "wsl", "powershell", "cmd"],
+  });
+});
+
+app.put("/api/shell", async (req, res) => {
+  const { shell } = req.body;
+  const valid = ["native", "wsl", "powershell", "cmd"];
+  if (!valid.includes(shell)) {
+    return res.status(400).json({ error: "Invalid shell. Use: " + valid.join(", ") });
+  }
+  await writeShellConfig(shell);
+  res.json({ shell, restartRequired: true });
+});
+
 app.get("/api/models", async (_req, res) => {
   try {
     const bridge = await getModelsBridge();
