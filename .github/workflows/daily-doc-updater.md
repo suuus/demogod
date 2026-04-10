@@ -31,6 +31,8 @@ safe-outputs:
     auto-merge: true
     allowed-files:
       - .github/copilot-instructions.md
+      - "docs/*"
+      - "*.md"
 
 tools:
   cache-memory: true
