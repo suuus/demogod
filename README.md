@@ -9,7 +9,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Desktop Build](https://github.com/suuus/demogod/actions/workflows/desktop-build.yml/badge.svg)](https://github.com/suuus/demogod/actions/workflows/desktop-build.yml)
 
 ## Overview
 
@@ -36,42 +35,8 @@ DemoGod is a web-based tool that creates interactive demo videos for GitHub Copi
 - **Settings Panel**: Configure appearance, feature flags, and experimental options from ⚙️ Settings
 - **Screen Recording**: Built-in recording button (bottom-right) — records the browser tab and downloads as `.webm`
 - **Copy & Paste**: Select and copy response text (⌘C/Ctrl+C), paste into prompts (⌘V/Ctrl+V)
-- **Desktop App**: Native desktop experience via Tauri with system-level keyboard shortcuts
 
-## Desktop App
-
-DemoGod ships as a native desktop app built with [Tauri v2](https://v2.tauri.app/). The Tauri shell wraps the same web UI and spawns the Node.js server as a sidecar process (`node --import tsx src/server.ts`). It is a **native window wrapper**, not a standalone zero-dependency installer — you still need the prerequisites below installed on your machine.
-
-### Shell Picker
-
-> **Note:** The shell picker is currently hidden while cross-platform shell support is being stabilized. The underlying API (`/api/shell`) still exists for future use.
-
-The desktop app includes a shell picker in the control bar. On Windows, you can choose to spawn the server via **WSL**, **PowerShell**, **CMD**, or your **native shell**. The selection is saved to `~/.demogod/config.json` and applied on every launch, with a native shell fallback if config is missing.
-
-### Prerequisites
-
-The desktop app requires these to be installed on the host machine:
-
-- **Node.js** v20+ and **npm** — the Rust sidecar spawns `node` to run the server
-- **npm dependencies installed** — run `npm install` before launching
-- **GitHub CLI** authenticated — run `gh auth login` so Copilot sessions work
-
-### Usage
-
-```bash
-# Development (launches Tauri dev window + Node server with hot reload)
-npm run desktop
-
-# Production build (outputs platform-specific installers)
-npm run build:desktop
-```
-
-Production builds produce:
-- **macOS** — `.dmg`
-- **Windows** — `.msi` / `.exe`
-- **Linux** — `.deb` / `.AppImage`
-
-> You can still run `npm run dev` for a browser-only workflow — the desktop app is optional.
+> **Note:** A native desktop app (Tauri) is in development but currently disabled. Use `npm run dev` and open in your browser.
 
 ## Multi-Session
 
