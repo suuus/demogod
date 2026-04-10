@@ -411,7 +411,7 @@
 
       const inputLine = document.createElement("div");
       inputLine.className = "input-line";
-      inputLine.innerHTML = '<span class="prompt-symbol">\u276f</span><span class="session-input" contenteditable="true" spellcheck="false"></span><span class="cursor"></span>';
+      inputLine.innerHTML = '<span class="prompt-symbol">\u276f</span><span class="session-input" contenteditable="true" spellcheck="false"></span>';
 
       const statusBar = document.createElement("div");
       statusBar.className = "window-statusbar";
@@ -1891,6 +1891,10 @@
 
       this.activeSessionId = id;
 
+      for (const [sid, s] of this.sessions) {
+        s.dom.container.classList.toggle("session-active", sid === id);
+      }
+
       if (this.layoutMode === "tabs") {
         for (const [sid, s] of this.sessions) {
           s.dom.container.style.display = sid === id ? "" : "none";
@@ -3168,24 +3172,24 @@
   // ─── GLOBAL: Keyboard Shortcuts ───────────────────────────
   // ═══════════════════════════════════════════════════════════
   //
-  //  Ctrl+Shift+T  (Cmd+Shift+T on Mac)  — New session
-  //  Ctrl+W        (Cmd+W on Mac)         — Close active session (unless last)
-  //  Ctrl+Tab                             — Next session
-  //  Ctrl+Shift+Tab                       — Previous session
+  //  macOS: Ctrl+T / Ctrl+W / Ctrl+N / Ctrl+P
+  //  Other: Alt+T  / Alt+W  / Alt+N  / Alt+P
   //
 
   document.addEventListener("keydown", (e) => {
-    const mod = e.metaKey || e.ctrlKey;
+    const isMac = navigator.platform.startsWith("Mac");
+    const mod = isMac ? (e.ctrlKey && !e.metaKey) : e.altKey;
+    if (!mod) return;
 
-    // Ctrl/Cmd + Shift + T → new session
-    if (mod && e.shiftKey && e.key === "T") {
+    // New session
+    if (e.key === "t" || e.key === "T") {
       e.preventDefault();
       manager.createSession();
       return;
     }
 
-    // Ctrl/Cmd + W → close active session (keep at least one)
-    if (mod && !e.shiftKey && e.key === "w") {
+    // Close active session (keep at least one)
+    if (e.key === "w" || e.key === "W") {
       e.preventDefault();
       const active = manager.getActive();
       if (active && manager.sessions.size > 1) {
@@ -3194,13 +3198,13 @@
       return;
     }
 
-    // Ctrl + Tab / Ctrl + Shift + Tab → cycle sessions
-    if (e.ctrlKey && e.key === "Tab") {
+    // Cycle sessions
+    if (e.key === "n" || e.key === "N" || e.key === "p" || e.key === "P") {
       e.preventDefault();
       const ids = [...manager.sessions.keys()];
       if (ids.length < 2) return;
       const cur = ids.indexOf(manager.activeSessionId);
-      const next = e.shiftKey
+      const next = (e.key === "p" || e.key === "P")
         ? (cur - 1 + ids.length) % ids.length
         : (cur + 1) % ids.length;
       manager.switchTo(ids[next]);

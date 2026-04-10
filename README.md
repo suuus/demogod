@@ -84,12 +84,10 @@ DemoGod supports running multiple Copilot sessions simultaneously. Each session 
 
 | Shortcut | Action |
 |----------|--------|
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> | New session |
-| <kbd>Ctrl</kbd>+<kbd>W</kbd> | Close current session |
-| <kbd>Ctrl</kbd>+<kbd>Tab</kbd> | Switch to next session |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd> | Switch to previous session |
-
-> **macOS**: Use <kbd>Cmd</kbd> instead of <kbd>Ctrl</kbd>.
+| <kbd>Ctrl</kbd>+<kbd>T</kbd> (Mac) / <kbd>Alt</kbd>+<kbd>T</kbd> | New session |
+| <kbd>Ctrl</kbd>+<kbd>W</kbd> (Mac) / <kbd>Alt</kbd>+<kbd>W</kbd> | Close current session |
+| <kbd>Ctrl</kbd>+<kbd>N</kbd> (Mac) / <kbd>Alt</kbd>+<kbd>N</kbd> | Next session |
+| <kbd>Ctrl</kbd>+<kbd>P</kbd> (Mac) / <kbd>Alt</kbd>+<kbd>P</kbd> | Previous session |
 
 ## Architecture
 

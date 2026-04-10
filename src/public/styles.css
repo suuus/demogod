@@ -982,6 +982,10 @@ html, body {
   min-width: 0;
 }
 
+.session-active .session-input {
+  caret-color: var(--accent);
+}
+
 .session-input:empty::before {
   content: 'Ask Copilot anything...';
   color: var(--overlay0);
@@ -991,27 +995,13 @@ html, body {
   content: none;
 }
 
-.cursor {
-  display: inline-block;
-  width: 8px;
-  height: 18px;
-  background: var(--accent);
-  border-radius: 1px;
-  animation: blink 1s step-end infinite;
-  flex-shrink: 0;
-  opacity: 0.8;
-}
-
 @keyframes blink {
   50% { opacity: 0; }
 }
 
-.input-line.disabled .cursor {
-  display: none;
-}
-
 .input-line.disabled .session-input {
   pointer-events: none;
+  caret-color: transparent;
 }
 
 /* ─── Status Bar ──────────────────────────────────── */

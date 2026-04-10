@@ -257,7 +257,7 @@ When a session is created, the server creates a fresh `CopilotBridge` on the cor
 - Creates new sessions (allocating a `TerminalSession` + tab in the tab bar)
 - Destroys sessions (tears down the WS connection and removes the tab/DOM)
 - Switches the active session (hides the old output area, shows the new one)
-- Responds to keyboard shortcuts (`Ctrl+Shift+T`, `Ctrl+W`, `Ctrl+Tab`, `Ctrl+Shift+Tab`)
+- Responds to keyboard shortcuts (macOS: `Ctrl+T/W/N/P`, other: `Alt+T/W/N/P`)
 
 ### FloatingWindowManager
 
@@ -270,7 +270,7 @@ When a session is created, the server creates a fresh `CopilotBridge` on the cor
 
 ### Tab Mode (default)
 
-Sessions appear as tabs in the terminal tab bar, showing the project name and session number (e.g. "demogod · Session 1") via `_displayName()`. Only one session is visible at a time. Keyboard shortcuts cycle through tabs.
+Sessions appear as tabs in the terminal tab bar, showing the project name and session number (e.g. "demogod · Session 1") via `_displayName()`. Only one session is visible at a time — the active session shows a blinking native caret, inactive sessions hide it. Keyboard shortcuts cycle through tabs.
 
 ### Floating Window Mode
 
