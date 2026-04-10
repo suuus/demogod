@@ -530,9 +530,6 @@
         }
 
         case "delta":
-          if (FEAT_AGENT_TABS && msg.parentToolCallId && this._routeDeltaToSubAgent(msg)) {
-            break;
-          }
           this.questionCheckPending = true;
           this.appendDelta(msg.text);
           break;
@@ -567,9 +564,6 @@
           // Don't show generic tool chip for task tool when agent tabs handle it
           if (FEAT_AGENT_TABS && msg.toolName === "task") break;
           this.showToolIndicator(msg.toolName, true, msg.parentToolCallId);
-          if (FEAT_AGENT_TABS && msg.parentToolCallId) {
-            this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, true);
-          }
           let toolArgs = msg.toolArgs;
           if (typeof toolArgs === "string") {
             try { toolArgs = JSON.parse(toolArgs); } catch {}
@@ -584,9 +578,6 @@
           // Don't show generic tool chip for task tool when agent tabs handle it
           if (FEAT_AGENT_TABS && msg.toolName === "task") break;
           this.showToolIndicator(msg.toolName, false, msg.parentToolCallId);
-          if (FEAT_AGENT_TABS && msg.parentToolCallId) {
-            this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, false);
-          }
           this.checkPendingFile(msg.toolName);
           break;
 
@@ -622,7 +613,6 @@
 
         case "intent":
           this.setStatus(msg.text);
-          if (FEAT_AGENT_TABS) this._updateSubAgentIntent(msg.text);
           break;
 
         case "capabilities_loaded":
@@ -817,6 +807,9 @@
 
     // ─── Sub-agent tab helpers ──────────────────────────
     _openSubAgentTab(agentName, displayName) {
+      // Deduplicate — don't open a second tab for the same agent
+      if (this.activeSubAgents.find(a => a.agentName === agentName)) return;
+
       const tabId = "agent-" + (++tabCounter);
       const tab = document.createElement("div");
       tab.className = "tab";
@@ -865,47 +858,6 @@
       switchTab(tabId);
     }
 
-    _getActiveSubAgent() {
-      return this.activeSubAgents.length > 0 ? this.activeSubAgents[this.activeSubAgents.length - 1] : null;
-    }
-
-    _routeDeltaToSubAgent(msg) {
-      const agent = this._getActiveSubAgent();
-      if (!agent) return false;
-      if (!agent._textBuffer) agent._textBuffer = "";
-      agent._textBuffer += msg.text;
-      agent.contentEl.textContent = agent._textBuffer;
-      this._autoScrollAgent(agent);
-      return true;
-    }
-
-    _routeToolToSubAgent(toolName, parentToolCallId, running) {
-      const agent = this._getActiveSubAgent();
-      if (!agent) return;
-      const key = parentToolCallId + ":" + toolName;
-      if (running) {
-        const el = document.createElement("div");
-        el.className = "agent-tool";
-        el.dataset.toolKey = key;
-        el.innerHTML = '<span class="spinner"></span> Running ' + escapeHtml(toolName);
-        agent.contentEl.appendChild(el);
-        this._autoScrollAgent(agent);
-      } else {
-        const el = agent.contentEl.querySelector('[data-tool-key="' + CSS.escape(key) + '"]');
-        if (el) {
-          el.classList.add("done");
-          el.innerHTML = '\u2713 ' + escapeHtml(toolName);
-        }
-      }
-    }
-
-    _updateSubAgentIntent(text) {
-      const agent = this._getActiveSubAgent();
-      if (!agent) return;
-      const intentEl = agent.headerEl.querySelector(".agent-tab-intent");
-      if (intentEl) intentEl.textContent = text;
-    }
-
     _completeSubAgentTab(agentName, result) {
       const idx = this.activeSubAgents.findIndex(a => a.agentName === agentName);
       if (idx === -1) return;
@@ -913,37 +865,40 @@
       this.activeSubAgents.splice(idx, 1);
 
       const statusEl = agent.headerEl.querySelector(".agent-tab-status");
-      if (statusEl) {
-        statusEl.className = "agent-tab-status done";
-        statusEl.textContent = "\u2713 completed";
-      }
       const spinnerEl = agent.headerEl.querySelector(".spinner");
-      if (spinnerEl) spinnerEl.remove();
 
-      // Show the agent's result in the tab content
+      // Parse structured result — extract meaningful content
+      let displayText = "";
+      let isBackground = false;
       if (result) {
-        // Parse structured result — extract the meaningful content
-        let displayText = result;
+        displayText = result;
         try {
           const parsed = typeof result === "string" ? JSON.parse(result) : result;
-          // Prefer sessionLog (actual agent output), fall back to textResultForLlm
           if (parsed.sessionLog) {
             displayText = parsed.sessionLog;
           } else if (parsed.textResultForLlm) {
             displayText = parsed.textResultForLlm;
           }
-          // For background agents, note they're still running
+          // Background agents — task tool returns immediately, agent still running
           if (parsed.resultType === "success" && parsed.toolTelemetry?.properties?.execution_mode === "background") {
+            isBackground = true;
             const agentId = parsed.toolTelemetry?.restrictedProperties?.agent_id || "";
-            const statusLine = "⏳ Running in background" + (agentId ? " (" + agentId + ")" : "");
+            if (statusEl) { statusEl.className = "agent-tab-status running"; statusEl.textContent = "\u23f3 background"; }
             const intentEl = agent.headerEl.querySelector(".agent-tab-intent");
-            if (intentEl) intentEl.textContent = statusLine;
-            const st = agent.headerEl.querySelector(".agent-tab-status");
-            if (st) { st.className = "agent-tab-status running"; st.textContent = "background"; }
+            if (intentEl) intentEl.textContent = agentId ? "agent: " + agentId : "";
           }
         } catch {
           // Not JSON — use as-is
         }
+      }
+
+      if (!isBackground) {
+        if (statusEl) { statusEl.className = "agent-tab-status done"; statusEl.textContent = "\u2713 completed"; }
+        if (spinnerEl) spinnerEl.remove();
+      }
+
+      // Show result content (skip raw prompt dump for background agents)
+      if (displayText && !isBackground) {
         const resultEl = document.createElement("div");
         resultEl.className = "agent-tab-result";
         const pre = document.createElement("pre");
@@ -969,6 +924,7 @@
         panel.scrollTop = panel.scrollHeight;
       }
     }
+
 
     setProcessing(processing) {
       this.isProcessing = processing;
