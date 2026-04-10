@@ -1,0 +1,42 @@
+{
+  "title": "DemoGod Feature Showcase",
+  "description": "A live demo that sends real prompts to Copilot, showcasing DemoGod's key features. Point the project at demo/sample-app first.",
+  "steps": [
+    {
+      "type": "live",
+      "text": "What is this project? Give me a quick summary.",
+      "typingSpeed": 40,
+      "pauseAfter": 3000
+    },
+    {
+      "type": "live",
+      "text": "Open src/store.js and explain the TaskStore class",
+      "typingSpeed": 35,
+      "pauseAfter": 3000
+    },
+    {
+      "type": "live",
+      "text": "Run the tests and tell me if they all pass",
+      "typingSpeed": 40,
+      "pauseAfter": 3000
+    },
+    {
+      "type": "live",
+      "text": "Find all TODOs and FIXMEs in the codebase. Summarize them.",
+      "typingSpeed": 35,
+      "pauseAfter": 3000
+    },
+    {
+      "type": "live",
+      "text": "Add a priority field (1-3) to TaskStore.add() and update the tests to cover it",
+      "typingSpeed": 30,
+      "pauseAfter": 4000
+    },
+    {
+      "type": "live",
+      "text": "Run the tests again to make sure your changes work",
+      "typingSpeed": 40,
+      "pauseAfter": 3000
+    }
+  ]
+}

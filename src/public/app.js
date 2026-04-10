@@ -2257,13 +2257,31 @@
   // ─── GLOBAL: Mode toggle ───────────────────────────────────
   // ═══════════════════════════════════════════════════════════
 
-  btnMode.addEventListener("click", () => {
+  btnMode.addEventListener("click", async () => {
     const session = manager.getActive();
     if (!session) return;
     if (session.mode === "live") {
-      session.mode = "scripted";
-      session.setProcessing(true);
-      session.send("start_demo", { demo: "intro" });
+      // Fetch available demos and let user pick
+      try {
+        const res = await fetch(`${API_BASE}/api/demos`);
+        const demos = await res.json();
+        if (!demos.length) {
+          session.mode = "scripted";
+          session.setProcessing(true);
+          session.send("start_demo", { demo: "intro" });
+          manager._syncControlBar(session);
+          return;
+        }
+        openCapPicker("demo", demos.map(d => ({
+          name: d.name,
+          description: d.description || d.title,
+        })));
+      } catch {
+        session.mode = "scripted";
+        session.setProcessing(true);
+        session.send("start_demo", { demo: "intro" });
+        manager._syncControlBar(session);
+      }
     } else {
       session.mode = "live";
       session.send("cancel_demo");
@@ -2319,7 +2337,7 @@
     } catch { return null; }
   }
 
-  function openCapPicker(mode) {
+  function openCapPicker(mode, externalItems) {
     const session = manager.getActive();
     if (!session) return;
 
@@ -2327,7 +2345,17 @@
     cappickerSearch.value = "";
     cappickerDeselect.classList.add("hidden");
 
-    if (mode === "model") {
+    if (mode === "demo") {
+      cappickerIcon.textContent = "🎬";
+      cappickerTitle.textContent = "Run Demo";
+      renderCapList((externalItems || []).map((d) => ({
+        id: d.name,
+        name: d.name,
+        desc: d.description || "",
+        meta: "",
+        selected: false,
+      })));
+    } else if (mode === "model") {
       cappickerIcon.textContent = "\ud83e\uddea";
       cappickerTitle.textContent = "Select Model";
       if (session.selectedModel) cappickerDeselect.classList.remove("hidden");
@@ -2405,7 +2433,12 @@
     if (!session) return;
     const mode = cappickerMode;
     closeCapPicker();
-    if (mode === "model") {
+    if (mode === "demo") {
+      session.mode = "scripted";
+      session.setProcessing(true);
+      session.send("start_demo", { demo: id });
+      manager._syncControlBar(session);
+    } else if (mode === "model") {
       session.selectedModel = id;
       const smEl = session.dom.statusBar.querySelector(".status-model");
       if (smEl) smEl.textContent = id;

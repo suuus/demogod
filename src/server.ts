@@ -525,6 +525,23 @@ app.get("/api/file", async (req, res) => {
 });
 
 // Serve demo scripts
+app.get("/api/demos", async (_req, res) => {
+  try {
+    const files = await readdir(DEMOS_DIR);
+    const demos = [];
+    for (const f of files) {
+      if (!f.endsWith(".json")) continue;
+      try {
+        const data = JSON.parse(await readFile(join(DEMOS_DIR, f), "utf-8"));
+        demos.push({ name: f.replace(/\.json$/, ""), title: data.title || f, description: data.description || "" });
+      } catch { /* skip malformed */ }
+    }
+    res.json(demos);
+  } catch {
+    res.json([]);
+  }
+});
+
 app.get("/api/demos/:name", async (req, res) => {
   const demoPath = safeDemoPath(req.params.name);
   if (!demoPath) {
@@ -768,10 +785,45 @@ wss.on("connection", (ws) => {
       const raw = await readFile(demoPath, "utf-8");
       const demo = JSON.parse(raw);
 
+      // Helper: wait for the bridge to go idle (turn complete)
+      function waitForIdle(timeoutMs = 120_000): Promise<void> {
+        return new Promise((resolve, reject) => {
+          if (!bridge) return reject(new Error("No bridge"));
+          const onAbort = () => { cleanup(); reject(Object.assign(new Error("aborted"), { name: "AbortError" })); };
+          const timer = setTimeout(() => { cleanup(); resolve(); }, timeoutMs);
+          const onIdle = () => { cleanup(); resolve(); };
+          function cleanup() {
+            bridge?.removeListener("idle", onIdle);
+            signal.removeEventListener("abort", onAbort);
+            clearTimeout(timer);
+          }
+          bridge.once("idle", onIdle);
+          signal.addEventListener("abort", onAbort);
+        });
+      }
+
       for (const step of demo.steps) {
         await cancellableSleep(800, signal);
 
-        if (step.type === "command") {
+        if (step.type === "live") {
+          // Auto-type the prompt into the UI, then send it live to Copilot
+          safeSend(ws, {
+            type: "demo_step_command",
+            text: step.text,
+            typingSpeed: step.typingSpeed || 45,
+          });
+          await cancellableSleep(step.text.length * (step.typingSpeed || 45) + 600, signal);
+
+          // Actually send the prompt to Copilot
+          await handlePrompt(step.text);
+
+          // Wait for Copilot to finish responding
+          await waitForIdle(step.timeout || 120_000);
+
+          // Pause between steps
+          await cancellableSleep(step.pauseAfter || 2000, signal);
+
+        } else if (step.type === "command") {
           safeSend(ws, {
             type: "demo_step_command",
             text: step.text,

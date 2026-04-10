@@ -1,0 +1,12 @@
+{
+  "name": "task-tracker",
+  "version": "1.0.0",
+  "description": "A tiny CLI task tracker — demo project for DemoGod",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node tests/run.js"
+  },
+  "keywords": ["demo", "tasks", "cli"],
+  "license": "MIT"
+}
