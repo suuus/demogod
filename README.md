@@ -36,7 +36,17 @@ DemoGod is a web-based tool that creates interactive demo videos for GitHub Copi
 - **Screen Recording**: Built-in recording button (bottom-right) — records the browser tab and downloads as `.webm`
 - **Copy & Paste**: Select and copy response text (⌘C/Ctrl+C), paste into prompts (⌘V/Ctrl+V)
 
-> **Note:** A native desktop app (Tauri) is in development but currently disabled. Use `npm run dev` and open in your browser.
+> **Note:** A native desktop app (Tauri) is available for macOS development. Production builds for all platforms are coming soon.
+
+### Desktop App (macOS)
+
+Run DemoGod as a native macOS window using [Tauri v2](https://v2.tauri.app/). Requires the [Rust toolchain](https://rustup.rs/) installed.
+
+```bash
+npm run desktop
+```
+
+This launches the Tauri dev window with hot reload. The same web UI, but in a native window instead of a browser tab.
 
 ## Multi-Session
 
