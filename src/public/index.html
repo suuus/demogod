@@ -100,6 +100,10 @@
         <span>🐚</span>
         <span id="shell-label">Shell</span>
       </button>
+      <button id="btn-settings" class="ctrl-btn" title="Settings">
+        <span>⚙️</span>
+        <span>Settings</span>
+      </button>
       <span class="version-label" id="version-label"></span>
     </div>
   </div>
@@ -146,6 +150,62 @@
       <button id="pty-close" class="pty-close-btn" title="Close terminal">✕</button>
     </div>
     <div id="pty-container" class="pty-container"></div>
+  </div>
+
+  <!-- Settings overlay -->
+  <div id="settings-overlay" class="hidden">
+    <div id="settings-window" class="window dialog-window" style="width: 420px;">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="settings-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon">⚙️</span>
+          Settings
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body dialog-body settings-body">
+        <div class="settings-section">
+          <div class="settings-section-title">Appearance</div>
+          <div class="settings-row">
+            <div class="settings-label">Background</div>
+            <select id="setting-bg" class="settings-select">
+              <option value="bg-chroma">Chroma Green</option>
+              <option value="bg-offwhite">Off-white</option>
+              <option value="bg-darkblue">Dark Blue</option>
+              <option value="bg-white">White</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Features</div>
+          <div class="settings-row">
+            <div class="settings-label">
+              <span>Integrated Terminal</span>
+              <span class="settings-hint">Embedded terminal panel (Ctrl+`)</span>
+            </div>
+            <label class="settings-toggle">
+              <input type="checkbox" id="setting-terminal">
+              <span class="settings-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">
+              <span>Sub-agent Tabs</span>
+              <span class="settings-hint">Live activity tabs for sub-agents</span>
+            </div>
+            <label class="settings-toggle">
+              <input type="checkbox" id="setting-agent-tabs">
+              <span class="settings-toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <p class="settings-note">Some changes take effect after refresh.</p>
+      </div>
+    </div>
   </div>
 
   <!-- Project picker overlay -->

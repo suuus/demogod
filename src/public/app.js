@@ -2602,7 +2602,53 @@
     const opt = bgOptions[bgIndex];
     backdrop.className = opt.cls;
     bgLabel.textContent = opt.name;
+    localStorage.setItem("dg-bg", opt.cls);
   });
+
+  // Restore saved background
+  const savedBg = localStorage.getItem("dg-bg");
+  if (savedBg) {
+    const idx = bgOptions.findIndex(o => o.cls === savedBg);
+    if (idx >= 0) { bgIndex = idx; backdrop.className = bgOptions[idx].cls; bgLabel.textContent = bgOptions[idx].name; }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ─── SETTINGS PANEL ───────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════
+
+  const settingsOverlay = $("#settings-overlay");
+  const settingBg = $("#setting-bg");
+  const settingTerminal = $("#setting-terminal");
+  const settingAgentTabs = $("#setting-agent-tabs");
+
+  // Init settings from localStorage
+  settingBg.value = localStorage.getItem("dg-bg") || "bg-chroma";
+  settingTerminal.checked = localStorage.getItem("dg-terminal") === "1";
+  settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
+
+  settingBg.addEventListener("change", () => {
+    const cls = settingBg.value;
+    localStorage.setItem("dg-bg", cls);
+    backdrop.className = cls;
+    const idx = bgOptions.findIndex(o => o.cls === cls);
+    if (idx >= 0) { bgIndex = idx; bgLabel.textContent = bgOptions[idx].name; }
+  });
+
+  settingTerminal.addEventListener("change", () => {
+    localStorage.setItem("dg-terminal", settingTerminal.checked ? "1" : "0");
+    btnTerminal.style.display = (settingTerminal.checked || window.__TAURI_INTERNALS__) ? "" : "none";
+  });
+
+  settingAgentTabs.addEventListener("change", () => {
+    localStorage.setItem("dg-agent-tabs", settingAgentTabs.checked ? "1" : "0");
+  });
+
+  function openSettings() { settingsOverlay.classList.remove("hidden"); }
+  function closeSettings() { settingsOverlay.classList.add("hidden"); }
+
+  $("#btn-settings").addEventListener("click", openSettings);
+  $("#settings-close").addEventListener("click", closeSettings);
+  settingsOverlay.addEventListener("click", (e) => { if (e.target === settingsOverlay) closeSettings(); });
 
   // ═══════════════════════════════════════════════════════════
   // ─── BOOT ──────────────────────────────────────────────────
