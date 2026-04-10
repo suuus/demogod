@@ -2396,4 +2396,48 @@
   const manager = new SessionManager();
   manager.createSession();
   loadModels();
+
+  // ═══════════════════════════════════════════════════════════
+  // ─── GLOBAL: Keyboard Shortcuts ───────────────────────────
+  // ═══════════════════════════════════════════════════════════
+  //
+  //  Ctrl+Shift+T  (Cmd+Shift+T on Mac)  — New session
+  //  Ctrl+W        (Cmd+W on Mac)         — Close active session (unless last)
+  //  Ctrl+Tab                             — Next session
+  //  Ctrl+Shift+Tab                       — Previous session
+  //
+
+  document.addEventListener("keydown", (e) => {
+    const mod = e.metaKey || e.ctrlKey;
+
+    // Ctrl/Cmd + Shift + T → new session
+    if (mod && e.shiftKey && e.key === "T") {
+      e.preventDefault();
+      manager.createSession();
+      return;
+    }
+
+    // Ctrl/Cmd + W → close active session (keep at least one)
+    if (mod && !e.shiftKey && e.key === "w") {
+      e.preventDefault();
+      const active = manager.getActive();
+      if (active && manager.sessions.size > 1) {
+        manager.destroySession(active.id);
+      }
+      return;
+    }
+
+    // Ctrl + Tab / Ctrl + Shift + Tab → cycle sessions
+    if (e.ctrlKey && e.key === "Tab") {
+      e.preventDefault();
+      const ids = [...manager.sessions.keys()];
+      if (ids.length < 2) return;
+      const cur = ids.indexOf(manager.activeSessionId);
+      const next = e.shiftKey
+        ? (cur - 1 + ids.length) % ids.length
+        : (cur + 1) % ids.length;
+      manager.switchTo(ids[next]);
+      return;
+    }
+  });
 })();

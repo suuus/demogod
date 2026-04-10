@@ -31,3 +31,6 @@ obj/
 
 # Logs
 *.log
+
+# Tauri / Rust
+src-tauri/target/
