@@ -5,7 +5,9 @@
   "description": "Demo video generator for GitHub Copilot CLI",
   "scripts": {
     "start": "tsx src/server.ts",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "desktop": "tauri dev",
+    "build:desktop": "tauri build"
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.2.1",
@@ -14,6 +16,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
     "@types/express": "^5.0.0",
     "@types/ws": "^8.5.0",
     "tsx": "^4.19.0",
