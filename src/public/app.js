@@ -10,6 +10,9 @@
   // so API calls must target the actual Express server on localhost:3456
   const API_BASE = window.__TAURI_INTERNALS__ ? "http://localhost:3456" : "";
 
+  // Feature flags
+  const FEAT_AGENT_TABS = localStorage.getItem("dg-agent-tabs") === "1";
+
   function escapeHtml(str) {
     const div = document.createElement("div");
     div.textContent = str;
@@ -527,7 +530,7 @@
         }
 
         case "delta":
-          if (msg.parentToolCallId && this._routeDeltaToSubAgent(msg)) {
+          if (FEAT_AGENT_TABS && msg.parentToolCallId && this._routeDeltaToSubAgent(msg)) {
             break;
           }
           this.questionCheckPending = true;
@@ -562,7 +565,7 @@
 
         case "tool_start": {
           this.showToolIndicator(msg.toolName, true, msg.parentToolCallId);
-          if (msg.parentToolCallId) {
+          if (FEAT_AGENT_TABS && msg.parentToolCallId) {
             this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, true);
           }
           let toolArgs = msg.toolArgs;
@@ -577,7 +580,7 @@
 
         case "tool_complete":
           this.showToolIndicator(msg.toolName, false, msg.parentToolCallId);
-          if (msg.parentToolCallId) {
+          if (FEAT_AGENT_TABS && msg.parentToolCallId) {
             this._routeToolToSubAgent(msg.toolName, msg.parentToolCallId, false);
           }
           this.checkPendingFile(msg.toolName);
@@ -599,12 +602,12 @@
 
         case "subagent_start":
           this.appendSystemMessage("Sub-agent started: " + (msg.agentDisplayName || msg.agentName), "info");
-          this._openSubAgentTab(msg.agentName, msg.agentDisplayName || msg.agentName);
+          if (FEAT_AGENT_TABS) this._openSubAgentTab(msg.agentName, msg.agentDisplayName || msg.agentName);
           break;
 
         case "subagent_complete":
           this.appendSystemMessage("Sub-agent completed: " + (msg.agentDisplayName || msg.agentName), "info");
-          this._completeSubAgentTab(msg.agentName);
+          if (FEAT_AGENT_TABS) this._completeSubAgentTab(msg.agentName);
           break;
 
         case "task_complete":
@@ -615,7 +618,7 @@
 
         case "intent":
           this.setStatus(msg.text);
-          this._updateSubAgentIntent(msg.text);
+          if (FEAT_AGENT_TABS) this._updateSubAgentIntent(msg.text);
           break;
 
         case "capabilities_loaded":
