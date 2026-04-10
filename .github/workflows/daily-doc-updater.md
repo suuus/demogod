@@ -36,10 +36,9 @@ tools:
     toolsets: [default]
   edit:
   bash:
-    - "find docs -name '*.md' -o -name '*.mdx'"
-    - "find docs -maxdepth 1 -ls"
-    - "find docs -name '*.md' -exec cat {} +"
-    - "grep -r '*' docs"
+    - "find . -name '*.md' -not -path './node_modules/*'"
+    - "cat"
+    - "grep -r"
     - "git"
 
 timeout-minutes: 45
@@ -59,11 +58,29 @@ You are an AI documentation agent that automatically updates the project documen
 
 Scan the repository for merged pull requests and code changes from the last 24 hours, identify new features or changes that should be documented, and update the documentation accordingly.
 
+## Project Documentation Structure
+
+DemoGod uses **plain markdown files** — no static site generator, no MDX, no components.
+
+| File | Purpose |
+|------|---------|
+| `README.md` | User-facing docs: getting started, features, demo scripts, troubleshooting, roadmap |
+| `CONTRIBUTING.md` | Contributor guide: setup, code style, security checklist, PR guidelines |
+| `docs/ARCHITECTURE.md` | Technical deep-dive: components, data flows, API endpoints, WebSocket protocol, security model, extension points |
+| `docs/LAYOUT_MODES.md` | Layout mode reference (tab mode, floating windows) |
+| `.github/copilot-instructions.md` | Context and rules for GitHub Copilot when working on this codebase |
+
+### Tech Stack
+
+- **Backend**: TypeScript (strict, ES2022, ESM), Express 5, ws, `@github/copilot-sdk`
+- **Frontend**: Vanilla JS (single IIFE in `app.js`), no framework, no bundler, no build step
+- **CSS**: Plain CSS with custom properties
+- **Runtime**: `tsx` for TypeScript execution
+- **Desktop**: Tauri v2 (macOS dev only, production builds disabled)
+
 ## Task Steps
 
 ### 1. Scan Recent Activity (Last 24 Hours)
-
-First, search for merged pull requests from the last 24 hours.
 
 Use the GitHub tools to:
 - Search for pull requests merged in the last 24 hours using `search_pull_requests` with a query like: `repo:${{ github.repository }} is:pr is:merged merged:>=YYYY-MM-DD` (replace YYYY-MM-DD with yesterday's date)
@@ -75,76 +92,48 @@ Use the GitHub tools to:
 
 For each merged PR and commit, analyze:
 
-- **Features Added**: New functionality, commands, options, tools, or capabilities
+- **Features Added**: New functionality, commands, options, or capabilities
 - **Features Removed**: Deprecated or removed functionality
 - **Features Modified**: Changed behavior, updated APIs, or modified interfaces
 - **Breaking Changes**: Any changes that affect existing users
 
 Create a summary of changes that should be documented.
 
-### 3. Review Documentation Instructions
+### 3. Identify Documentation Gaps
 
-**IMPORTANT**: Before making any documentation changes, you MUST read and follow the documentation guidelines:
+Review the documentation files:
 
 ```bash
-# Load the documentation instructions
-cat .github/instructions/documentation.instructions.md
+find . -name '*.md' -not -path './node_modules/*' -not -path './.github/workflows/*'
 ```
-
-The documentation follows the **Diátaxis framework** with four distinct types:
-- **Tutorials** (Learning-Oriented): Guide beginners through achieving specific outcomes
-- **How-to Guides** (Goal-Oriented): Solve specific real-world problems
-- **Reference** (Information-Oriented): Provide accurate technical descriptions
-- **Explanation** (Understanding-Oriented): Clarify and illuminate topics
-
-Pay special attention to:
-- The tone and voice guidelines (neutral, technical, not promotional)
-- Proper use of headings (markdown syntax, not bold text)
-- Code samples with appropriate language tags (use `aw` for agentic workflows)
-- Astro Starlight syntax for callouts, tabs, and cards
-- Minimal use of components (prefer standard markdown)
-
-### 4. Identify Documentation Gaps
-
-Review the documentation in the `docs/src/content/docs/` directory:
 
 - Check if new features are already documented
 - Identify which documentation files need updates
-- Determine the appropriate documentation type (tutorial, how-to, reference, explanation)
-- Find the best location for new content
+- Determine the best location for new content
 
-Use bash commands to explore documentation structure:
-
-```bash
-find docs/src/content/docs -name '*.md' -o -name '*.mdx'
-```
-
-### 5. Update Documentation
+### 4. Update Documentation
 
 For each missing or incomplete feature documentation:
 
-1. **Determine the correct file** based on the feature type:
-   - CLI commands → `docs/src/content/docs/setup/cli.md`
-   - Workflow reference → `docs/src/content/docs/reference/`
-   - How-to guides → `docs/src/content/docs/guides/`
-   - Samples → `docs/src/content/docs/samples/`
+1. **Determine the correct file** based on the change type:
+   - User-facing features, getting started, troubleshooting → `README.md`
+   - Technical internals, API endpoints, WebSocket messages, security → `docs/ARCHITECTURE.md`
+   - Layout and window management → `docs/LAYOUT_MODES.md`
+   - Contributor workflows, code style, PR process → `CONTRIBUTING.md`
+   - Copilot context, rules, conventions → `.github/copilot-instructions.md`
 
-2. **Follow documentation guidelines** from `.github/instructions/documentation.instructions.md`
-
-3. **Update the appropriate file(s)** using the edit tool:
+2. **Update the appropriate file(s)** using the edit tool:
    - Add new sections for new features
    - Update existing sections for modified features
    - Add deprecation notices for removed features
-   - Include code examples with proper syntax highlighting
-   - Use appropriate Astro Starlight components (callouts, tabs, cards) sparingly
+   - Include code examples where helpful
 
-4. **Maintain consistency** with existing documentation style:
-   - Use the same tone and voice
-   - Follow the same structure
-   - Use similar examples
-   - Match the level of detail
+3. **Maintain consistency** with existing documentation style:
+   - Use the same tone and structure as the surrounding content
+   - Use standard markdown (no MDX, no custom components)
+   - Keep the README concise — move deep technical details to ARCHITECTURE.md
 
-### 6. Create Pull Request
+### 5. Create Pull Request
 
 If you made any documentation changes:
 
@@ -153,13 +142,10 @@ If you made any documentation changes:
    - **IMPORTANT**: Call the `create_pull_request` MCP tool from the safe-outputs MCP server
    - Do NOT use GitHub API tools directly or write JSON to files
    - Do NOT use `create_pull_request` from the GitHub MCP server
-   - The safe-outputs MCP tool is automatically available because `safe-outputs.create-pull-request` is configured in the frontmatter
-   - Call the tool with the PR title and description, and it will handle creating the branch and PR
 3. **Include in the PR description**:
    - List of features documented
    - Summary of changes made
    - Links to relevant merged PRs that triggered the updates
-   - Any notes about features that need further review
 
 **PR Title Format**: `[docs] Update documentation for features from [date]`
 
@@ -176,43 +162,34 @@ This PR updates the documentation based on features merged in the last 24 hours.
 
 ### Changes Made
 
-- Updated `docs/path/to/file.md` to document Feature 1
-- Added new section in `docs/path/to/file.md` for Feature 2
+- Updated `README.md` to document Feature 1
+- Added new section in `docs/ARCHITECTURE.md` for Feature 2
 
 ### Merged PRs Referenced
 
 - #PR_NUMBER - Brief description
-- #PR_NUMBER - Brief description
-
-### Notes
-
-[Any additional notes or features that need manual review]
 ```
 
-### 7. Handle Edge Cases
+### 6. Handle Edge Cases
 
 - **No recent changes**: If there are no merged PRs in the last 24 hours, exit gracefully without creating a PR
 - **Already documented**: If all features are already documented, exit gracefully
-- **Unclear features**: If a feature is complex and needs human review, note it in the PR description but don't skip documentation entirely
+- **Unclear features**: If a feature is complex and needs human review, note it in the PR description
 
 ## Guidelines
 
 - **Be Thorough**: Review all merged PRs and significant commits
 - **Be Accurate**: Ensure documentation accurately reflects the code changes
-- **Follow Guidelines**: Strictly adhere to the documentation instructions
-- **Be Selective**: Only document features that affect users (skip internal refactoring unless it's significant)
-- **Be Clear**: Write clear, concise documentation that helps users
-- **Use Proper Format**: Use the correct Diátaxis category and Astro Starlight syntax
+- **Be Selective**: Only document features that affect users (skip internal refactoring unless significant)
+- **Be Clear**: Write clear, concise documentation
+- **Keep README Short**: Move detailed technical content to ARCHITECTURE.md
+- **Standard Markdown Only**: No MDX, no custom components, no frontmatter beyond what's needed
 - **Link References**: Include links to relevant PRs and issues where appropriate
-- **Test Understanding**: If unsure about a feature, review the code changes in detail
 
 ## Important Notes
 
 - You have access to the edit tool to modify documentation files
 - You have access to GitHub tools to search and review code changes
-- You have access to bash commands to explore the documentation structure
+- You have access to bash commands to explore the repository
 - The safe-outputs create-pull-request will automatically create a PR with your changes
-- Always read the documentation instructions before making changes
 - Focus on user-facing features and changes that affect the developer experience
-
-Good luck! Your documentation updates help keep our project accessible and up-to-date.
