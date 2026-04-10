@@ -34,6 +34,8 @@ export class CopilotBridge extends EventEmitter {
   private session: CopilotSession | null = null;
   private pendingInputs = new Map<string, (response: any) => void>();
   private inputCounter = 0;
+  // Track active task tool calls so we can match start→complete with args
+  private activeTaskAgents: { agentName: string; agentDisplayName: string }[] = [];
 
   constructor() {
     super();
@@ -115,10 +117,10 @@ export class CopilotBridge extends EventEmitter {
             const args = typeof input.toolArgs === "string"
               ? (() => { try { return JSON.parse(input.toolArgs); } catch { return {}; } })()
               : (input.toolArgs || {});
-            this.emit("subagent_start", {
-              agentName: args.name || args.agent_type || "sub-agent",
-              agentDisplayName: args.description || args.name || args.agent_type || "Sub-agent",
-            });
+            const agentName = args.name || args.agent_type || "sub-agent";
+            const agentDisplayName = args.description || args.name || args.agent_type || "Sub-agent";
+            this.activeTaskAgents.push({ agentName, agentDisplayName });
+            this.emit("subagent_start", { agentName, agentDisplayName });
           }
         },
         onPostToolUse: (input) => {
@@ -126,13 +128,15 @@ export class CopilotBridge extends EventEmitter {
             toolName: input.toolName,
             toolResult: input.toolResult,
           });
-          // Detect sub-agent completion
+          // Detect sub-agent completion — pop from stack and include result
           if (input.toolName === "task") {
-            const args = typeof input.toolArgs === "string"
-              ? (() => { try { return JSON.parse(input.toolArgs); } catch { return {}; } })()
-              : (input.toolArgs || {});
+            const entry = this.activeTaskAgents.pop();
+            const result = typeof input.toolResult === "string"
+              ? input.toolResult
+              : (input.toolResult ? JSON.stringify(input.toolResult) : "");
             this.emit("subagent_complete", {
-              agentName: args.name || args.agent_type || "sub-agent",
+              agentName: entry?.agentName || "sub-agent",
+              result,
             });
           }
         },

@@ -1632,6 +1632,8 @@ body.recording #record-icon {
 .agent-tab-content .agent-tool { color: var(--body-dim); font-size: 12px; padding: 4px 0; }
 .agent-tab-content .agent-tool .spinner { display: inline-block; width: 10px; height: 10px; border-width: 1.5px; }
 .agent-tab-content .agent-tool.done { color: var(--green); }
+.agent-tab-result { margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
+.agent-tab-result pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 13px; line-height: 1.5; color: var(--body-text); font-family: var(--font-mono, monospace); }
 
 /* ─── Settings Panel ─────────────────────────────── */
 #settings-overlay {

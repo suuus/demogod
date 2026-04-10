@@ -607,7 +607,7 @@
 
         case "subagent_complete":
           this.appendSystemMessage("Sub-agent completed: " + (msg.agentDisplayName || msg.agentName), "info");
-          if (FEAT_AGENT_TABS) this._completeSubAgentTab(msg.agentName);
+          if (FEAT_AGENT_TABS) this._completeSubAgentTab(msg.agentName, msg.result);
           break;
 
         case "task_complete":
@@ -866,13 +866,8 @@
     }
 
     _routeDeltaToSubAgent(msg) {
-      let agent = this._getActiveSubAgent();
-      if (!agent) {
-        // Auto-create tab for orphan deltas with parentToolCallId
-        this._openSubAgentTab(msg.parentToolCallId, "Sub-agent");
-        agent = this._getActiveSubAgent();
-        if (!agent) return false;
-      }
+      const agent = this._getActiveSubAgent();
+      if (!agent) return false;
       if (!agent._textBuffer) agent._textBuffer = "";
       agent._textBuffer += msg.text;
       agent.contentEl.textContent = agent._textBuffer;
@@ -907,7 +902,7 @@
       if (intentEl) intentEl.textContent = text;
     }
 
-    _completeSubAgentTab(agentName) {
+    _completeSubAgentTab(agentName, result) {
       const idx = this.activeSubAgents.findIndex(a => a.agentName === agentName);
       if (idx === -1) return;
       const agent = this.activeSubAgents[idx];
@@ -920,6 +915,18 @@
       }
       const spinnerEl = agent.headerEl.querySelector(".spinner");
       if (spinnerEl) spinnerEl.remove();
+
+      // Show the agent's result in the tab content
+      if (result) {
+        const resultEl = document.createElement("div");
+        resultEl.className = "agent-tab-result";
+        // Render as pre-formatted text (result may be markdown/plain text)
+        const pre = document.createElement("pre");
+        pre.textContent = result;
+        resultEl.appendChild(pre);
+        agent.contentEl.appendChild(resultEl);
+        this._autoScrollAgent(agent);
+      }
 
       // Add badge if not active tab
       const tab = tabBar.querySelector('[data-tab="' + agent.tabId + '"]');
