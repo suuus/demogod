@@ -1763,7 +1763,7 @@
   // ═══════════════════════════════════════════════════════════
 
   let cachedModels = [];
-  let popupDialogs = true;
+  let popupDialogs = localStorage.getItem("dg-dialog-mode") === "popup";
   let pendingDialogRequestId = null;
   let pendingDialogSession = null;
   let cappickerMode = null;
@@ -1784,8 +1784,6 @@
 
   const btnMode = $("#btn-mode");
   const btnNewSession = $("#btn-new-session");
-  const btnPopup = $("#btn-popup");
-  const popupLabelEl = $("#popup-label");
 
   const pickerOverlay = $("#picker-overlay");
   const pickerBreadcrumb = $("#picker-breadcrumb");
@@ -2023,18 +2021,6 @@
       submitDialog();
     }
   });
-
-  // ═══════════════════════════════════════════════════════════
-  // ─── GLOBAL: Popup toggle ──────────────────────────────────
-  // ═══════════════════════════════════════════════════════════
-
-  if (btnPopup) {
-    btnPopup.addEventListener("click", () => {
-      popupDialogs = !popupDialogs;
-      btnPopup.classList.toggle("active", popupDialogs);
-      if (popupLabelEl) popupLabelEl.textContent = popupDialogs ? "Popup" : "Inline";
-    });
-  }
 
   // ═══════════════════════════════════════════════════════════
   // ─── GLOBAL: Project Picker ────────────────────────────────
@@ -2631,11 +2617,9 @@
   });
 
   // ═══════════════════════════════════════════════════════════
-  // ─── GLOBAL: Background Color Picker ───────────────────────
+  // ─── GLOBAL: Background Color ─────────────────────────────
   // ═══════════════════════════════════════════════════════════
 
-  const btnBg = $("#btn-bg");
-  const bgLabel = $("#bg-label");
   const backdrop = $("#backdrop");
   const bgOptions = [
     { name: "Chroma", cls: "bg-chroma" },
@@ -2645,19 +2629,11 @@
   ];
   let bgIndex = 0;
 
-  btnBg.addEventListener("click", () => {
-    bgIndex = (bgIndex + 1) % bgOptions.length;
-    const opt = bgOptions[bgIndex];
-    backdrop.className = opt.cls;
-    bgLabel.textContent = opt.name;
-    localStorage.setItem("dg-bg", opt.cls);
-  });
-
   // Restore saved background
   const savedBg = localStorage.getItem("dg-bg");
   if (savedBg) {
     const idx = bgOptions.findIndex(o => o.cls === savedBg);
-    if (idx >= 0) { bgIndex = idx; backdrop.className = bgOptions[idx].cls; bgLabel.textContent = bgOptions[idx].name; }
+    if (idx >= 0) { bgIndex = idx; backdrop.className = bgOptions[idx].cls; }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -2666,11 +2642,13 @@
 
   const settingsOverlay = $("#settings-overlay");
   const settingBg = $("#setting-bg");
+  const settingDialogMode = $("#setting-dialog-mode");
   const settingTerminal = $("#setting-terminal");
   const settingAgentTabs = $("#setting-agent-tabs");
 
   // Init settings from localStorage
   settingBg.value = localStorage.getItem("dg-bg") || "bg-chroma";
+  settingDialogMode.value = localStorage.getItem("dg-dialog-mode") || "inline";
   settingTerminal.checked = localStorage.getItem("dg-terminal") === "1";
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
 
@@ -2678,8 +2656,13 @@
     const cls = settingBg.value;
     localStorage.setItem("dg-bg", cls);
     backdrop.className = cls;
-    const idx = bgOptions.findIndex(o => o.cls === cls);
-    if (idx >= 0) { bgIndex = idx; bgLabel.textContent = bgOptions[idx].name; }
+    bgIndex = bgOptions.findIndex(o => o.cls === cls);
+  });
+
+  settingDialogMode.addEventListener("change", () => {
+    const mode = settingDialogMode.value;
+    localStorage.setItem("dg-dialog-mode", mode);
+    popupDialogs = mode === "popup";
   });
 
   settingTerminal.addEventListener("change", () => {

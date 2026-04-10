@@ -51,10 +51,6 @@
         <span id="mode-icon">⌨️</span>
         <span id="mode-label">Live</span>
       </button>
-      <button id="btn-popup" class="ctrl-btn active" title="Toggle popup dialogs for questions">
-        <span>💬</span>
-        <span id="popup-label">Popup</span>
-      </button>
       <button id="btn-browse-file" class="ctrl-btn" title="Browse and open a file">
         <span>📄</span>
         <span>Open</span>
@@ -87,10 +83,6 @@
       <button id="btn-record" class="ctrl-btn" title="Record screen (Esc to stop)">
         <span id="record-icon">⏺</span>
         <span id="record-label">Record</span>
-      </button>
-      <button id="btn-bg" class="ctrl-btn" title="Change background color">
-        <span>🎨</span>
-        <span id="bg-label">Background</span>
       </button>
       <button id="btn-terminal" class="ctrl-btn" title="Toggle integrated terminal" style="display:none">
         <span>⬛</span>
@@ -182,6 +174,16 @@
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Features</div>
+          <div class="settings-row">
+            <div class="settings-label">
+              <span>Dialog Mode</span>
+              <span class="settings-hint">Popup windows or inline for questions</span>
+            </div>
+            <select id="setting-dialog-mode" class="settings-select">
+              <option value="inline">Inline</option>
+              <option value="popup">Popup</option>
+            </select>
+          </div>
           <div class="settings-row">
             <div class="settings-label">
               <span>Integrated Terminal</span>
