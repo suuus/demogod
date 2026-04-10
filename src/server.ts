@@ -323,9 +323,17 @@ const PORT = parseInt(process.env.PORT || "3456", 10);
 // the Copilot bridge.
 const SESSION_TOKEN = randomBytes(32).toString("hex");
 
+// Read version from package.json
+const PKG_PATH = join(__dirname, "..", "package.json");
+let APP_VERSION = "0.0.0";
+try {
+  const pkg = JSON.parse(await readFile(PKG_PATH, "utf-8"));
+  APP_VERSION = pkg.version || APP_VERSION;
+} catch {}
+
 const app = express();
 
-// Serve index.html with the session token injected as a <meta> tag.
+// Serve index.html with session token and version injected as <meta> tags.
 // All other static files are served normally.
 const PUBLIC_DIR = join(__dirname, "..", "src", "public");
 
@@ -334,7 +342,7 @@ app.get("/", async (_req, res) => {
     let html = await readFile(join(PUBLIC_DIR, "index.html"), "utf-8");
     html = html.replace(
       "</head>",
-      `  <meta name="dg-token" content="${SESSION_TOKEN}">\n</head>`
+      `  <meta name="dg-token" content="${SESSION_TOKEN}">\n  <meta name="dg-version" content="${APP_VERSION}">\n</head>`
     );
     res.type("html").send(html);
   } catch {

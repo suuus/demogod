@@ -2416,6 +2416,11 @@
   manager.createSession();
   loadModels();
 
+  // Show version in control bar
+  const dgVersion = document.querySelector('meta[name="dg-version"]')?.getAttribute("content");
+  const versionEl = document.getElementById("version-label");
+  if (versionEl && dgVersion) versionEl.textContent = "v" + dgVersion;
+
   // ═══════════════════════════════════════════════════════════
   // ─── GLOBAL: Keyboard Shortcuts ───────────────────────────
   // ═══════════════════════════════════════════════════════════
