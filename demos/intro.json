@@ -1,0 +1,37 @@
+{
+  "title": "Copilot CLI Intro Demo",
+  "steps": [
+    {
+      "type": "command",
+      "text": "What can you help me with?",
+      "response": "I'm GitHub Copilot CLI — your AI-powered terminal assistant! Here's what I can do:\n\n• **Write & edit code** — generate functions, refactor files, fix bugs\n• **Explain code** — break down complex logic in plain language\n• **Run commands** — execute shell commands, builds, and tests\n• **Search your codebase** — find files, symbols, and patterns\n• **Git workflows** — create commits, branches, and pull requests\n• **Debug issues** — analyze errors and suggest fixes\n\nJust describe what you need in natural language, and I'll take care of the rest!",
+      "typingSpeed": 50
+    },
+    {
+      "type": "command",
+      "text": "Create a hello world Express server in TypeScript",
+      "response": "Here's a minimal Express server in TypeScript:\n\n```typescript\nimport express from 'express';\n\nconst app = express();\nconst PORT = 3000;\n\napp.get('/', (req, res) => {\n  res.json({ message: 'Hello, World!' });\n});\n\napp.listen(PORT, () => {\n  console.log(`Server running at http://localhost:${PORT}`);\n});\n```\n\nTo run it:\n```bash\nnpm install express\nnpx tsx server.ts\n```\n\nThe server will respond with `{\"message\": \"Hello, World!\"}` at the root endpoint.",
+      "typingSpeed": 40
+    },
+    {
+      "type": "question",
+      "text": "Help me set up a database for my project",
+      "question": {
+        "message": "Which database would you like to use?",
+        "schema": {
+          "properties": {
+            "database": {
+              "type": "string",
+              "title": "Database engine",
+              "enum": ["PostgreSQL", "MySQL", "SQLite", "MongoDB"]
+            }
+          },
+          "required": ["database"]
+        }
+      },
+      "answer": { "database": "PostgreSQL" },
+      "response": "Great choice! Here's how to set up **PostgreSQL** for your project:\n\n```bash\nnpm install pg @types/pg\n```\n\n```typescript\nimport { Pool } from 'pg';\n\nconst pool = new Pool({\n  host: 'localhost',\n  port: 5432,\n  database: 'myapp',\n  user: 'postgres',\n  password: 'password',\n});\n\nexport async function query(text: string, params?: any[]) {\n  const result = await pool.query(text, params);\n  return result.rows;\n}\n```\n\nYour PostgreSQL connection is ready to use!",
+      "typingSpeed": 40
+    }
+  ]
+}

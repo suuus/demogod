@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copilot CLI Demo</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Chroma green background -->
+  <div id="backdrop"></div>
+
+  <!-- Control panel -->
+  <div id="controls">
+    <div class="control-group">
+      <button id="btn-project" class="ctrl-btn" title="Choose project directory">
+        <span>📁</span>
+        <span id="project-label">No project</span>
+      </button>
+      <button id="btn-mode" class="ctrl-btn" title="Toggle mode">
+        <span id="mode-icon">⌨️</span>
+        <span id="mode-label">Live</span>
+      </button>
+      <button id="btn-popup" class="ctrl-btn active" title="Toggle popup dialogs for questions">
+        <span>💬</span>
+        <span id="popup-label">Popup</span>
+      </button>
+      <button id="btn-browse-file" class="ctrl-btn" title="Browse and open a file">
+        <span>📄</span>
+        <span>Open</span>
+      </button>
+      <button id="btn-new-session" class="ctrl-btn" title="New session">↻</button>
+      <button id="btn-model" class="ctrl-btn" title="Select model">
+        <span>🧪</span>
+        <span id="model-label">Model</span>
+      </button>
+      <button id="btn-agent" class="ctrl-btn" title="Select agent">
+        <span>🤖</span>
+        <span id="agent-label">Agent</span>
+      </button>
+      <button id="btn-skill" class="ctrl-btn" title="Invoke a skill">
+        <span>⚡</span>
+        <span id="skill-label">Skill</span>
+      </button>
+      <button id="btn-copilot-mode" class="ctrl-btn" title="Switch Copilot mode">
+        <span>🎯</span>
+        <span id="copilot-mode-label">Interactive</span>
+      </button>
+      <button id="btn-record" class="ctrl-btn" title="Record screen (Esc to stop)">
+        <span id="record-icon">⏺</span>
+        <span id="record-label">Record</span>
+      </button>
+      <button id="btn-bg" class="ctrl-btn" title="Change background color">
+        <span>🎨</span>
+        <span id="bg-label">Background</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Terminal window -->
+  <div id="terminal-window" class="window">
+    <div class="window-titlebar">
+      <div class="traffic-lights">
+        <span class="dot dot-close"></span>
+        <span class="dot dot-minimize"></span>
+        <span class="dot dot-maximize"></span>
+      </div>
+      <div class="window-title">
+        <span class="window-title-icon">❯</span>
+        Copilot CLI
+      </div>
+      <div class="window-titlebar-spacer"></div>
+    </div>
+    <div class="tab-bar" id="tab-bar">
+      <div class="tab active" data-tab="chat">
+        <span class="tab-icon">❯</span>
+        <span class="tab-label">Chat</span>
+      </div>
+    </div>
+    <div class="tab-panels">
+      <div class="tab-panel active" id="panel-chat">
+        <div class="window-body" id="terminal-body">
+          <div id="terminal-output"></div>
+          <div id="terminal-input-line" class="input-line">
+            <span class="prompt-symbol">❯</span>
+            <span id="input-text" contenteditable="true" spellcheck="false"></span>
+            <span class="cursor" id="cursor"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="window-statusbar" id="statusbar">
+      <span id="status-text">Ready</span>
+      <span id="status-cwd" class="status-dim"></span>
+      <span id="status-agent" class="status-dim"></span>
+      <span id="status-mode" class="status-dim"></span>
+      <span id="status-model" class="status-dim"></span>
+    </div>
+  </div>
+
+  <!-- Project picker overlay -->
+  <div id="picker-overlay" class="hidden">
+    <div id="picker-window" class="window dialog-window">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="picker-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon">📁</span>
+          Choose Project
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body dialog-body">
+        <div id="picker-breadcrumb" class="picker-breadcrumb"></div>
+        <div id="picker-list" class="picker-list"></div>
+        <div class="dialog-actions">
+          <button id="picker-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
+          <button id="picker-select" class="dialog-btn dialog-btn-primary">Select This Folder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File browser overlay -->
+  <div id="filebrowser-overlay" class="hidden">
+    <div id="filebrowser-window" class="window dialog-window">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="filebrowser-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon">📄</span>
+          Open File
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body dialog-body">
+        <div id="filebrowser-breadcrumb" class="picker-breadcrumb"></div>
+        <div id="filebrowser-list" class="picker-list"></div>
+        <div class="dialog-actions">
+          <button id="filebrowser-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog overlay (hidden by default) -->
+  <div id="dialog-overlay" class="hidden">
+    <div id="dialog-window" class="window dialog-window">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="dialog-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon">💬</span>
+          Copilot has a question
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body dialog-body">
+        <p id="dialog-message" class="dialog-message"></p>
+        <div id="dialog-fields"></div>
+        <div class="dialog-actions">
+          <button id="dialog-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
+          <button id="dialog-submit" class="dialog-btn dialog-btn-primary">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capability picker overlay (reusable for model/agent/skill) -->
+  <div id="cappicker-overlay" class="hidden">
+    <div id="cappicker-window" class="window dialog-window cappicker-dialog">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="cappicker-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon" id="cappicker-icon">🧪</span>
+          <span id="cappicker-title">Select</span>
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body dialog-body">
+        <div id="cappicker-search-wrap" class="cappicker-search-wrap">
+          <input type="text" id="cappicker-search" class="cappicker-search" placeholder="Filter…" autocomplete="off" />
+        </div>
+        <div id="cappicker-list" class="picker-list cappicker-list"></div>
+        <div class="dialog-actions">
+          <button id="cappicker-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
+          <button id="cappicker-deselect" class="dialog-btn dialog-btn-secondary hidden">Reset to default</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

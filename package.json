@@ -1,0 +1,22 @@
+{
+  "name": "demogod",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Demo video generator for GitHub Copilot CLI",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^0.2.1",
+    "copilot": "^0.0.2",
+    "express": "^5.1.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
