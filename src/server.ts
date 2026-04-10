@@ -333,6 +333,18 @@ try {
 
 const app = express();
 
+// CORS: allow Tauri desktop app (serves from tauri:// origin) to call our API
+app.use((_req, res, next) => {
+  const origin = _req.headers.origin;
+  if (origin && (origin.startsWith("tauri://") || origin.startsWith("https://tauri.") || origin.includes("localhost"))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (_req.method === "OPTIONS") return res.status(204).end();
+  next();
+});
+
 // Serve index.html with session token and version injected as <meta> tags.
 // All other static files are served normally.
 const PUBLIC_DIR = join(__dirname, "..", "src", "public");
