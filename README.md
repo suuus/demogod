@@ -108,7 +108,6 @@ For a deep dive into components, data flows, and extension points, see **[`docs/
 - **Node.js** v20 or higher ([Download](https://nodejs.org/))
 - **npm** or **yarn** package manager
 - **GitHub Copilot CLI** access (for live sessions)
-- Optional: **Python 3.9+** and **Azure Functions Core Tools** (for Azure Function features)
 
 ### Installation
 
@@ -119,9 +118,6 @@ For a deep dive into components, data flows, and extension points, see **[`docs/
 
 # Install Node.js dependencies
 npm install
-
-# Optional: Install Python dependencies for Azure Functions
-pip install -r requirements.txt
 ```
 
 ### Running the Server
@@ -162,8 +158,6 @@ demogod/
 │   └── workflows/
 │       └── desktop-build.yml    # CI workflow for Tauri desktop builds
 ├── package.json            # Node.js dependencies
-├── host.json               # Azure Functions config (optional)
-└── requirements.txt        # Python dependencies (optional)
 ```
 
 ## Demo Scripts
@@ -303,68 +297,6 @@ Additional protections:
 - Demo names are sanitized to prevent path traversal
 - Only text-based files can be read via the file API
 - WebSocket messages validate input before acting
-
-## Azure Function
-
-The included Azure Function provides a simple HTTP endpoint for demonstrations.
-
-### Configuration
-
-**Endpoint:** `/api/hello`  
-**Method:** GET or POST  
-**Parameters:** `name` (query string or JSON body)
-
-### Local Testing
-
-```bash
-# Install Azure Functions Core Tools
-# https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Start the Azure Functions runtime
-func start
-```
-
-### Example Usage
-
-```bash
-# GET request
-curl "http://localhost:7071/api/hello?name=World"
-
-# POST request
-curl -X POST http://localhost:7071/api/hello \
-  -H "Content-Type: application/json" \
-  -d '{"name": "World"}'
-```
-
-**Response:**
-```json
-{
-  "message": "Hello, World! This is your Azure Function."
-}
-```
-
-### Deployment to Azure
-
-```bash
-# Login to Azure
-az login
-
-# Create a function app (one-time setup)
-az functionapp create \
-  --resource-group <resource-group> \
-  --consumption-plan-location <location> \
-  --runtime python \
-  --runtime-version 3.9 \
-  --functions-version 4 \
-  --name <function-app-name> \
-  --storage-account <storage-account>
-
-# Deploy the function
-func azure functionapp publish <function-app-name>
-```
 
 ## Development
 
