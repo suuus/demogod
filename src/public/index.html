@@ -55,7 +55,6 @@
         <span>📄</span>
         <span>Open</span>
       </button>
-      <button id="btn-new-session" class="ctrl-btn" title="Reset session">↻</button>
       <button id="btn-model" class="ctrl-btn" title="Select model">
         <span>🧪</span>
         <span id="model-label">Model</span>
@@ -143,8 +142,11 @@
     <div id="pty-container" class="pty-container"></div>
   </div>
 
-  <!-- Version badge (bottom-right corner) -->
-  <div id="version-badge" class="version-badge hidden"></div>
+  <!-- Bottom-right corner controls -->
+  <div id="bottom-right-controls" class="bottom-right-controls">
+    <button id="btn-new-session" class="bottom-right-btn" title="Reset session">↻</button>
+    <div id="version-badge" class="version-badge hidden"></div>
+  </div>
 
   <!-- Settings overlay -->
   <div id="settings-overlay" class="hidden">
