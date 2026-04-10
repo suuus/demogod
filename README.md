@@ -191,6 +191,18 @@ DEBUG=* npm start
 - [ ] Saved layout presets
 - [ ] Desktop app production builds (Windows, Linux)
 
+## Automated Workflows
+
+DemoGod uses several [GitHub Agentic Workflows](https://github.com/github/gh-aw) (`gh-aw`) to keep the project healthy:
+
+| Workflow | Schedule | What it does |
+|----------|----------|--------------|
+| **issue-triage-agent** | Every hour | Automatically labels new unlabeled issues (`bug`, `feature`, `enhancement`, `documentation`, `question`, `help-wanted`, `good-first-issue`) and posts a triage comment |
+| **code-simplifier** | Daily | Reviews recently modified code and opens PRs with clarity/maintainability improvements — preserving all functionality |
+| **daily-doc-updater** | Daily (6 am UTC) | Scans merged PRs and commits from the last 24 hours and updates documentation files to reflect new features and changes |
+
+Workflow source files live in `.github/workflows/` (`.md` for the agent prompt, `.lock.yml` for the compiled workflow).
+
 ## License
 
 MIT
