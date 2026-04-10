@@ -22,6 +22,15 @@ const t1 = store.add("Test task", "dev");
 assert("add() returns task with id", t1.id === 1);
 assert("add() sets category", t1.category === "dev");
 assert("add() defaults done=false", t1.done === false);
+assert("add() defaults priority=2", t1.priority === 2);
+
+// Test priority
+const tp = store.add("Priority task", "dev", 1);
+assert("add() accepts custom priority", tp.priority === 1);
+let threwPriority = false;
+try { store.add("Bad priority", "dev", 5); } catch { threwPriority = true; }
+assert("add() throws on invalid priority", threwPriority);
+store.remove(tp.id);
 
 // Test complete
 store.complete(1);

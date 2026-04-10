@@ -161,11 +161,12 @@ html, body {
   z-index: 100;
   display: flex;
   gap: 8px;
+  max-width: calc(100vw - 24px);
 }
 
 .control-group {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   background: rgba(30, 30, 46, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -173,15 +174,16 @@ html, body {
   padding: 4px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  flex-wrap: wrap;
-  justify-content: center;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.control-group::-webkit-scrollbar { display: none; }
 
 .ctrl-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 5px;
+  padding: 6px 10px;
   border: none;
   border-radius: 7px;
   background: transparent;

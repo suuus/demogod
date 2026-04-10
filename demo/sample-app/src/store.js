@@ -4,11 +4,13 @@ class TaskStore {
     this._nextId = 1;
   }
 
-  add(title, category = "general") {
+  add(title, category = "general", priority = 2) {
+    if (priority < 1 || priority > 3) throw new Error("Priority must be 1-3");
     const task = {
       id: this._nextId++,
       title,
       category,
+      priority,
       done: false,
       createdAt: new Date(),
     };
