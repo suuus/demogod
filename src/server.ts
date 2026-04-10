@@ -375,7 +375,7 @@ const wss = new WebSocketServer({
     if (origin) {
       try {
         const url = new URL(origin);
-        const allowed = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+        const allowed = ["localhost", "127.0.0.1", "[::1]", "tauri.localhost"].includes(url.hostname);
         if (!allowed) {
           console.warn(`[Security] Rejected WS from origin: ${origin}`);
           done(false, 403, "Forbidden origin");
