@@ -2300,7 +2300,10 @@
     if (session) session.send("list_skills");
     setTimeout(() => openCapPicker("skill"), 300);
   });
-  $("#btn-shell").addEventListener("click", async () => {
+  const btnShell = $("#btn-shell");
+  // Only show shell picker inside Tauri desktop app
+  if (window.__TAURI_INTERNALS__) btnShell.style.display = "";
+  btnShell.addEventListener("click", async () => {
     await loadShellConfig();
     openCapPicker("shell");
   });
@@ -2461,7 +2464,7 @@
   const manager = new SessionManager();
   manager.createSession();
   loadModels();
-  loadShellConfig();
+  if (window.__TAURI_INTERNALS__) loadShellConfig();
 
   // Show version in control bar
   const dgVersion = document.querySelector('meta[name="dg-version"]')?.getAttribute("content");
