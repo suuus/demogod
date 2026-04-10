@@ -2249,7 +2249,10 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shell: id }),
-      }).then((r) => r.json()).then(() => {
+      }).then((r) => {
+        if (!r.ok) throw new Error(`Server returned ${r.status}`);
+        return r.json();
+      }).then(() => {
         cachedShellConfig.current = id;
         const label = document.getElementById("shell-label");
         if (label) label.textContent = id === "native" ? "Native" : id.toUpperCase();

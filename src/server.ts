@@ -543,13 +543,17 @@ app.get("/api/shell", async (_req, res) => {
 });
 
 app.put("/api/shell", async (req, res) => {
-  const { shell } = req.body;
-  const valid = ["native", "wsl", "powershell", "cmd"];
-  if (!valid.includes(shell)) {
-    return res.status(400).json({ error: "Invalid shell. Use: " + valid.join(", ") });
+  try {
+    const { shell } = req.body || {};
+    const valid = ["native", "wsl", "powershell", "cmd"];
+    if (!valid.includes(shell)) {
+      return res.status(400).json({ error: "Invalid shell. Use: " + valid.join(", ") });
+    }
+    await writeShellConfig(shell);
+    res.json({ shell, restartRequired: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to save shell config" });
   }
-  await writeShellConfig(shell);
-  res.json({ shell, restartRequired: true });
 });
 
 app.get("/api/models", async (_req, res) => {
