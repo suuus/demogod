@@ -52,7 +52,7 @@
 }
 
 .gl {
-  animation: typeLetter .5s ease-out forwards, goldShimmer 2.5s ease-in-out 2.2s infinite;
+  animation: typeLetter .5s ease-out calc(0.8s + var(--i) * 0.12s) forwards, goldShimmer 2.5s ease-in-out 2.6s infinite;
 }
 @keyframes goldShimmer {
   0%, 100% { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,.4); }
