@@ -397,7 +397,7 @@ html, body {
   text-align: center;
   font-size: 13px;
   font-weight: 500;
-  color: var(--overlay0);
+  color: #fff;
   letter-spacing: 0.01em;
   display: flex;
   align-items: center;
