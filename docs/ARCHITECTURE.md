@@ -296,6 +296,23 @@ Tauri uses a **sidecar** approach to run the Node.js server:
 2. Creates the main webview window pointing at `http://localhost:3456`
 3. When the window is closed, Tauri tears down the sidecar process
 
+### Shell Picker (v0.0.4+)
+
+The desktop app includes a shell picker button (🐚) in the control bar that appears **only inside the Tauri desktop app** (detected via `window.__TAURI_INTERNALS__`). On Windows, users can select which shell to use for spawning the server:
+
+- **WSL** — Windows Subsystem for Linux
+- **PowerShell** — Microsoft PowerShell
+- **CMD** — Windows Command Prompt
+- **Native** — Platform-native shell (fallback)
+
+**Implementation:**
+- Server exposes `GET /api/shell` to read current config from `~/.demogod/config.json`
+- Server exposes `PUT /api/shell` to update and persist the selection
+- Rust `lib.rs` dispatches `Command` via the chosen shell with fallback to native if config is missing
+- Frontend detects Tauri presence and only shows the picker in desktop mode
+
+The config is applied at server startup, so users can set their preferred shell and have it persist across launches.
+
 ### Build & CI
 
 `npm run build:desktop` compiles the Rust shell and bundles the Node server into platform-specific installers (`.dmg`, `.msi`/`.exe`, `.deb`/`.AppImage`). The `.github/workflows/desktop-build.yml` workflow runs this across macOS, Windows, and Linux runners.

@@ -56,6 +56,8 @@ npm run build:desktop
 
 > **Note:** `npm run desktop` uses Tauri's `beforeDevCommand` to start the Node server automatically — you don't need to run `npm run dev` separately.
 
+The desktop app includes a **shell picker** (v0.0.4+) for selecting which shell to spawn the server with (WSL, PowerShell, CMD, or native). See **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** for details on the implementation.
+
 ### TypeScript
 
 - Source lives in `src/`, compiled output goes to `dist/` (not checked in).

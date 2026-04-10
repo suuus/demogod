@@ -37,6 +37,10 @@ DemoGod is a web-based tool that creates interactive demo videos for GitHub Copi
 
 DemoGod ships as a native desktop app built with [Tauri v2](https://v2.tauri.app/). The Tauri shell wraps the same web UI and spawns the Node.js server as a sidecar process (`node --import tsx src/server.ts`). It is a **native window wrapper**, not a standalone zero-dependency installer — you still need the prerequisites below installed on your machine.
 
+### Shell Picker (v0.0.4+)
+
+The desktop app includes a **shell picker** (🐚) in the control bar. On Windows, you can choose to spawn the server via **WSL**, **PowerShell**, **CMD**, or your **native shell**. The selection is saved to `~/.demogod/config.json` and applied on every launch, with a native shell fallback if config is missing.
+
 ### Prerequisites
 
 The desktop app requires these to be installed on the host machine:
@@ -199,6 +203,17 @@ Read file contents
 Load a demo script
 - Path param: `name` (demo script name without .json extension)
 - Returns: Demo script JSON
+
+### `GET /api/shell` (v0.0.4+)
+Read current shell configuration (desktop app only)
+- Returns: Current shell selection (`wsl`, `powershell`, `cmd`, `native`)
+- Config stored in `~/.demogod/config.json`
+
+### `PUT /api/shell` (v0.0.4+)
+Update shell configuration (desktop app only)
+- Request body: `{shell: "wsl" | "powershell" | "cmd" | "native"}`
+- Saves to `~/.demogod/config.json`
+- Returns: Updated configuration
 
 ## WebSocket Protocol
 

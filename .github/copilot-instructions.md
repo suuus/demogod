@@ -121,6 +121,17 @@ DemoGod can run as a native desktop app via Tauri v2. Source is in `src-tauri/`.
 
 When modifying Tauri config, edit `src-tauri/tauri.conf.json`. Rust code is in `src-tauri/src/`.
 
+### Shell Picker (v0.0.4+)
+
+The desktop app includes a shell picker (🐚 button) in the control bar **visible only in Tauri** (detected via `window.__TAURI_INTERNALS__`). Users can select between **WSL**, **PowerShell**, **CMD**, or **native** shell for spawning the server. The selection is:
+- Persisted to `~/.demogod/config.json`
+- Applied at server startup via `lib.rs` command dispatch with fallback logic
+- Read/written via new REST endpoints:
+  - `GET /api/shell` — read current shell config
+  - `PUT /api/shell` — update shell config
+
+In browser mode, the shell picker is hidden.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
