@@ -488,18 +488,13 @@
             }
           }
           if (dir && scEl) {
-            scEl.textContent = "\ud83d\udcc2 " + dir;
+            const short = dir.split("/").pop() || dir;
+            scEl.textContent = "\ud83d\udcc2 " + short;
+            scEl.title = dir;
           }
           this.send("list_agents");
           this.send("list_skills");
           this.send("get_mode");
-          if (dir && this._isActive()) {
-            const windowTitle = document.querySelector(".window-title");
-            if (windowTitle) {
-              const short = dir.split("/").pop() || dir;
-              windowTitle.innerHTML = '<span class="window-title-icon">\u276f</span> Copilot CLI \u2014 ' + escapeHtml(short);
-            }
-          }
           this._syncControlBarIfActive();
           break;
         }
