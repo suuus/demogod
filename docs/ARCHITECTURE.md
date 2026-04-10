@@ -304,26 +304,17 @@ Tauri uses a **sidecar** approach to run the Node.js server:
 2. Creates the main webview window pointing at `http://localhost:3456`
 3. When the window is closed, Tauri tears down the sidecar process
 
-### Shell Picker (v0.0.4+)
+### Shell Picker
 
-The desktop app includes a shell picker button (🐚) in the control bar that appears **only inside the Tauri desktop app** (detected via `window.__TAURI_INTERNALS__`). On Windows, users can select which shell to use for spawning the server:
+> **Status:** The shell picker UI is currently hidden (v0.0.8+) while cross-platform shell support is being stabilized. The underlying `/api/shell` API and Rust dispatch logic remain in the codebase for future use.
 
-- **WSL** — Windows Subsystem for Linux
-- **PowerShell** — Microsoft PowerShell
-- **CMD** — Windows Command Prompt
-- **Native** — Platform-native shell (fallback)
-
-**Implementation:**
-- Server exposes `GET /api/shell` to read current config from `~/.demogod/config.json`
-- Server exposes `PUT /api/shell` to update and persist the selection
-- Rust `lib.rs` dispatches `Command` via the chosen shell with fallback to native if config is missing
-- Frontend detects Tauri presence and only shows the picker in desktop mode
-
-The config is applied at server startup, so users can set their preferred shell and have it persist across launches.
+The desktop app includes a shell picker for choosing which shell spawns the server. On Windows, options include WSL, PowerShell, CMD, or native. The selection is persisted to `~/.demogod/config.json` and applied via Rust `lib.rs` `spawn_server()` dispatch.
 
 ### Build & CI
 
-`npm run build:desktop` compiles the Rust shell and bundles the Node server into platform-specific installers (`.dmg`, `.msi`/`.exe`, `.deb`/`.AppImage`). The `.github/workflows/desktop-build.yml` workflow runs this across macOS, Windows, and Linux runners.
+> **Status:** Desktop production builds are currently disabled. Use `npm run desktop` for local macOS development.
+
+`npm run build:desktop` compiles the Rust shell and bundles the Node server into platform-specific installers (`.dmg`, `.msi`/`.exe`, `.deb`/`.AppImage`). The `.github/workflows/desktop-build.yml` workflow (currently disabled) runs this across macOS, Windows, and Linux runners.
 
 ## Data Flow Examples
 
@@ -468,12 +459,12 @@ Both scanners walk up to 3 levels deep, check `plugin.json` for configuration, a
 ### Adding new REST endpoints
 1. Add the route in `server.ts` after the existing routes (before the WS handler)
 2. Follow security patterns (validate paths against `homedir()`, sanitize input)
-3. Document in `README.md` under **API Endpoints**
+3. Document in the REST API table above and in `docs/ARCHITECTURE.md`
 
 ### Adding new demo step types
 1. Add the step handling logic in `runDemo()` in `server.ts`
 2. Add corresponding `demo_step_*` or `demo_action` handling in `app.js`
-3. Document the step schema in the demo script section of `README.md`
+3. Document the step schema in the demo script section of `docs/ARCHITECTURE.md`
 
 ### Adding new demo actions
 1. Add the action case in `_handleDemoAction()` in `app.js`
