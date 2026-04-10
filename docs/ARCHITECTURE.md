@@ -7,48 +7,58 @@
 DemoGod is a web-based tool for creating interactive demo videos of GitHub Copilot CLI. It runs an Express/WebSocket server that bridges a browser-based terminal UI to real Copilot CLI sessions (via the `@github/copilot-sdk`) or plays back scripted demos with realistic timing.
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  Browser (src/public/)                                   │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐  │
-│  │ Terminal UI  │  │ Dialog System│  │ File/Tab Viewer│  │
-│  └──────┬──────┘  └──────┬───────┘  └───────┬────────┘  │
-│         │                │                   │           │
-│         └────────────────┼───────────────────┘           │
-│                          │ WebSocket (JSON)              │
-└──────────────────────────┼───────────────────────────────┘
-                           │
-┌──────────────────────────┼───────────────────────────────┐
-│  Server (src/server.ts)  │                               │
-│                          ▼                               │
-│  ┌──────────────────────────────────────────────────┐    │
-│  │  WebSocket Handler                               │    │
-│  │  • Routes messages to bridge or demo engine      │    │
-│  │  • Manages per-connection session state           │    │
-│  └────────┬──────────────────────────┬──────────────┘    │
-│           │                          │                   │
-│  ┌────────▼────────┐     ┌──────────▼──────────────┐    │
-│  │ CopilotBridge   │     │ Demo Engine              │    │
-│  │ (copilot-bridge │     │ (scripted playback       │    │
-│  │  .ts)           │     │  with timing)            │    │
-│  └────────┬────────┘     └─────────────────────────┘    │
-│           │                                              │
-│  ┌────────▼────────┐                                     │
-│  │ Plugin Scanners │  Discovers agents/skills from       │
-│  │ (server.ts)     │  ~/.copilot/installed-plugins/      │
-│  └─────────────────┘                                     │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐    │
-│  │  REST API (Express)                              │    │
-│  │  /api/browse  /api/file  /api/demos/:name        │    │
-│  │  /api/browse-files  /api/models                  │    │
-│  └──────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │  GitHub Copilot CLI    │
-              │  (@github/copilot-sdk) │
-              └────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  Tauri Shell (src-tauri/) — optional desktop wrapper            │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ Rust process: spawns Node sidecar, manages window lifecycle│  │
+│  └───────────────────────────┬───────────────────────────────┘  │
+│                              │ loads webview                    │
+├──────────────────────────────┼──────────────────────────────────┤
+│  Browser / Webview (src/public/)                                │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐         │
+│  │ Terminal UI  │  │ Dialog System│  │ File/Tab Viewer│         │
+│  └──────┬──────┘  └──────┬───────┘  └───────┬────────┘         │
+│         │                │                   │                  │
+│  ┌──────▼────────────────▼───────────────────▼──────────────┐   │
+│  │  SessionManager / FloatingWindowManager                  │   │
+│  │  • Manages multiple TerminalSession instances            │   │
+│  │  • Tab mode or floating window mode with grid snapping   │   │
+│  └──────────────────────┬───────────────────────────────────┘   │
+│                         │ WebSocket (JSON) — one per session    │
+└─────────────────────────┼───────────────────────────────────────┘
+                          │
+┌─────────────────────────┼───────────────────────────────────────┐
+│  Server (src/server.ts) │                                       │
+│                         ▼                                       │
+│  ┌──────────────────────────────────────────────────┐           │
+│  │  WebSocket Handler                               │           │
+│  │  • Routes messages to bridge or demo engine      │           │
+│  │  • Manages per-connection session state           │           │
+│  └────────┬──────────────────────────┬──────────────┘           │
+│           │                          │                          │
+│  ┌────────▼────────┐     ┌──────────▼──────────────┐           │
+│  │ CopilotBridge   │     │ Demo Engine              │           │
+│  │ (copilot-bridge │     │ (scripted playback       │           │
+│  │  .ts)           │     │  with timing)            │           │
+│  └────────┬────────┘     └─────────────────────────┘           │
+│           │                                                     │
+│  ┌────────▼────────┐                                            │
+│  │ Plugin Scanners │  Discovers agents/skills from              │
+│  │ (server.ts)     │  ~/.copilot/installed-plugins/             │
+│  └─────────────────┘                                            │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────┐           │
+│  │  REST API (Express)                              │           │
+│  │  /api/browse  /api/file  /api/demos/:name        │           │
+│  │  /api/browse-files  /api/models                  │           │
+│  └──────────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+             ┌────────────────────────┐
+             │  GitHub Copilot CLI    │
+             │  (@github/copilot-sdk) │
+             └────────────────────────┘
 ```
 
 ## File Map
@@ -61,14 +71,22 @@ src/
 │                        #   event forwarding, user input handling
 └── public/
     ├── index.html       # Page structure, overlays, dialogs
-    ├── app.js           # ~1800 lines — all frontend logic (IIFE, vanilla JS)
+    ├── app.js           # ~2450 lines — all frontend logic (class-based, vanilla JS)
     └── styles.css       # ~1250 lines — theming, terminal look, dialogs
+
+src-tauri/
+├── src/                 # Rust entry point, sidecar spawning logic
+├── Cargo.toml           # Rust crate config
+└── tauri.conf.json      # Tauri window config, sidecar definition, build settings
 
 demos/
 └── intro.json           # Example scripted demo (command + question steps)
 
 docs/
 └── ARCHITECTURE.md      # This file
+
+.github/workflows/
+└── desktop-build.yml    # CI workflow for cross-platform Tauri builds
 ```
 
 ## Key Components
@@ -172,7 +190,7 @@ Plays back JSON demo scripts with realistic timing:
 
 #### `app.js` — Application Logic
 
-Wrapped in a single IIFE. Major sections:
+Class-based architecture (~2450 lines). Major sections:
 
 | Section | Description |
 |---------|-------------|
@@ -187,6 +205,9 @@ Wrapped in a single IIFE. Major sections:
 | **Capability pickers** | Model, agent, skill, and mode selection dialogs |
 | **Screen recording** | MediaRecorder API for capturing demos as video |
 | **Background customization** | Chroma key green or custom colors for video compositing |
+| **TerminalSession** | Encapsulates a single Copilot session — its own WS connection, terminal state, and DOM output area |
+| **SessionManager** | Creates, destroys, and switches between `TerminalSession` instances (tab bar or keyboard shortcuts) |
+| **FloatingWindowManager** | Detaches sessions into draggable, resizable floating windows with grid snap zones |
 | **Tab system** | Chat tab + dynamically opened file/report tabs |
 | **Markdown rendering** | Inline code, fenced code blocks, bold, links, lists — lightweight custom renderer |
 | **Inline question detection** | When the agent asks in prose despite instructions, auto-detects and renders an inline form |
@@ -204,6 +225,69 @@ Wrapped in a single IIFE. Major sections:
 - macOS-style window chrome (traffic lights, title bar)
 - Dark terminal theme with syntax highlighting classes
 - Terminal fills viewport, dialogs are centered modals
+
+## Multi-Session Frontend Architecture
+
+The frontend uses a class-based architecture to support multiple concurrent Copilot sessions.
+
+### TerminalSession
+
+Each `TerminalSession` instance encapsulates:
+- Its own WebSocket connection to the server
+- Independent terminal state (output buffer, processing flag, current model/agent)
+- A dedicated DOM output area that is shown/hidden when switching sessions
+
+When a session is created, the server creates a fresh `CopilotBridge` on the corresponding WebSocket connection — so each session has a fully isolated Copilot context.
+
+### SessionManager
+
+`SessionManager` is the top-level controller for all sessions:
+- Creates new sessions (allocating a `TerminalSession` + tab in the tab bar)
+- Destroys sessions (tears down the WS connection and removes the tab/DOM)
+- Switches the active session (hides the old output area, shows the new one)
+- Responds to keyboard shortcuts (`Ctrl+Shift+T`, `Ctrl+W`, `Ctrl+Tab`, `Ctrl+Shift+Tab`)
+
+### FloatingWindowManager
+
+`FloatingWindowManager` handles the floating window layout mode:
+- Detaches a `TerminalSession` from the tab bar into a draggable, resizable window
+- Implements snap zones — when a window is dragged near a screen edge or another window, it snaps to a grid position for clean side-by-side layouts
+- Re-docks windows back into the tab bar
+
+## Layout Modes
+
+### Tab Mode (default)
+
+Sessions appear as tabs in the terminal tab bar. Only one session is visible at a time. Keyboard shortcuts cycle through tabs.
+
+### Floating Window Mode
+
+Sessions can be "popped out" into independent floating windows within the app viewport. Each floating window:
+- Is draggable and resizable
+- Snaps to a grid (half-screen, quarter-screen, etc.) when dragged near edges
+- Has its own title bar with close/minimize/dock controls
+
+Users can mix modes — some sessions in tabs, others floating.
+
+## Tauri Desktop Integration
+
+DemoGod optionally runs as a native desktop app using [Tauri v2](https://v2.tauri.app/). The Tauri layer is in `src-tauri/`.
+
+### Sidecar Pattern
+
+Tauri uses a **sidecar** approach to run the Node.js server:
+- **Production builds**: The Rust process spawns the bundled Node server as a child process (sidecar). The Tauri webview loads the UI from `localhost`.
+- **Development**: `npm run desktop` uses Tauri's `beforeDevCommand` to start `npm run dev` automatically, so the Node server runs with hot reload while Tauri provides the native window.
+
+### Window Lifecycle
+
+1. Tauri Rust `main()` starts → spawns Node sidecar → waits for the server to be ready
+2. Creates the main webview window pointing at `http://localhost:3456`
+3. When the window is closed, Tauri tears down the sidecar process
+
+### Build & CI
+
+`npm run build:desktop` compiles the Rust shell and bundles the Node server into platform-specific installers (`.dmg`, `.msi`/`.exe`, `.deb`/`.AppImage`). The `.github/workflows/desktop-build.yml` workflow runs this across macOS, Windows, and Linux runners.
 
 ## Data Flow Examples
 

@@ -17,11 +17,13 @@ src/
 ├── copilot-bridge.ts    # @github/copilot-sdk wrapper, event forwarding
 └── public/
     ├── index.html       # Page structure, overlays, control bar
-    ├── app.js           # All frontend logic — vanilla JS IIFE, zero dependencies
+    ├── app.js           # All frontend logic — class-based vanilla JS, ~2450 lines
     └── styles.css       # Theming, terminal chrome, CSS custom properties
 
 demos/                   # JSON demo scripts (loaded via /api/demos/:name)
+src-tauri/               # Tauri desktop app (Rust shell + config)
 docs/ARCHITECTURE.md     # Deep architecture reference
+.github/workflows/desktop-build.yml  # CI for Tauri builds
 ```
 
 ## Tech Stack & Conventions
@@ -90,6 +92,44 @@ JSON files in `demos/` with a `steps` array. Each step is either:
 4. **Provide defaults.** Always set a sensible `default` value.
 5. **Sub-agents follow the same rules.** Instruct them to use `ask_user`, one question at a time.
 
+## Multi-Session Architecture
+
+The frontend (`app.js`, ~2450 lines) uses a class-based architecture for multi-session support:
+
+- **`TerminalSession`** — encapsulates one Copilot session: its own WebSocket, terminal state, and DOM output area.
+- **`SessionManager`** — creates/destroys/switches sessions. Manages the tab bar and keyboard shortcut routing.
+- **`FloatingWindowManager`** — detaches sessions into draggable, resizable floating windows with grid snap zones.
+
+Each session gets its own `CopilotBridge` on the server side, so sessions are fully isolated.
+
+### Layout Modes
+- **Tab mode** (default) — sessions as tabs, one visible at a time.
+- **Floating window mode** — pop sessions out into independent draggable windows with edge snapping.
+
+## Tauri Desktop App
+
+DemoGod can run as a native desktop app via Tauri v2. Source is in `src-tauri/`.
+
+- **Sidecar pattern**: Rust shell spawns the Node.js server as a child process. The Tauri webview loads the UI from `localhost:3456`.
+- **Dev**: `npm run desktop` — Tauri's `beforeDevCommand` runs `npm run dev` for hot reload.
+- **Build**: `npm run build:desktop` — produces `.dmg` / `.msi` / `.deb` / `.AppImage`.
+- **CI**: `.github/workflows/desktop-build.yml` builds on macOS, Windows, and Linux.
+
+When modifying Tauri config, edit `src-tauri/tauri.conf.json`. Rust code is in `src-tauri/src/`.
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Shift+T` | New session |
+| `Ctrl+W` | Close current session |
+| `Ctrl+Tab` | Next session |
+| `Ctrl+Shift+Tab` | Previous session |
+
+> On macOS, use `Cmd` instead of `Ctrl`.
+
+These are handled in `SessionManager` inside `app.js`.
+
 ## Common Tasks Quick Reference
 
 | Task | What to do |
@@ -101,3 +141,5 @@ JSON files in `demos/` with a `steps` array. Each step is either:
 | Add demo step type | Handle in `runDemo()` in `server.ts`, add `demo_step_*` handling in `app.js` |
 | Type-check | `npx tsc --noEmit` |
 | Run dev server | `npm run dev` (hot reload on :3456) |
+| Run desktop dev | `npm run desktop` (Tauri + Node hot reload) |
+| Build desktop app | `npm run build:desktop` (platform installers) |

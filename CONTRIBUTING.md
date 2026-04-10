@@ -19,7 +19,8 @@ Open `http://localhost:3456` in your browser.
 |------|----------------|
 | `src/server.ts` | Express + WebSocket server, REST API routes, demo runner, plugin scanners |
 | `src/copilot-bridge.ts` | Wrapper around `@github/copilot-sdk` — session lifecycle, event forwarding |
-| `src/public/` | Static frontend — `index.html`, `app.js` (vanilla JS), `styles.css` |
+| `src/public/` | Static frontend — `index.html`, `app.js` (~2450 lines, class-based vanilla JS), `styles.css` |
+| `src-tauri/` | Tauri desktop shell — Rust entry point, sidecar config, `tauri.conf.json` |
 | `demos/` | JSON demo scripts loaded by the demo engine |
 | `docs/` | Architecture and design docs |
 | `.github/copilot-instructions.md` | Context file for GitHub Copilot |
@@ -28,7 +29,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a deep dive into how the 
 
 ## Development Workflow
 
-### Running locally
+### Running locally (browser)
 
 ```bash
 npm run dev   # tsx watch — auto-restarts on .ts changes
@@ -36,6 +37,24 @@ npm start     # one-shot production run
 ```
 
 The frontend files (`src/public/`) are served as static assets. Edit them and refresh the browser — no build step needed.
+
+### Running the desktop app
+
+DemoGod also ships as a native desktop app via [Tauri v2](https://v2.tauri.app/).
+
+**Prerequisites:**
+- **Rust** toolchain (install via [rustup](https://rustup.rs/))
+- Platform-specific Tauri v2 dependencies — see the [Tauri prerequisites guide](https://v2.tauri.app/start/prerequisites/)
+
+```bash
+# Development (Tauri window + Node hot reload)
+npm run desktop
+
+# Production build (platform-specific installer)
+npm run build:desktop
+```
+
+> **Note:** `npm run desktop` uses Tauri's `beforeDevCommand` to start the Node server automatically — you don't need to run `npm run dev` separately.
 
 ### TypeScript
 
@@ -85,6 +104,16 @@ The frontend is intentionally zero-dependency vanilla JS. Please keep it that wa
 - `index.html` — structure and overlays
 - `styles.css` — all styling, uses CSS custom properties
 - `app.js` — all logic inside a single IIFE
+
+### Modifying the Tauri desktop app
+
+The Tauri shell lives in `src-tauri/`. It uses a **sidecar pattern** — the Rust process spawns the Node.js server as a child process and loads the UI in a webview.
+
+- **Rust source**: `src-tauri/src/` — entry point and sidecar management
+- **Config**: `src-tauri/tauri.conf.json` — window settings, sidecar definition, build options
+- **CI**: `.github/workflows/desktop-build.yml` — cross-platform build workflow
+
+Tauri v2 is required. If you change `tauri.conf.json`, test with `npm run desktop` before submitting.
 
 ## Security Checklist
 

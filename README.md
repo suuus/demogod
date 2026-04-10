@@ -29,6 +29,45 @@ DemoGod is a web-based tool that creates interactive demo videos for GitHub Copi
 - **Real-time Streaming**: See Copilot responses as they are generated
 - **Tool Execution Visualization**: Watch tool calls and their results in real-time
 - **File Change Tracking**: Monitor file modifications during demo execution
+- **Multi-Session Support**: Run multiple Copilot sessions in tabs or floating windows with grid snapping
+- **Desktop App**: Native desktop experience via Tauri with system-level keyboard shortcuts
+
+## Desktop App
+
+DemoGod ships as a native desktop app built with [Tauri v2](https://v2.tauri.app/). The Tauri shell wraps the same web UI and bundles the Node.js server as a sidecar process.
+
+```bash
+# Development (launches Tauri dev window + Node server with hot reload)
+npm run desktop
+
+# Production build (outputs platform-specific installers)
+npm run build:desktop
+```
+
+Production builds produce:
+- **macOS** — `.dmg`
+- **Windows** — `.msi` / `.exe`
+- **Linux** — `.deb` / `.AppImage`
+
+> You can still run `npm run dev` for a browser-only workflow — the desktop app is optional.
+
+## Multi-Session
+
+DemoGod supports running multiple Copilot sessions simultaneously. Each session has its own WebSocket connection, Copilot bridge, and terminal UI.
+
+- **Tab mode**: Sessions appear as tabs in the terminal tab bar. Switch between them or use keyboard shortcuts.
+- **Floating window mode**: Detach sessions into draggable, resizable windows with grid snapping for side-by-side layouts.
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> | New session |
+| <kbd>Ctrl</kbd>+<kbd>W</kbd> | Close current session |
+| <kbd>Ctrl</kbd>+<kbd>Tab</kbd> | Switch to next session |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd> | Switch to previous session |
+
+> **macOS**: Use <kbd>Cmd</kbd> instead of <kbd>Ctrl</kbd>.
 
 ## Architecture
 
@@ -89,11 +128,17 @@ demogod/
 │   ├── server.ts           # Express + WS server, REST API, plugin scanners, demo engine
 │   ├── copilot-bridge.ts   # Copilot SDK wrapper, event forwarding
 │   └── public/             # Static frontend (HTML/CSS/vanilla JS — no build step)
+├── src-tauri/              # Tauri desktop app (Rust + config)
+│   ├── src/                # Rust entry point and sidecar management
+│   ├── Cargo.toml          # Rust dependencies
+│   └── tauri.conf.json     # Tauri window, sidecar, and build config
 ├── demos/                  # Demo script JSON files
 ├── docs/
 │   └── ARCHITECTURE.md     # Detailed architecture reference
 ├── .github/
-│   └── copilot-instructions.md  # Context for GitHub Copilot
+│   ├── copilot-instructions.md  # Context for GitHub Copilot
+│   └── workflows/
+│       └── desktop-build.yml    # CI workflow for Tauri desktop builds
 ├── package.json            # Node.js dependencies
 ├── host.json               # Azure Functions config (optional)
 └── requirements.txt        # Python dependencies (optional)
@@ -301,7 +346,7 @@ DEBUG=* npm start
 - [ ] Support for recording terminal sessions
 - [ ] Export demos as video files
 - [ ] Enhanced UI with syntax highlighting
-- [ ] Multiple session management
+- [x] Multiple session management
 - [ ] Custom themes and styling options
 
 ## License
