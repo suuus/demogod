@@ -448,7 +448,8 @@
 
     connect() {
       const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-      this.ws = new WebSocket(`${protocol}//${location.host}`);
+      const token = document.querySelector('meta[name="dg-token"]')?.getAttribute("content") || "";
+      this.ws = new WebSocket(`${protocol}//${location.host}?token=${encodeURIComponent(token)}`);
       this.ws.onopen = () => {
         this.setStatus("Connected", "\u25cf");
         this.send("create_session", {

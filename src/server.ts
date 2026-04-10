@@ -6,6 +6,7 @@ import { dirname, join, resolve, normalize } from "path";
 import { readFile, readdir, stat } from "fs/promises";
 import { existsSync } from "fs";
 import { homedir } from "os";
+import { randomBytes } from "crypto";
 import { CopilotBridge } from "./copilot-bridge.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -315,11 +316,69 @@ async function getPluginAgents(): Promise<PluginAgent[]> {
 
 const PORT = parseInt(process.env.PORT || "3456", 10);
 
+// ─── Security: session token for WebSocket auth ─────────────────────────────
+// A random token generated at startup. Only clients that receive the token
+// (via the injected <meta> tag in index.html) can open WebSocket connections.
+// This prevents other local processes or malicious web pages from hijacking
+// the Copilot bridge.
+const SESSION_TOKEN = randomBytes(32).toString("hex");
+
 const app = express();
-app.use(express.static(join(__dirname, "..", "src", "public")));
+
+// Serve index.html with the session token injected as a <meta> tag.
+// All other static files are served normally.
+const PUBLIC_DIR = join(__dirname, "..", "src", "public");
+
+app.get("/", async (_req, res) => {
+  try {
+    let html = await readFile(join(PUBLIC_DIR, "index.html"), "utf-8");
+    html = html.replace(
+      "</head>",
+      `  <meta name="dg-token" content="${SESSION_TOKEN}">\n</head>`
+    );
+    res.type("html").send(html);
+  } catch {
+    res.status(500).send("Failed to load index.html");
+  }
+});
+
+app.use(express.static(PUBLIC_DIR));
 
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
+
+// ─── WebSocket server with origin + token verification ──────────────────────
+const wss = new WebSocketServer({
+  server,
+  verifyClient: (info, done) => {
+    // 1. Origin check: only allow localhost origins (or no origin for Tauri/native)
+    const origin = info.origin || info.req.headers.origin;
+    if (origin) {
+      try {
+        const url = new URL(origin);
+        const allowed = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+        if (!allowed) {
+          console.warn(`[Security] Rejected WS from origin: ${origin}`);
+          done(false, 403, "Forbidden origin");
+          return;
+        }
+      } catch {
+        done(false, 403, "Invalid origin");
+        return;
+      }
+    }
+
+    // 2. Token check: must provide valid token as query param
+    const url = new URL(info.req.url || "/", `http://${info.req.headers.host}`);
+    const token = url.searchParams.get("token");
+    if (token !== SESSION_TOKEN) {
+      console.warn("[Security] Rejected WS connection: invalid token");
+      done(false, 401, "Unauthorized");
+      return;
+    }
+
+    done(true);
+  },
+});
 
 // Shared bridge instance for listing models before a session exists
 let sharedBridgeForModels: CopilotBridge | null = null;
@@ -851,8 +910,10 @@ function safeSend(ws: WebSocket, data: object) {
   }
 }
 
-server.listen(PORT, () => {
+server.listen(PORT, "127.0.0.1", () => {
   console.log(`\n  🎬 DemoGod — Copilot CLI Demo Video Generator`);
   console.log(`  ────────────────────────────────────────────`);
-  console.log(`  Open http://localhost:${PORT} in your browser\n`);
+  console.log(`  Open http://localhost:${PORT} in your browser`);
+  console.log(`  🔒 Bound to 127.0.0.1 — not accessible from network`);
+  console.log(`  🔑 Session token: ${SESSION_TOKEN}\n`);
 });
