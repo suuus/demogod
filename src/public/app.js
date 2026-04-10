@@ -2472,7 +2472,7 @@
     setTimeout(() => {
       splash.classList.add("fade-out");
       setTimeout(() => splash.remove(), 600);
-    }, 3200);
+    }, 3800);
   }
 
   // Show version in control bar
