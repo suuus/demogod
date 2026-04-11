@@ -182,7 +182,7 @@ app.get("/", async (_req, res) => {
     let html = await readFile(join(PUBLIC_DIR, "index.html"), "utf-8");
     html = html.replace(
       "</head>",
-      `  <meta name="dg-token" content="${SESSION_TOKEN}">\n  <meta name="dg-version" content="${APP_VERSION}">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline';">\n</head>`
+      `  <meta name="dg-token" content="${SESSION_TOKEN}">\n  <meta name="dg-version" content="${APP_VERSION}">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self';">\n</head>`
     );
     res.type("html").send(html);
   } catch {
@@ -265,7 +265,7 @@ app.get("/api/browse", async (req, res) => {
 
   // Security: must be under home directory
   const home = homedir();
-  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/") && resolvedPath !== "/") {
+  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/")) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -300,7 +300,7 @@ app.get("/api/browse-files", async (req, res) => {
   const requestedPath = (req.query.path as string) || homedir();
   const resolvedPath = resolve(requestedPath);
   const home = homedir();
-  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/") && resolvedPath !== "/") {
+  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/")) {
     res.status(403).json({ error: "Access denied" });
     return;
   }

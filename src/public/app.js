@@ -1069,6 +1069,8 @@
         this.dom.output.appendChild(entry);
         this.currentResponseEl = responseDiv;
         this.currentResponseText = "";
+        // Suppress aria-live during streaming to avoid excessive announcements
+        this.dom.output.setAttribute("aria-live", "off");
       }
       this.currentResponseText += text;
       if (!this._streamRafPending) {
@@ -1093,6 +1095,8 @@
         const cur = this.currentResponseEl.querySelector(".streaming-cursor");
         if (cur) cur.remove();
         this.currentResponseEl = null;
+        // Re-enable aria-live after streaming completes
+        this.dom.output.setAttribute("aria-live", "polite");
       }
     }
 
@@ -1626,6 +1630,7 @@
     selectProject(path) {
       this.selectedProject = path;
       this.dom.output.innerHTML = "";
+      this.toolCallElements.clear();
       this.currentResponseEl = null;
       this.currentResponseText = "";
       this.setProcessing(false);

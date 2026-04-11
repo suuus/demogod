@@ -466,6 +466,7 @@ export class CopilotBridge extends EventEmitter {
       await this.session.disconnect();
       this.session = null;
     }
+    this.backgroundAgentMap.clear();
     await this.client.stop();
   }
 }
