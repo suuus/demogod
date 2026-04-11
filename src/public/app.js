@@ -842,8 +842,8 @@
           const el = document.createElement("div");
           el.className = "permission-prompt";
           el.innerHTML = '<span class="permission-label">' + escapeHtml(label) + (detail ? ': <code>' + escapeHtml(detail) + '</code>' : '') + '</span>' +
-            '<button class="permission-btn permission-allow" data-req="' + msg.requestId + '">Allow</button>' +
-            '<button class="permission-btn permission-deny" data-req="' + msg.requestId + '">Deny</button>';
+            '<button class="permission-btn permission-allow" data-req="' + escapeHtml(String(msg.requestId)) + '">Allow</button>' +
+            '<button class="permission-btn permission-deny" data-req="' + escapeHtml(String(msg.requestId)) + '">Deny</button>';
           el.querySelector(".permission-allow").addEventListener("click", () => {
             this.send("permission_response", { requestId: msg.requestId, approved: true });
             el.remove();
