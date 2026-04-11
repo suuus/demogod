@@ -2940,9 +2940,12 @@
       recordingStream = stream;
       recordedChunks = [];
 
-      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-        ? "video/webm;codecs=vp9"
-        : "video/webm";
+      const mimeType = MediaRecorder.isTypeSupported("video/mp4")
+        ? "video/mp4"
+        : MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+          ? "video/webm;codecs=vp9"
+          : "video/webm";
+      const fileExt = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
       mediaRecorder = new MediaRecorder(stream, { mimeType });
 
       mediaRecorder.ondataavailable = (e) => {
@@ -2955,7 +2958,7 @@
         const a = document.createElement("a");
         a.href = url;
         const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-        a.download = "copilot-demo-" + ts + ".webm";
+        a.download = "copilot-demo-" + ts + "." + fileExt;
         a.click();
         URL.revokeObjectURL(url);
         exitRecordingMode();
