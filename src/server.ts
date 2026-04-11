@@ -850,7 +850,21 @@ wss.on("connection", (ws) => {
         safeSend(ws, { type: "capabilities_loaded", kind: "mcp_servers", items: mcpServers });
       }
 
-      safeSend(ws, { type: "session_ready", workingDirectory: currentWorkingDir, model: model || "(default)" });
+      // Detect git branch if working directory is a git repo
+      let branch: string | undefined;
+      if (currentWorkingDir) {
+        try {
+          branch = await new Promise<string>((resolve, reject) => {
+            const proc = spawn("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: currentWorkingDir, stdio: ["ignore", "pipe", "ignore"] });
+            let out = "";
+            proc.stdout.on("data", (d: Buffer) => { out += d.toString(); });
+            proc.on("close", (code) => code === 0 ? resolve(out.trim()) : reject());
+            proc.on("error", reject);
+          });
+        } catch {}
+      }
+
+      safeSend(ws, { type: "session_ready", workingDirectory: currentWorkingDir, model: model || "(default)", branch });
     } catch (err: any) {
       console.error("Failed to create session:", err.message);
       safeSend(ws, { type: "error", text: `Session creation failed: ${err.message}` });

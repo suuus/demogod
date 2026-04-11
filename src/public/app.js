@@ -420,7 +420,7 @@
 
       const statusBar = document.createElement("div");
       statusBar.className = "window-statusbar";
-      statusBar.innerHTML = '<span class="status-text">Ready</span><span class="status-cwd status-dim"></span><span class="status-agent status-dim"></span><span class="status-mode status-dim"></span><span class="status-model status-dim"></span>';
+      statusBar.innerHTML = '<span class="status-text">Ready</span><span class="status-cwd status-dim"></span><span class="status-branch status-dim"></span><span class="status-agent status-dim"></span><span class="status-mode status-dim"></span><span class="status-model status-dim"></span>';
 
       body.appendChild(output);
       body.appendChild(inputLine);
@@ -777,6 +777,13 @@
             const short = dir.split("/").pop() || dir;
             scEl.textContent = "\ud83d\udcc2 " + short;
             scEl.title = dir;
+          }
+          const brEl = this.dom.statusBar.querySelector(".status-branch");
+          if (msg.branch && brEl) {
+            brEl.textContent = "\u2387 " + msg.branch;
+            brEl.title = "Git branch: " + msg.branch;
+          } else if (brEl) {
+            brEl.textContent = "";
           }
           this._updateTitles();
           this.send("list_agents");
