@@ -54,7 +54,7 @@ async function queryMcpServerTools(command: string, args: string[], env?: Record
             proc.kill();
             resolve(tools);
           }
-        } catch {}
+        } catch (e: any) { console.debug("[MCP] JSON parse error in stdout:", e.message); }
       }
     });
     proc.on("error", () => { clearTimeout(timeout); resolve(tools); });
@@ -95,7 +95,7 @@ async function discoverAllMcpTools(): Promise<Record<string, McpToolInfo[]>> {
               }
             }
           }
-        } catch {}
+        } catch (e: any) { console.debug("[MCP] Skipping malformed config in", dir, e.message); }
       }
       if (e.isDirectory() && !e.name.startsWith(".")) {
         await findMcpConfigs(join(dir, e.name), depth + 1);
@@ -157,14 +157,14 @@ let APP_VERSION = "0.0.0";
 try {
   const pkg = JSON.parse(await readFile(PKG_PATH, "utf-8"));
   APP_VERSION = pkg.version || APP_VERSION;
-} catch {}
+} catch (e: any) { console.warn("[Init] Failed to read package.json:", e.message); }
 
 const app = express();
 
 // CORS: allow Tauri desktop app (serves from tauri:// origin) to call our API
 app.use((_req, res, next) => {
   const origin = _req.headers.origin;
-  if (origin && (origin.startsWith("tauri://") || origin.startsWith("https://tauri.") || origin.includes("localhost"))) {
+  if (origin && (origin.startsWith("tauri://") || origin.startsWith("https://tauri.") || /^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin))) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -182,7 +182,7 @@ app.get("/", async (_req, res) => {
     let html = await readFile(join(PUBLIC_DIR, "index.html"), "utf-8");
     html = html.replace(
       "</head>",
-      `  <meta name="dg-token" content="${SESSION_TOKEN}">\n  <meta name="dg-version" content="${APP_VERSION}">\n</head>`
+      `  <meta name="dg-token" content="${SESSION_TOKEN}">\n  <meta name="dg-version" content="${APP_VERSION}">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline';">\n</head>`
     );
     res.type("html").send(html);
   } catch {
@@ -415,7 +415,7 @@ wss.on("connection", (ws) => {
 
   async function createSession(workingDirectory?: string, model?: string) {
     if (bridge) {
-      try { await bridge.stop(); } catch {}
+      try { await bridge.stop(); } catch (e: any) { console.debug("[Bridge] Stop error:", e.message); }
     }
 
     bridge = new CopilotBridge();
@@ -527,7 +527,7 @@ wss.on("connection", (ws) => {
             proc.on("close", (code) => code === 0 ? resolve(out.trim()) : reject());
             proc.on("error", reject);
           });
-        } catch {}
+        } catch (e: any) { console.debug("[Git] Branch detection failed:", e.message); }
       }
 
       safeSend(ws, { type: "session_ready", workingDirectory: currentWorkingDir, model: model || "(default)", branch });
@@ -875,7 +875,7 @@ wss.on("connection", (ws) => {
     console.log("Client disconnected");
     cancelDemo();
     if (bridge) {
-      try { await bridge.stop(); } catch {}
+      try { await bridge.stop(); } catch (e: any) { console.debug("[Bridge] Stop error on disconnect:", e.message); }
       bridge = null;
     }
   });
