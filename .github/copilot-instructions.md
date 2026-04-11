@@ -43,6 +43,7 @@ docs/ARCHITECTURE.md     # Deep architecture reference
 4. **All file access must be restricted to `homedir()`.** Check every new endpoint.
 5. **Sanitize demo names** — `[a-zA-Z0-9_-]` only, resolved path must be under `DEMOS_DIR`.
 6. **Do NOT remove or weaken `verifyClient`** — it's the primary WS auth layer (token + origin checks).
+7. **Do NOT push to remote (`git push`) without explicit user permission.** Commit locally, then ask before pushing.
 
 ## Key Patterns
 
