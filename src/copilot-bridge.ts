@@ -66,6 +66,7 @@ export class CopilotBridge extends EventEmitter {
       ...(skillDirectories?.length ? { skillDirectories } : {}),
       // No availableTools/excludedTools — all tools accessible
       // No disabledSkills — all skills accessible
+      enableConfigDiscovery: true,
       infiniteSessions: { enabled: true },
       systemMessage: { mode: "append", content: DEMO_SYSTEM_INSTRUCTIONS },
       onPermissionRequest: approveAll,
