@@ -411,6 +411,30 @@ let cachedMcpToolMap: Record<string, McpToolInfo[]> | null = null;
 async function getMcpToolMap(): Promise<Record<string, McpToolInfo[]>> {
   if (!cachedMcpToolMap) {
     cachedMcpToolMap = await discoverAllMcpTools();
+    // Built-in github-mcp-server is embedded in the CLI — can't query via protocol.
+    // Add its well-known tools from the MCP server definition.
+    if (!cachedMcpToolMap["github-mcp-server"]) {
+      cachedMcpToolMap["github-mcp-server"] = [
+        { name: "get_file_contents", description: "Get file/directory contents from a GitHub repo" },
+        { name: "list_commits", description: "List commits in a repository" },
+        { name: "get_commit", description: "Get details for a specific commit" },
+        { name: "list_branches", description: "List branches in a repository" },
+        { name: "search_code", description: "Search code across GitHub repositories" },
+        { name: "search_repositories", description: "Search for GitHub repositories" },
+        { name: "search_users", description: "Search for GitHub users" },
+        { name: "list_issues", description: "List issues in a repository" },
+        { name: "issue_read", description: "Get issue details, comments, sub-issues, or labels" },
+        { name: "search_issues", description: "Search for issues across repositories" },
+        { name: "list_pull_requests", description: "List pull requests in a repository" },
+        { name: "pull_request_read", description: "Get PR details, diff, status, files, or reviews" },
+        { name: "search_pull_requests", description: "Search for pull requests" },
+        { name: "actions_list", description: "List workflows, runs, jobs, or artifacts" },
+        { name: "actions_get", description: "Get workflow, run, job, or artifact details" },
+        { name: "get_job_logs", description: "Get logs for workflow jobs" },
+        { name: "list_copilot_spaces", description: "List accessible Copilot Spaces" },
+        { name: "get_copilot_space", description: "Get content from a Copilot Space" },
+      ];
+    }
     for (const [name, tools] of Object.entries(cachedMcpToolMap)) {
       console.log(`[MCP] ${name}: ${tools.length} tools (${tools.map(t => t.name).join(", ")})`);
     }
