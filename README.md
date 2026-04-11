@@ -8,8 +8,8 @@
 
 <details>
 <summary>📹 Watch the UI Showcase</summary>
-
-https://github.com/suuus/demogod/raw/main/docs/showcase.webm
+<br>
+<video src="https://github.com/suuus/demogod/raw/main/docs/showcase.webm" width="100%" autoplay loop muted playsinline></video>
 
 > *Automated showcase — model picker, agents, mode cycling, capabilities, skills, live prompting, multi-session, floating layout. Recorded with Playwright.*
 
