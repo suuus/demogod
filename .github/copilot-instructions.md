@@ -17,7 +17,7 @@ src/
 ├── copilot-bridge.ts    # @github/copilot-sdk wrapper, event forwarding, sub-agent detection
 └── public/
     ├── index.html       # Page structure, overlays, control bar, settings panel
-    ├── app.js           # All frontend logic — class-based vanilla JS, ~2900 lines
+    ├── app.js           # All frontend logic — class-based vanilla JS, ~3500 lines
     └── styles.css       # Theming, terminal chrome, CSS custom properties
 
 demo/sample-app/         # Tiny Node.js project for demo showcases
@@ -62,12 +62,11 @@ When adding a new message type, update **all four** locations.
 - SDK event → bridge `EventEmitter` event → `safeSend()` → frontend `handleMessage()`
 - When handling a new SDK event, add it to `session.on()` in `copilot-bridge.ts`, then wire it through `server.ts` to `app.js`.
 
-### Plugin Discovery
+### Plugin / Config Discovery
 
-Plugins from `~/.copilot/installed-plugins/` are scanned at server startup:
-- **Skills**: `SKILL.md` frontmatter in `skills/` dirs → passed as `skillDirectories` to SDK
-- **Agents**: `.agent.md` files in `agents/` dirs → passed as `customAgents` to SDK
-- Both are cached (lazy singleton) for the server lifetime
+The SDK handles plugin and config discovery automatically via `enableConfigDiscovery: true` in the session config. This auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes). The server does **not** manually pass `customAgents` or `skillDirectories` to session creation.
+
+> **Note:** `getPluginSkills()`, `getPluginAgents()`, and `getPluginSkillDirectories()` functions still exist in `server.ts` but are only used for the `/skill-name` slash command handler — they are **not** used for session creation.
 
 ### Demo Scripts
 
@@ -85,6 +84,26 @@ The ⚙️ Settings button opens a panel with three sections:
 - **Experimental**: Integrated terminal, sub-agent activity tabs
 
 Settings are persisted to `localStorage` with a `dg-` prefix.
+
+### Capabilities Panel
+
+The 🔌 button in the control bar opens the Capabilities Panel, which shows:
+- **MCP Servers**: status dots (green/red) and enable/disable toggles
+- **Built-in Tools**: tools provided by the Copilot CLI itself
+- **MCP Server Tools**: discovered via MCP protocol and runtime tracking
+- **Skills**: with enable/disable toggles
+
+The panel includes a filter input and collapsible sections with count badges.
+
+### Status Bar
+
+The status bar displays the current git branch (detected via `git rev-parse --abbrev-ref HEAD` on session creation, sent in the `session_ready` message).
+
+### Mode-Colored Borders
+
+Session containers use mode-colored subtle separator lines via the `--titlebar-border` CSS variable, overridden per session through the `data-copilot-mode` attribute on `.session-container`:
+- **Green** border = autopilot mode
+- **Purple** border = plan mode
 
 ### Sub-Agent Tab Detection (v0.0.7)
 
@@ -122,7 +141,7 @@ The markdown renderer strips internal XML tags (`<reminder>`, `<todo_status>`, e
 
 ## Multi-Session Architecture
 
-The frontend (`app.js`, ~2900 lines) uses a class-based architecture for multi-session support:
+The frontend (`app.js`, ~3500 lines) uses a class-based architecture for multi-session support:
 
 - **`TerminalSession`** — encapsulates one Copilot session: its own WebSocket, terminal state, DOM output area, and sub-agent tab tracking. `_displayName()` returns "projectname · Session N" for tab and floating window titles.
 - **`SessionManager`** — creates/destroys/switches sessions. Manages the tab bar, keyboard shortcut routing, and settings panel.
@@ -135,7 +154,7 @@ Each session gets its own `CopilotBridge` on the server side, so sessions are fu
 - **Floating window mode** — pop sessions out into independent draggable windows with edge snapping.
 
 ### UI Layout
-- **Control bar** (top center): Mode, Open, Model, Agent, Skill, Copilot Mode, Layout, Tile, Settings
+- **Control bar** (top center): Mode, Open, Model, Agent, Skill, Copilot Mode, Layout, Tile, 🔌 Capabilities, Settings
 - **Bottom-right corner**: Version badge (toggle in settings), ↻ restart, ⏺ record
 - **Settings panel**: Appearance / Features / Experimental sections
 

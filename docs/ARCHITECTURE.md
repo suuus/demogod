@@ -45,6 +45,8 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 │  ┌────────▼────────┐                                            │
 │  │ Plugin Scanners │  Discovers agents/skills from              │
 │  │ (server.ts)     │  ~/.copilot/installed-plugins/             │
+│  │                 │  (used for /skill-name handler only;       │
+│  │                 │  session uses enableConfigDiscovery)       │
 │  └─────────────────┘                                            │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────┐           │
@@ -65,14 +67,14 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 
 ```
 src/
-├── server.ts            # ~1100 lines — Express server, WS handler, REST API,
+├── server.ts            # ~1300 lines — Express server, WS handler, REST API,
 │                        #   plugin scanners (skills + agents), demo engine (live + scripted)
-├── copilot-bridge.ts    # ~270 lines — CopilotClient/Session wrapper,
+├── copilot-bridge.ts    # ~440 lines — CopilotClient/Session wrapper,
 │                        #   event forwarding, sub-agent detection, user input handling
 └── public/
     ├── index.html       # Page structure, overlays, dialogs, settings panel, bottom-right controls
-    ├── app.js           # ~2900 lines — all frontend logic (class-based, vanilla JS)
-    └── styles.css       # ~1750 lines — theming, terminal look, dialogs, settings, agent tabs
+    ├── app.js           # ~3500 lines — all frontend logic (class-based, vanilla JS)
+    └── styles.css       # ~2100 lines — theming, terminal look, dialogs, settings, agent tabs
 
 src-tauri/
 ├── src/                 # Rust entry point, sidecar spawning logic
@@ -145,24 +147,29 @@ The bridge wraps the `@github/copilot-sdk` and translates SDK events into simple
 
 The server is a single-file Express + WebSocket application with these sections:
 
-#### Plugin Scanners (lines ~15–315)
+#### Plugin Scanners
 
 Discovers skills and agents from `~/.copilot/installed-plugins/`:
-- **Skill scanner** — walks plugin directories, parses `SKILL.md` frontmatter, collects skill directory paths for `SessionConfig.skillDirectories`
+- **Skill scanner** — walks plugin directories, parses `SKILL.md` frontmatter, collects skill directory paths
 - **Agent scanner** — finds `.agent.md` files, extracts frontmatter + prompt body
-- Both are cached for the server lifetime
+- Both are cached for the server lifetime (lazy singleton)
 
-#### REST API (lines ~316–460)
+> **Note:** These scanners are only used for the `/skill-name` slash command handler and the skill/agent list API. Session creation uses `enableConfigDiscovery: true` in the SDK config, which auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes).
+
+#### REST API
 
 | Endpoint | Purpose | Security |
 |----------|---------|----------|
 | `GET /api/browse?path=` | Directory listing for project picker | Restricted to `homedir()` |
 | `GET /api/browse-files?path=` | Directory + file listing for file browser | Restricted to `homedir()` |
 | `GET /api/file?path=` | Read text file content | Restricted to `homedir()`, allowlisted extensions |
+| `GET /api/demos` | List available demo scripts | None (local only) |
 | `GET /api/demos/:name` | Load demo script JSON | Sanitized name (`[a-zA-Z0-9_-]`), path under `DEMOS_DIR` |
 | `GET /api/models` | List available Copilot models | None (local only) |
+| `GET /api/shell` | Get current shell configuration | None (local only) |
+| `PUT /api/shell` | Set shell configuration | None (local only) |
 
-#### WebSocket Handler (lines ~472–846)
+#### WebSocket Handler
 
 WebSocket connections go through a `verifyClient` gate before the upgrade handshake completes. `verifyClient` validates two things:
 1. The `?token=` query parameter matches the session token generated at startup.
@@ -186,9 +193,14 @@ Per-connection state:
 | `set_model` | Changes model mid-session |
 | `list_agents` / `select_agent` / `deselect_agent` | Agent management (SDK + plugin merge) |
 | `list_skills` | Returns merged SDK + plugin skills |
+| `list_capabilities` | List MCP servers, skills, and tools for capabilities panel |
+| `toggle_mcp` | Enable/disable an MCP server |
+| `toggle_skill` | Enable/disable a skill |
 | `get_mode` / `set_mode` | Copilot mode (interactive/plan/autopilot) |
 
-#### Demo Engine (lines ~620–693)
+**Server → Client messages** include: `session_ready` (includes `branch` field for git branch), `capabilities_loaded`, `capabilities_list`, `capabilities_update`, `mcp_status`, `mcp_tools_discovered`, `agents_list`, `skills_list`, `delta`, `message`, `idle`, `error`, `user_input`, `tool_start`, `tool_complete`, `subagent_start`, `subagent_complete`, `subagent_output`, `demo_step_*`, `demo_action`, `demo_complete`.
+
+#### Demo Engine
 
 Plays back JSON demo scripts with realistic timing:
 - `command` steps: types out text, waits, shows response
@@ -202,13 +214,13 @@ Plays back JSON demo scripts with realistic timing:
 
 #### `app.js` — Application Logic
 
-Class-based architecture (~2500 lines). Major sections:
+Class-based architecture (~3500 lines). Major sections:
 
 | Section | Description |
 |---------|-------------|
-| **State** (~lines 1–20) | Mode, processing flag, selected project/model/agent |
-| **WebSocket** (~lines 79–92) | Connect, auto-reconnect on disconnect |
-| **Message handler** (~lines 101–260) | Maps WS message types to UI updates |
+| **State** | Mode, processing flag, selected project/model/agent |
+| **WebSocket** | Connect, auto-reconnect on disconnect |
+| **Message handler** | Maps WS message types to UI updates |
 | **Terminal rendering** | `appendDelta()`, `finishResponse()`, `appendSystemMessage()` — builds response blocks with markdown |
 | **Dialog system** | Popup overlays for user input/elicitation, JSON Schema → form field generation |
 | **Tool indicators** | Collapsible panels showing tool calls and results |
@@ -226,8 +238,8 @@ Class-based architecture (~2500 lines). Major sections:
 
 #### `index.html` — Structure
 
-- **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, record button, background color
-- **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar
+- **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, record button, background color
+- **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch)
 - **Overlay dialogs**: project picker, file browser, user input dialog, capability picker
 
 #### `styles.css` — Theming
@@ -410,22 +422,48 @@ Background agent output:
 
 DemoGod discovers and integrates plugins from `~/.copilot/installed-plugins/`:
 
+### Plugin / Config Discovery
+
+Session creation uses `enableConfigDiscovery: true` in the SDK session config. This auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes). The server does **not** manually pass `customAgents` or `skillDirectories` to session creation.
+
+The manual plugin scanners (`getPluginSkills()`, `getPluginAgents()`, `getPluginSkillDirectories()`) still exist in `server.ts` but are only used for:
+- The `/skill-name` slash command handler
+- The skill/agent list API responses
+
 ### Plugin Skills
 - Scanned from `skills/` or `.github/skills/` directories within each plugin
 - Each skill has a `SKILL.md` with YAML frontmatter (`name`, `description`, `user-invocable`)
-- Skill directory paths are passed to `SessionConfig.skillDirectories` so the SDK loads them
-- Also merged into the skill list API response for the UI picker
+- Merged into the skill list API response for the UI picker
 - Users can invoke skills via `/skill-name <prompt>` prefix in the terminal input
 
 ### Plugin Agents
 - Scanned from `agents/` or `.github/agents/` directories
 - Each agent is a `.agent.md` file with frontmatter (`name`, `description`) + prompt body
-- Registered as `customAgents` in `SessionConfig`
 - Merged with SDK-discovered agents in the `list_agents` response
 - If SDK agent selection fails, falls back to plugin agent matching
 
-### Plugin Discovery
+### Plugin Scanning
 Both scanners walk up to 3 levels deep, check `plugin.json` for configuration, and cache results for the server lifetime. Results are only computed once (lazy singleton pattern).
+
+## Capabilities Panel
+
+The 🔌 button in the control bar opens the Capabilities Panel, which displays:
+- **MCP Servers**: status dots (green/red) and enable/disable toggles
+- **Built-in Tools**: tools provided by the Copilot CLI
+- **MCP Server Tools**: discovered via MCP protocol (`initialize` + `tools/list` over stdio) and runtime tracking; `github-mcp-server` tools are hardcoded since it's embedded in the CLI
+- **Skills**: with enable/disable toggles
+
+The panel includes a filter input and collapsible sections with count badges. MCP server state changes and tool discoveries are pushed to the frontend via `capabilities_update`, `mcp_status`, and `mcp_tools_discovered` WebSocket messages.
+
+## Git Branch Detection
+
+On session creation, the server runs `git rev-parse --abbrev-ref HEAD` in the working directory. The branch name is included in the `session_ready` WebSocket message and displayed in the terminal status bar.
+
+## Mode-Colored Borders
+
+Session containers use mode-colored subtle separator lines via the `--titlebar-border` CSS variable, overridden per session through the `data-copilot-mode` attribute on `.session-container`:
+- **Green** border = autopilot mode
+- **Purple** border = plan mode
 
 ## Security Model
 
