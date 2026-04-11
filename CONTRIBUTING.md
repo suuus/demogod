@@ -139,6 +139,16 @@ Before submitting a PR, verify:
 5. Update docs if you changed APIs, WebSocket messages, or the project structure.
 6. Open a PR with a clear description of what and why.
 
+## Automated Workflows
+
+The project runs several [GitHub Agentic Workflows](https://github.com/github/gh-aw) that you should be aware of:
+
+- **issue-triage-agent** *(runs hourly)*: Automatically labels new unlabeled issues and posts a triage comment. If your issue or PR is miscategorized, you can add or change labels manually.
+- **code-simplifier** *(runs daily)*: Reviews code changed in the last 24 hours and may open a follow-up PR with clarity improvements. These PRs are labeled `refactoring` / `code-quality` / `automation` and assigned to `copilot` for review.
+- **daily-doc-updater** *(runs daily at 6 am UTC)*: Scans merged PRs and commits from the last 24 hours and updates documentation to reflect them. You don't need to update every doc yourself — but for complex features, a brief note in your PR description helps the agent document it accurately.
+
+Workflow source files: `.github/workflows/*.md` (prompt) and `.github/workflows/*.lock.yml` (compiled).
+
 ## Reporting Bugs
 
 Open an issue with:
