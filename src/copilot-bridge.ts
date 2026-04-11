@@ -38,6 +38,9 @@ export class CopilotBridge extends EventEmitter {
   private activeTaskAgents: { agentName: string; agentDisplayName: string }[] = [];
   // Map background agent IDs to their agentName for routing read_agent results
   private backgroundAgentMap = new Map<string, string>();
+  // Track discovered MCP tools by server name
+  private mcpServerNames: string[] = [];
+  discoveredMcpTools: Record<string, string[]> = {};
 
   constructor() {
     super();
@@ -115,6 +118,17 @@ export class CopilotBridge extends EventEmitter {
             toolName: input.toolName,
             toolArgs: input.toolArgs,
           });
+          // Track MCP tools by matching name prefix against known server names
+          for (const srv of this.mcpServerNames) {
+            if (input.toolName.startsWith(srv + "-") || input.toolName.startsWith(srv + "_")) {
+              if (!this.discoveredMcpTools[srv]) this.discoveredMcpTools[srv] = [];
+              if (!this.discoveredMcpTools[srv].includes(input.toolName)) {
+                this.discoveredMcpTools[srv].push(input.toolName);
+                this.emit("mcp_tools_discovered", { serverName: srv, tools: this.discoveredMcpTools[srv] });
+              }
+              break;
+            }
+          }
           // Detect sub-agent launch via the "task" tool
           if (input.toolName === "task") {
             const args = typeof input.toolArgs === "string"
@@ -361,6 +375,7 @@ export class CopilotBridge extends EventEmitter {
   async listMcpServers(): Promise<any[]> {
     if (!this.session) return [];
     const result = await this.session.rpc.mcp.list();
+    this.mcpServerNames = result.servers.map((s: any) => s.name);
     return result.servers;
   }
 

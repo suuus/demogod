@@ -706,6 +706,10 @@ wss.on("connection", (ws) => {
       safeSend(ws, { type: "mcp_status", serverName: data.serverName, status: data.status });
     });
 
+    bridge.on("mcp_tools_discovered", (data: any) => {
+      safeSend(ws, { type: "mcp_tools_discovered", serverName: data.serverName, tools: data.tools });
+    });
+
     try {
       // Load plugin agents and skill directories so the SDK knows about them
       const pluginAgents = await getPluginAgents();
@@ -1037,7 +1041,7 @@ wss.on("connection", (ws) => {
               let tools: any[] = [];
               try { tools = await bridge.listTools(); } catch (e: any) { console.warn("[Capabilities] Tools list failed:", e.message); }
               console.log(`[Capabilities] ${mcpServers.length} MCP servers, ${skills.length} skills, ${tools.length} tools`);
-              safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools });
+              safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools, mcpTools: bridge.discoveredMcpTools });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to list capabilities: ${err.message}` });
             }

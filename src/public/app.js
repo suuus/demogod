@@ -821,20 +821,6 @@
           // Don't show generic tool chip for task tool when agent tabs handle it
           if (FEAT_AGENT_TABS && msg.toolName === "task") break;
           this.showToolIndicator(msg.toolName, true, msg.parentToolCallId);
-          // Track MCP tools by matching tool name prefix against known servers
-          if (this.cachedMcpServers.length > 0) {
-            for (const srv of this.cachedMcpServers) {
-              const prefix = srv.name + "-";
-              if (msg.toolName.startsWith(prefix) || msg.toolName.startsWith(srv.name + "_")) {
-                if (!this.discoveredMcpTools[srv.name]) this.discoveredMcpTools[srv.name] = [];
-                if (!this.discoveredMcpTools[srv.name].includes(msg.toolName)) {
-                  this.discoveredMcpTools[srv.name].push(msg.toolName);
-                  if (window._capabilitiesOpen) window._renderCapabilities();
-                }
-                break;
-              }
-            }
-          }
           let toolArgs = msg.toolArgs;
           if (typeof toolArgs === "string") {
             try { toolArgs = JSON.parse(toolArgs); } catch {}
@@ -913,6 +899,13 @@
           }
           break;
 
+        case "mcp_tools_discovered":
+          if (msg.serverName && msg.tools) {
+            this.discoveredMcpTools[msg.serverName] = msg.tools;
+            if (window._capabilitiesOpen) window._renderCapabilities();
+          }
+          break;
+
         case "agents_list":
           this.cachedAgents = msg.agents || [];
           if (!this._agentsAnnounced && this.cachedAgents.length > 0) {
@@ -930,6 +923,7 @@
           if (msg.mcpServers) this.cachedMcpServers = msg.mcpServers;
           if (msg.skills) this.cachedSkills = msg.skills;
           if (msg.tools) this.cachedTools = msg.tools;
+          if (msg.mcpTools) Object.assign(this.discoveredMcpTools, msg.mcpTools);
           if (window._capabilitiesOpen) window._renderCapabilities();
           break;
 
