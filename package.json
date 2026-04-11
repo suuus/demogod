@@ -12,7 +12,9 @@
     "build:desktop": "tauri build",
     "record": "node scripts/record.mjs",
     "record:demo": "node scripts/record.mjs --demo",
-    "test": "npx playwright test",
+    "test": "vitest run tests/unit && npx playwright test",
+    "test:unit": "vitest run tests/unit",
+    "test:e2e": "npx playwright test",
     "test:headed": "npx playwright test --headed",
     "test:showcase": "npx playwright test tests/showcase --headed"
   },
@@ -32,6 +34,7 @@
     "@types/ws": "^8.5.0",
     "playwright": "^1.59.1",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.4"
   }
 }

@@ -250,6 +250,7 @@ async function getModelsBridge(): Promise<CopilotBridge> {
 
 function safeDemoPath(name: string): string | null {
   const safeName = name.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!safeName || safeName !== name) return null;
   const resolved = resolve(DEMOS_DIR, `${safeName}.json`);
   if (!resolved.startsWith(DEMOS_DIR)) return null;
   return resolved;
