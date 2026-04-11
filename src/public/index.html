@@ -91,6 +91,10 @@
         <span>⚙️</span>
         <span>Settings</span>
       </button>
+      <button id="btn-capabilities" class="ctrl-btn" title="MCP servers, tools & skills">
+        <span>🔌</span>
+        <span>Capabilities</span>
+      </button>
     </div>
   </div>
 
@@ -237,6 +241,29 @@
   </div>
 
   <!-- Project picker overlay -->
+  <div id="capabilities-overlay" class="hidden">
+    <div id="capabilities-window" class="window dialog-window" style="width: 520px;">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="capabilities-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon">🔌</span>
+          Capabilities
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body dialog-body capabilities-body">
+        <input type="text" id="capabilities-filter" class="capabilities-filter" placeholder="Filter…" autocomplete="off">
+        <div id="capabilities-content" class="capabilities-content">
+          <div class="capabilities-loading">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="picker-overlay" class="hidden">
     <div id="picker-window" class="window dialog-window">
       <div class="window-titlebar">

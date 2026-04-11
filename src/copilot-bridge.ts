@@ -337,6 +337,11 @@ export class CopilotBridge extends EventEmitter {
     await this.session.rpc.skills.enable({ name });
   }
 
+  async disableSkill(name: string): Promise<void> {
+    if (!this.session) throw new Error("Session not created");
+    await this.session.rpc.skills.disable({ name });
+  }
+
   async enableAllSkills(): Promise<void> {
     if (!this.session) return;
     const result = await this.session.rpc.skills.list();
@@ -350,6 +355,28 @@ export class CopilotBridge extends EventEmitter {
       }
     }
     console.log(`[Skills] Enabled all ${result.skills.length} SDK skills`);
+  }
+
+  async listMcpServers(): Promise<any[]> {
+    if (!this.session) return [];
+    const result = await this.session.rpc.mcp.list();
+    return result.servers;
+  }
+
+  async enableMcpServer(name: string): Promise<void> {
+    if (!this.session) throw new Error("Session not created");
+    await this.session.rpc.mcp.enable({ serverName: name });
+  }
+
+  async disableMcpServer(name: string): Promise<void> {
+    if (!this.session) throw new Error("Session not created");
+    await this.session.rpc.mcp.disable({ serverName: name });
+  }
+
+  async listTools(model?: string): Promise<any[]> {
+    await this.ensureStarted();
+    const result = await this.client.rpc.tools.list({ model });
+    return result.tools;
   }
 
   async getMode(): Promise<string> {

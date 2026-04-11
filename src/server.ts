@@ -1020,6 +1020,57 @@ wss.on("connection", (ws) => {
             }
           }
           break;
+
+        case "list_capabilities":
+          if (bridge) {
+            try {
+              const [mcpServers, skills, tools] = await Promise.all([
+                bridge.listMcpServers(),
+                bridge.listSkills(),
+                bridge.listTools(),
+              ]);
+              safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools });
+            } catch (err: any) {
+              safeSend(ws, { type: "error", text: `Failed to list capabilities: ${err.message}` });
+            }
+          }
+          break;
+
+        case "toggle_mcp":
+          if (bridge && msg.name) {
+            try {
+              if (msg.enabled) {
+                await bridge.enableMcpServer(msg.name);
+              } else {
+                await bridge.disableMcpServer(msg.name);
+              }
+              // Re-fetch state after toggle
+              const [mcpServers, tools] = await Promise.all([
+                bridge.listMcpServers(),
+                bridge.listTools(),
+              ]);
+              safeSend(ws, { type: "capabilities_update", mcpServers, tools });
+            } catch (err: any) {
+              safeSend(ws, { type: "error", text: `Failed to toggle MCP server: ${err.message}` });
+            }
+          }
+          break;
+
+        case "toggle_skill":
+          if (bridge && msg.name) {
+            try {
+              if (msg.enabled) {
+                await bridge.enableSkill(msg.name);
+              } else {
+                await bridge.disableSkill(msg.name);
+              }
+              const skills = await bridge.listSkills();
+              safeSend(ws, { type: "capabilities_update", skills });
+            } catch (err: any) {
+              safeSend(ws, { type: "error", text: `Failed to toggle skill: ${err.message}` });
+            }
+          }
+          break;
       }
     } catch (err: any) {
       console.error("Message handling error:", err.message);

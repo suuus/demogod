@@ -160,16 +160,16 @@ html, body {
 }
 #backdrop.bg-copilot-light {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(133, 52, 243, .18), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(254, 76, 37, .10), transparent),
-    radial-gradient(ellipse 60% 40% at 20% 50%, rgba(184, 112, 255, .10), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(133, 52, 243, .5), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(254, 76, 37, .3), transparent),
+    radial-gradient(ellipse 60% 40% at 20% 50%, rgba(184, 112, 255, .3), transparent),
     #fafafa;
 }
 
 /* ─── Control Panel ───────────────────────────────── */
 #controls {
   position: fixed;
-  top: 20px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -1821,4 +1821,143 @@ body.recording #record-icon {
 .settings-note {
   font-size: 11px; color: var(--body-text); opacity: 0.6; font-style: italic;
   margin-top: 8px; text-align: center;
+}
+
+/* ─── Capabilities Panel ─────────────────────────── */
+.capabilities-body { padding: 16px !important; }
+.capabilities-filter {
+  width: 100%; padding: 8px 12px; margin-bottom: 12px;
+  background: var(--surface0); color: var(--body-text);
+  border: 1px solid var(--surface1); border-radius: 6px;
+  font-size: 13px; font-family: var(--font-sans);
+  outline: none;
+}
+.capabilities-filter:focus { border-color: var(--accent); }
+.capabilities-filter::placeholder { color: var(--body-dim); }
+.capabilities-content {
+  max-height: 60vh; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--surface1) transparent;
+}
+.capabilities-loading {
+  text-align: center; color: var(--body-dim); padding: 24px; font-size: 13px;
+}
+.cap-section { margin-bottom: 16px; }
+.cap-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0; cursor: pointer; user-select: none;
+}
+.cap-section-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--body-text);
+}
+.cap-section-badge {
+  font-size: 11px; color: var(--body-dim); font-weight: 500;
+}
+.cap-section-arrow {
+  font-size: 10px; color: var(--body-dim); transition: transform 0.2s;
+  margin-right: 6px;
+}
+.cap-section.collapsed .cap-section-arrow { transform: rotate(-90deg); }
+.cap-section.collapsed .cap-section-items { display: none; }
+.cap-section-items { padding-top: 4px; }
+
+/* MCP Server card */
+.cap-mcp-card {
+  background: var(--surface0); border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.cap-mcp-card:hover { border-color: var(--surface1); }
+.cap-mcp-card.disabled { opacity: 0.5; }
+.cap-mcp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.cap-mcp-name {
+  font-size: 13px; font-weight: 600; color: #fff;
+  display: flex; align-items: center; gap: 8px;
+}
+.cap-mcp-status {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.cap-mcp-status.connected { background: var(--green); }
+.cap-mcp-status.disabled { background: var(--body-dim); }
+.cap-mcp-status.pending { background: var(--yellow); animation: pulse-dot 1.5s infinite; }
+.cap-mcp-status.failed, .cap-mcp-status.needs-auth { background: var(--red); }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.cap-mcp-source {
+  font-size: 10px; color: var(--body-dim); background: var(--mantle);
+  padding: 1px 6px; border-radius: 4px;
+}
+
+/* Tool chips */
+.cap-tools {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.cap-tool-chip {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 10px;
+  font-size: 11px; font-family: var(--font-mono);
+  background: var(--mantle); color: var(--body-text);
+  border: 1px solid var(--surface1);
+  cursor: pointer; user-select: none;
+  transition: all 0.15s;
+}
+.cap-tool-chip:hover {
+  border-color: var(--accent); color: var(--accent);
+}
+.cap-tool-chip.excluded {
+  opacity: 0.35; text-decoration: line-through;
+  border-color: transparent;
+}
+.cap-tool-chip.excluded:hover {
+  opacity: 0.6; border-color: var(--accent);
+}
+.cap-mcp-card.disabled .cap-tool-chip {
+  opacity: 0.3; text-decoration: line-through;
+  pointer-events: none;
+}
+.cap-no-tools {
+  font-size: 11px; color: var(--body-dim); font-style: italic; padding: 2px 0;
+}
+
+/* Skill row */
+.cap-skill-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px; border-radius: 6px;
+  transition: background 0.12s;
+}
+.cap-skill-row:hover { background: var(--surface0); }
+.cap-skill-info {
+  display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1;
+}
+.cap-skill-name {
+  font-size: 13px; font-weight: 500; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cap-skill-desc {
+  font-size: 11px; color: var(--body-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cap-skill-row.disabled .cap-skill-name { color: var(--body-dim); }
+
+/* Reuse toggle from settings */
+.cap-toggle {
+  position: relative; width: 36px; height: 20px; flex-shrink: 0; margin-left: 8px;
+}
+.cap-toggle input { opacity: 0; width: 0; height: 0; }
+.cap-toggle-slider {
+  position: absolute; inset: 0; cursor: pointer;
+  background: var(--surface1); border-radius: 20px;
+  transition: background 0.2s;
+}
+.cap-toggle-slider::before {
+  content: ""; position: absolute; width: 14px; height: 14px;
+  left: 3px; bottom: 3px; background: var(--body-dim);
+  border-radius: 50%; transition: transform 0.2s, background 0.2s;
+}
+.cap-toggle input:checked + .cap-toggle-slider { background: var(--accent); }
+.cap-toggle input:checked + .cap-toggle-slider::before {
+  transform: translateX(16px); background: #fff;
 }

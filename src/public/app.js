@@ -363,6 +363,9 @@
       this.copilotMode = "interactive";
       this.cachedAgents = [];
       this.cachedSkills = [];
+      this.cachedMcpServers = [];
+      this.cachedTools = [];
+      this.excludedTools = new Set();
       this.toolCallElements = new Map();
       this.pendingFiles = new Map();
       this.openedFiles = new Set();
@@ -892,6 +895,14 @@
 
         case "skills_list":
           this.cachedSkills = msg.skills || [];
+          break;
+
+        case "capabilities_list":
+        case "capabilities_update":
+          if (msg.mcpServers) this.cachedMcpServers = msg.mcpServers;
+          if (msg.skills) this.cachedSkills = msg.skills;
+          if (msg.tools) this.cachedTools = msg.tools;
+          if (window._capabilitiesOpen) window._renderCapabilities();
           break;
 
         case "model_changed": {
@@ -3037,6 +3048,200 @@
   $("#btn-settings").addEventListener("click", openSettings);
   $("#settings-close").addEventListener("click", closeSettings);
   settingsOverlay.addEventListener("click", (e) => { if (e.target === settingsOverlay) closeSettings(); });
+
+  // ═══════════════════════════════════════════════════════════
+  // ─── CAPABILITIES PANEL ────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════
+
+  const capOverlay = $("#capabilities-overlay");
+  const capContent = $("#capabilities-content");
+  const capFilter = $("#capabilities-filter");
+  window._capabilitiesOpen = false;
+
+  function openCapabilities() {
+    capOverlay.classList.remove("hidden");
+    window._capabilitiesOpen = true;
+    capFilter.value = "";
+    capContent.innerHTML = '<div class="capabilities-loading">Loading\u2026</div>';
+    const session = manager.getActive();
+    if (session) session.send("list_capabilities");
+    capFilter.focus();
+  }
+
+  function closeCapabilities() {
+    capOverlay.classList.add("hidden");
+    window._capabilitiesOpen = false;
+  }
+
+  window._renderCapabilities = function() {
+    const session = manager.getActive();
+    if (!session) return;
+
+    const filter = (capFilter.value || "").toLowerCase();
+    const servers = session.cachedMcpServers || [];
+    const skills = session.cachedSkills || [];
+    const tools = session.cachedTools || [];
+
+    // Group tools by MCP server (namespacedName prefix before "/")
+    const toolsByServer = {};
+    const builtinTools = [];
+    for (const t of tools) {
+      if (t.namespacedName && t.namespacedName.includes("/")) {
+        const serverName = t.namespacedName.split("/")[0];
+        if (!toolsByServer[serverName]) toolsByServer[serverName] = [];
+        toolsByServer[serverName].push(t);
+      } else {
+        builtinTools.push(t);
+      }
+    }
+
+    let html = "";
+
+    // MCP Servers section
+    const filteredServers = servers.filter(s =>
+      !filter || s.name.toLowerCase().includes(filter) ||
+      (toolsByServer[s.name] || []).some(t => t.name.toLowerCase().includes(filter))
+    );
+    const enabledServerCount = servers.filter(s => s.status !== "disabled").length;
+
+    html += '<div class="cap-section" id="cap-mcp">';
+    html += '<div class="cap-section-header" data-section="cap-mcp">';
+    html += '<span class="cap-section-arrow">\u25bc</span>';
+    html += '<span class="cap-section-title">MCP Servers</span>';
+    html += '<span class="cap-section-badge">' + enabledServerCount + '/' + servers.length + '</span>';
+    html += '</div>';
+    html += '<div class="cap-section-items">';
+
+    for (const s of filteredServers) {
+      const isEnabled = s.status !== "disabled";
+      const serverTools = toolsByServer[s.name] || [];
+      html += '<div class="cap-mcp-card' + (isEnabled ? '' : ' disabled') + '" data-server="' + escapeHtml(s.name) + '">';
+      html += '<div class="cap-mcp-header">';
+      html += '<span class="cap-mcp-name">';
+      html += '<span class="cap-mcp-status ' + escapeHtml(s.status) + '"></span>';
+      html += escapeHtml(s.name);
+      if (s.source) html += ' <span class="cap-mcp-source">' + escapeHtml(s.source) + '</span>';
+      html += '</span>';
+      html += '<label class="cap-toggle"><input type="checkbox"' + (isEnabled ? ' checked' : '') + ' data-toggle-mcp="' + escapeHtml(s.name) + '"><span class="cap-toggle-slider"></span></label>';
+      html += '</div>';
+      if (serverTools.length > 0) {
+        html += '<div class="cap-tools">';
+        for (const t of serverTools) {
+          const toolName = t.name;
+          const isExcluded = session.excludedTools.has(toolName);
+          const matchesFilter = filter && toolName.toLowerCase().includes(filter);
+          html += '<span class="cap-tool-chip' + (isExcluded ? ' excluded' : '') + '"' +
+            ' data-tool="' + escapeHtml(toolName) + '"' +
+            ' title="' + escapeHtml(t.description || toolName) + '"' +
+            (matchesFilter ? ' style="border-color:var(--accent)"' : '') +
+            '>' + escapeHtml(toolName) + '</span>';
+        }
+        html += '</div>';
+      } else {
+        html += '<div class="cap-no-tools">No tools</div>';
+      }
+      html += '</div>';
+    }
+
+    // Built-in tools section (if any match filter)
+    const filteredBuiltins = builtinTools.filter(t =>
+      !filter || t.name.toLowerCase().includes(filter)
+    );
+    if (filteredBuiltins.length > 0) {
+      html += '<div class="cap-mcp-card" data-server="__builtin__">';
+      html += '<div class="cap-mcp-header">';
+      html += '<span class="cap-mcp-name">';
+      html += '<span class="cap-mcp-status connected"></span>';
+      html += 'Built-in Tools';
+      html += '</span>';
+      html += '</div>';
+      html += '<div class="cap-tools">';
+      for (const t of filteredBuiltins) {
+        const isExcluded = session.excludedTools.has(t.name);
+        html += '<span class="cap-tool-chip' + (isExcluded ? ' excluded' : '') + '"' +
+          ' data-tool="' + escapeHtml(t.name) + '"' +
+          ' title="' + escapeHtml(t.description || t.name) + '"' +
+          '>' + escapeHtml(t.name) + '</span>';
+      }
+      html += '</div>';
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+
+    // Skills section
+    const filteredSkills = skills.filter(s =>
+      !filter || s.name.toLowerCase().includes(filter) ||
+      (s.description || "").toLowerCase().includes(filter)
+    );
+    const enabledSkillCount = skills.filter(s => s.enabled).length;
+
+    html += '<div class="cap-section" id="cap-skills">';
+    html += '<div class="cap-section-header" data-section="cap-skills">';
+    html += '<span class="cap-section-arrow">\u25bc</span>';
+    html += '<span class="cap-section-title">Skills</span>';
+    html += '<span class="cap-section-badge">' + enabledSkillCount + '/' + skills.length + '</span>';
+    html += '</div>';
+    html += '<div class="cap-section-items">';
+
+    for (const s of filteredSkills) {
+      html += '<div class="cap-skill-row' + (s.enabled ? '' : ' disabled') + '">';
+      html += '<div class="cap-skill-info">';
+      html += '<span class="cap-skill-name">' + escapeHtml(s.name) + '</span>';
+      if (s.description) html += '<span class="cap-skill-desc" title="' + escapeHtml(s.description) + '">' + escapeHtml(s.description) + '</span>';
+      html += '</div>';
+      html += '<label class="cap-toggle"><input type="checkbox"' + (s.enabled ? ' checked' : '') + ' data-toggle-skill="' + escapeHtml(s.name) + '"><span class="cap-toggle-slider"></span></label>';
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+
+    capContent.innerHTML = html;
+
+    // Wire toggle handlers via delegation
+    capContent.onclick = function(e) {
+      const toggle = e.target.closest('[data-toggle-mcp]');
+      if (toggle) {
+        const name = toggle.dataset.toggleMcp;
+        const enabled = toggle.checked;
+        session.send("toggle_mcp", { name, enabled });
+        return;
+      }
+      const skillToggle = e.target.closest('[data-toggle-skill]');
+      if (skillToggle) {
+        const name = skillToggle.dataset.toggleSkill;
+        const enabled = skillToggle.checked;
+        session.send("toggle_skill", { name, enabled });
+        return;
+      }
+      const toolChip = e.target.closest('[data-tool]');
+      if (toolChip) {
+        const toolName = toolChip.dataset.tool;
+        if (session.excludedTools.has(toolName)) {
+          session.excludedTools.delete(toolName);
+          toolChip.classList.remove("excluded");
+        } else {
+          session.excludedTools.add(toolName);
+          toolChip.classList.add("excluded");
+        }
+        return;
+      }
+      const sectionHeader = e.target.closest('.cap-section-header');
+      if (sectionHeader) {
+        const sectionId = sectionHeader.dataset.section;
+        const section = document.getElementById(sectionId);
+        if (section) section.classList.toggle("collapsed");
+      }
+    };
+  };
+
+  capFilter.addEventListener("input", () => {
+    if (window._capabilitiesOpen) window._renderCapabilities();
+  });
+
+  $("#btn-capabilities").addEventListener("click", openCapabilities);
+  $("#capabilities-close").addEventListener("click", closeCapabilities);
+  capOverlay.addEventListener("click", (e) => { if (e.target === capOverlay) closeCapabilities(); });
 
   // ═══════════════════════════════════════════════════════════
   // ─── BOOT ──────────────────────────────────────────────────
