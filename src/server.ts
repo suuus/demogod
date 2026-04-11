@@ -869,12 +869,8 @@ wss.on("connection", (ws) => {
       const skillMatch = prompt.match(/^\/([\w-]+)\s*(.*)/s);
       if (skillMatch) {
         const [, skillName, userPrompt] = skillMatch;
-        const pluginSkills = await getPluginSkills();
         const sdkSkills = await bridge.listSkills();
-        const allNames = new Set([
-          ...sdkSkills.map((s: any) => s.name),
-          ...pluginSkills.map(s => s.name),
-        ]);
+        const allNames = new Set(sdkSkills.map((s: any) => s.name));
         if (allNames.has(skillName)) {
           finalPrompt = userPrompt.trim()
             ? `Use the "${skillName}" skill to: ${userPrompt.trim()}`

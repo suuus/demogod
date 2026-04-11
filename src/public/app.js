@@ -2727,7 +2727,7 @@
         id: a.name,
         name: a.displayName || a.name,
         desc: a.description || "",
-        meta: a.name,
+        meta: a.source || a.name,
         selected: session.selectedAgent?.name === a.name,
       })));
     } else if (mode === "skill") {
