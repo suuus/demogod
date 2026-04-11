@@ -538,6 +538,10 @@ wss.on("connection", (ws) => {
       safeSend(ws, { type: "mcp_tools_discovered", serverName: data.serverName, tools: data.tools });
     });
 
+    bridge.on("permission_request", (data: any) => {
+      safeSend(ws, { type: "permission_request", requestId: data.requestId, permissionKind: data.permissionKind, details: data.details });
+    });
+
     try {
       await bridge.createSession(model, currentWorkingDir);
       console.log("Copilot session created");
@@ -737,6 +741,19 @@ wss.on("connection", (ws) => {
         case "user_input_response":
           if (bridge) {
             bridge.resolveUserInput(msg.requestId, msg.values);
+          }
+          break;
+
+        case "permission_response":
+          if (bridge) {
+            bridge.resolvePermission(msg.requestId, msg.approved);
+          }
+          break;
+
+        case "set_auto_approve":
+          if (bridge) {
+            bridge.autoApprove = !!msg.enabled;
+            console.log(`[Security] Auto-approve: ${bridge.autoApprove}`);
           }
           break;
 

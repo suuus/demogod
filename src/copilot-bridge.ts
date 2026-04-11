@@ -1,9 +1,10 @@
-import { CopilotClient, CopilotSession, approveAll } from "@github/copilot-sdk";
+import { CopilotClient, CopilotSession } from "@github/copilot-sdk";
 import type {
   SessionEvent,
   ElicitationContext,
   ElicitationResult,
   ModelInfo,
+  PermissionRequest,
 } from "@github/copilot-sdk";
 import { EventEmitter } from "events";
 
@@ -33,7 +34,10 @@ export class CopilotBridge extends EventEmitter {
   private client: CopilotClient;
   private session: CopilotSession | null = null;
   private pendingInputs = new Map<string, (response: any) => void>();
+  private pendingPermissions = new Map<string, (approved: boolean) => void>();
   private inputCounter = 0;
+  private permissionCounter = 0;
+  autoApprove = true;
   // Track active task tool calls so we can match start→complete with args
   private activeTaskAgents: { agentName: string; agentDisplayName: string }[] = [];
   // Map background agent IDs to their agentName for routing read_agent results
@@ -72,7 +76,24 @@ export class CopilotBridge extends EventEmitter {
       enableConfigDiscovery: true,
       infiniteSessions: { enabled: true },
       systemMessage: { mode: "append", content: DEMO_SYSTEM_INSTRUCTIONS },
-      onPermissionRequest: approveAll,
+      onPermissionRequest: async (request: PermissionRequest) => {
+        if (this.autoApprove) return { kind: "approved" as const };
+        // Ask the frontend for approval
+        const requestId = `perm-${++this.permissionCounter}`;
+        this.emit("permission_request", {
+          requestId,
+          permissionKind: request.kind,
+          details: request,
+        });
+        return new Promise((resolve) => {
+          this.pendingPermissions.set(requestId, (approved: boolean) => {
+            resolve(approved
+              ? { kind: "approved" as const }
+              : { kind: "denied-interactively-by-user" as const }
+            );
+          });
+        });
+      },
       onUserInputRequest: async (request) => {
         console.log("[Bridge] onUserInputRequest:", JSON.stringify(request).substring(0, 200));
         const requestId = `uir-${++this.inputCounter}`;
@@ -423,6 +444,14 @@ export class CopilotBridge extends EventEmitter {
     if (resolver) {
       this.pendingInputs.delete(requestId);
       resolver(values);
+    }
+  }
+
+  resolvePermission(requestId: string, approved: boolean): void {
+    const resolver = this.pendingPermissions.get(requestId);
+    if (resolver) {
+      this.pendingPermissions.delete(requestId);
+      resolver(approved);
     }
   }
 

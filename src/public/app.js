@@ -789,6 +789,7 @@
           this.send("list_agents");
           this.send("list_skills");
           this.send("get_mode");
+          this.send("set_auto_approve", { enabled: localStorage.getItem("dg-auto-approve") !== "0" });
           this._syncControlBarIfActive();
           break;
         }
@@ -823,6 +824,30 @@
           this.setProcessing(false);
           this._showDialog(msg);
           break;
+
+        case "permission_request": {
+          const kindLabels = { shell: "🖥 Run command", write: "📝 Write file", read: "📂 Read file", mcp: "🔌 MCP call", url: "🌐 Open URL", "custom-tool": "🔧 Custom tool" };
+          const label = kindLabels[msg.permissionKind] || msg.permissionKind;
+          const detail = msg.details?.command || msg.details?.path || msg.details?.url || msg.details?.toolName || "";
+          this.appendSystemMessage("⚠ Permission requested: " + label + (detail ? " — " + detail : ""), "warning");
+          // Show inline confirmation
+          const el = document.createElement("div");
+          el.className = "permission-prompt";
+          el.innerHTML = '<span class="permission-label">' + escapeHtml(label) + (detail ? ': <code>' + escapeHtml(detail) + '</code>' : '') + '</span>' +
+            '<button class="permission-btn permission-allow" data-req="' + msg.requestId + '">Allow</button>' +
+            '<button class="permission-btn permission-deny" data-req="' + msg.requestId + '">Deny</button>';
+          el.querySelector(".permission-allow").addEventListener("click", () => {
+            this.send("permission_response", { requestId: msg.requestId, approved: true });
+            el.remove();
+          });
+          el.querySelector(".permission-deny").addEventListener("click", () => {
+            this.send("permission_response", { requestId: msg.requestId, approved: false });
+            el.remove();
+          });
+          this.dom.output.appendChild(el);
+          this.dom.output.scrollTop = this.dom.output.scrollHeight;
+          break;
+        }
 
         case "tool_start": {
           // Don't show generic tool chip for task tool when agent tabs handle it
@@ -3048,6 +3073,7 @@
   const settingTerminal = $("#setting-terminal");
   const settingAgentTabs = $("#setting-agent-tabs");
   const settingTodoPanel = $("#setting-todo-panel");
+  const settingAutoApprove = $("#setting-auto-approve");
 
   // Init settings from localStorage
   settingBg.value = localStorage.getItem("dg-bg") || "bg-chroma";
@@ -3056,6 +3082,7 @@
   settingTerminal.checked = localStorage.getItem("dg-terminal") === "1";
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
   settingTodoPanel.checked = localStorage.getItem("dg-todo-panel") !== "0";
+  settingAutoApprove.checked = localStorage.getItem("dg-auto-approve") !== "0";
 
   const swedishTag = $("#swedish-tag");
 
@@ -3104,6 +3131,15 @@
 
   settingTodoPanel.addEventListener("change", () => {
     localStorage.setItem("dg-todo-panel", settingTodoPanel.checked ? "1" : "0");
+  });
+
+  settingAutoApprove.addEventListener("change", () => {
+    const enabled = settingAutoApprove.checked;
+    localStorage.setItem("dg-auto-approve", enabled ? "1" : "0");
+    // Notify all active sessions
+    for (const [, session] of manager.sessions) {
+      session.send("set_auto_approve", { enabled });
+    }
   });
 
   function openSettings() { settingsOverlay.classList.remove("hidden"); }
