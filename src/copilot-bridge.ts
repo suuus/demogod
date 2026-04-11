@@ -170,139 +170,139 @@ export class CopilotBridge extends EventEmitter {
           }
         },
       },
+      onEvent: (event: SessionEvent) => this._handleSessionEvent(event),
     });
+  }
 
-    // Subscribe to all events
-    this.session.on((event: SessionEvent) => {
-      // Log all events for debugging
-      console.log(`[Event] ${event.type}`, event.data ? JSON.stringify(event.data).substring(0, 120) : "");
-      switch (event.type) {
-        case "assistant.message_delta":
-          if (event.data && "deltaContent" in event.data) {
-            const d = event.data as any;
-            this.emit("delta", d.deltaContent, d.parentToolCallId);
-          }
-          break;
-        case "assistant.message":
-          if (event.data && "content" in event.data) {
-            this.emit("message", (event.data as any).content);
-          }
-          break;
-        case "assistant.intent":
-          if (event.data && "intent" in event.data) {
-            this.emit("intent", (event.data as any).intent);
-          }
-          break;
-        case "session.idle":
-          this.emit("idle");
-          break;
-        case "session.error":
-          if (event.data && "message" in event.data) {
-            this.emit("error", (event.data as any).message);
-          }
-          break;
-        // tool.execution_start/complete handled by hooks for top-level,
-        // but sub-agent tool events come through events with parentToolCallId
-        case "tool.execution_start":
-          if (event.data && "parentToolCallId" in event.data) {
-            const d = event.data as any;
-            this.emit("tool_start", {
-              toolName: d.toolName,
-              toolArgs: d.arguments,
-              parentToolCallId: d.parentToolCallId,
-            });
-          }
-          break;
-        case "tool.execution_complete":
-          if (event.data && "parentToolCallId" in event.data) {
-            const d = event.data as any;
-            this.emit("tool_complete", {
-              toolName: d.toolName,
-              toolCallId: d.toolCallId,
-              parentToolCallId: d.parentToolCallId,
-            });
-          }
-          break;
-        case "tool.execution_partial_result":
-          if (event.data) {
-            const d = event.data as any;
-            this.emit("tool_partial", {
-              toolCallId: d.toolCallId,
-              partialOutput: d.partialOutput,
-            });
-          }
-          break;
-        case "tool.execution_progress":
-          if (event.data) {
-            const d = event.data as any;
-            this.emit("tool_progress", {
-              toolCallId: d.toolCallId,
-              progressMessage: d.progressMessage,
-            });
-          }
-          break;
-        case "session.workspace_file_changed":
-          if (event.data) {
-            const d = event.data as any;
-            this.emit("file_changed", {
-              path: d.path,
-              operation: d.operation,
-            });
-          }
-          break;
-        case "subagent.started":
-          this.emit("subagent_start", {
-            agentName: (event.data as any).agentName,
-            agentDisplayName: (event.data as any).agentDisplayName,
-          });
-          break;
-        case "subagent.completed":
-          this.emit("subagent_complete", {
-            agentName: (event.data as any).agentName,
-            agentDisplayName: (event.data as any).agentDisplayName,
-          });
-          break;
-        case "session.task_complete":
-          this.emit("task_complete", {
-            summary: (event.data as any).summary,
-          });
-          break;
-        case "session.skills_loaded":
-          this.emit("capabilities_loaded", {
-            kind: "skills",
-            items: (event.data as any).skills,
-          });
-          break;
-        case "session.custom_agents_updated":
-          this.emit("capabilities_loaded", {
-            kind: "agents",
-            items: (event.data as any).agents,
-            warnings: (event.data as any).warnings,
-            errors: (event.data as any).errors,
-          });
-          break;
-        case "session.mcp_servers_loaded":
-          this.emit("capabilities_loaded", {
-            kind: "mcp_servers",
-            items: (event.data as any).servers,
-          });
-          break;
-        case "session.extensions_loaded":
-          this.emit("capabilities_loaded", {
-            kind: "extensions",
-            items: (event.data as any).extensions,
-          });
-          break;
-        case "session.mcp_server_status_changed": {
-          const sd = event.data as any;
-          this.emit("mcp_status", {
-            serverName: sd.serverName,
-            status: sd.status,
-          });
-          break;
+  private _handleSessionEvent(event: SessionEvent): void {
+    // Log all events for debugging
+    console.log(`[Event] ${event.type}`, event.data ? JSON.stringify(event.data).substring(0, 120) : "");
+    switch (event.type) {
+      case "assistant.message_delta":
+        if (event.data && "deltaContent" in event.data) {
+          const d = event.data as any;
+          this.emit("delta", d.deltaContent, d.parentToolCallId);
         }
+        break;
+      case "assistant.message":
+        if (event.data && "content" in event.data) {
+          this.emit("message", (event.data as any).content);
+        }
+        break;
+      case "assistant.intent":
+        if (event.data && "intent" in event.data) {
+          this.emit("intent", (event.data as any).intent);
+        }
+        break;
+      case "session.idle":
+        this.emit("idle");
+        break;
+      case "session.error":
+        if (event.data && "message" in event.data) {
+          this.emit("error", (event.data as any).message);
+        }
+        break;
+      // tool.execution_start/complete handled by hooks for top-level,
+      // but sub-agent tool events come through events with parentToolCallId
+      case "tool.execution_start":
+        if (event.data && "parentToolCallId" in event.data) {
+          const d = event.data as any;
+          this.emit("tool_start", {
+            toolName: d.toolName,
+            toolArgs: d.arguments,
+            parentToolCallId: d.parentToolCallId,
+          });
+        }
+        break;
+      case "tool.execution_complete":
+        if (event.data && "parentToolCallId" in event.data) {
+          const d = event.data as any;
+          this.emit("tool_complete", {
+            toolName: d.toolName,
+            toolCallId: d.toolCallId,
+            parentToolCallId: d.parentToolCallId,
+          });
+        }
+        break;
+      case "tool.execution_partial_result":
+        if (event.data) {
+          const d = event.data as any;
+          this.emit("tool_partial", {
+            toolCallId: d.toolCallId,
+            partialOutput: d.partialOutput,
+          });
+        }
+        break;
+      case "tool.execution_progress":
+        if (event.data) {
+          const d = event.data as any;
+          this.emit("tool_progress", {
+            toolCallId: d.toolCallId,
+            progressMessage: d.progressMessage,
+          });
+        }
+        break;
+      case "session.workspace_file_changed":
+        if (event.data) {
+          const d = event.data as any;
+          this.emit("file_changed", {
+            path: d.path,
+            operation: d.operation,
+          });
+        }
+        break;
+      case "subagent.started":
+        this.emit("subagent_start", {
+          agentName: (event.data as any).agentName,
+          agentDisplayName: (event.data as any).agentDisplayName,
+        });
+        break;
+      case "subagent.completed":
+        this.emit("subagent_complete", {
+          agentName: (event.data as any).agentName,
+          agentDisplayName: (event.data as any).agentDisplayName,
+        });
+        break;
+      case "session.task_complete":
+        this.emit("task_complete", {
+          summary: (event.data as any).summary,
+        });
+        break;
+      case "session.skills_loaded":
+        this.emit("capabilities_loaded", {
+          kind: "skills",
+          items: (event.data as any).skills,
+        });
+        break;
+      case "session.custom_agents_updated":
+        this.emit("capabilities_loaded", {
+          kind: "agents",
+          items: (event.data as any).agents,
+          warnings: (event.data as any).warnings,
+          errors: (event.data as any).errors,
+        });
+        break;
+      case "session.mcp_servers_loaded":
+        this.emit("capabilities_loaded", {
+          kind: "mcp_servers",
+          items: (event.data as any).servers,
+        });
+        break;
+      case "session.extensions_loaded":
+        this.emit("capabilities_loaded", {
+          kind: "extensions",
+          items: (event.data as any).extensions,
+        });
+        break;
+      case "session.mcp_server_status_changed": {
+        const sd = event.data as any;
+        this.emit("mcp_status", {
+          serverName: sd.serverName,
+          status: sd.status,
+        });
+        break;
       }
-    });
+    }
   }
 
   async setModel(model: string): Promise<void> {

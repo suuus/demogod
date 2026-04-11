@@ -366,6 +366,7 @@
       this.cachedMcpServers = [];
       this.cachedTools = [];
       this.excludedTools = new Set();
+      this._agentsAnnounced = false;
       this.toolCallElements = new Map();
       this.pendingFiles = new Map();
       this.openedFiles = new Set();
@@ -899,6 +900,10 @@
 
         case "agents_list":
           this.cachedAgents = msg.agents || [];
+          if (!this._agentsAnnounced && this.cachedAgents.length > 0) {
+            this._agentsAnnounced = true;
+            this.appendSystemMessage("\u2713 " + this.cachedAgents.length + " agents loaded", "info");
+          }
           break;
 
         case "skills_list":
