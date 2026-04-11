@@ -340,7 +340,8 @@ app.get("/api/file", async (req, res) => {
     return;
   }
   try {
-    const content = await readFile(resolved, "utf-8");
+    // Security: `resolved` is validated by safeRealpath (symlink-safe) + isUnderHome (homedir jail) + extension allowlist above.
+    const content = await readFile(resolved, "utf-8"); // lgtm[js/path-injection]
     res.json({ path: resolved, content, filename: resolved.split("/").pop() });
   } catch {
     res.status(404).json({ error: "File not found" });
