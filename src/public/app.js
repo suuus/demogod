@@ -883,10 +883,18 @@
 
         case "capabilities_loaded":
           this.handleCapabilitiesLoaded(msg);
+          if (msg.kind === "mcp_servers" && msg.items) this.cachedMcpServers = msg.items;
+          if (msg.kind === "skills" && msg.items) this.cachedSkills = msg.items;
+          if (window._capabilitiesOpen) window._renderCapabilities();
           break;
 
         case "mcp_status":
           console.log("[MCP] " + msg.serverName + ": " + msg.status);
+          if (msg.serverName && this.cachedMcpServers.length > 0) {
+            const srv = this.cachedMcpServers.find(s => s.name === msg.serverName);
+            if (srv) srv.status = msg.status;
+            if (window._capabilitiesOpen) window._renderCapabilities();
+          }
           break;
 
         case "agents_list":
@@ -903,20 +911,6 @@
           if (msg.skills) this.cachedSkills = msg.skills;
           if (msg.tools) this.cachedTools = msg.tools;
           if (window._capabilitiesOpen) window._renderCapabilities();
-          break;
-
-        case "capabilities_loaded":
-          if (msg.kind === "mcp_servers" && msg.items) this.cachedMcpServers = msg.items;
-          if (msg.kind === "skills" && msg.items) this.cachedSkills = msg.items;
-          if (window._capabilitiesOpen) window._renderCapabilities();
-          break;
-
-        case "mcp_status":
-          if (msg.serverName && this.cachedMcpServers.length > 0) {
-            const srv = this.cachedMcpServers.find(s => s.name === msg.serverName);
-            if (srv) srv.status = msg.status;
-            if (window._capabilitiesOpen) window._renderCapabilities();
-          }
           break;
 
         case "model_changed": {
