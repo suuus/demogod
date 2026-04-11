@@ -3023,6 +3023,7 @@
     { name: "Chroma", cls: "bg-chroma" },
     { name: "Copilot Dark", cls: "bg-copilot-dark" },
     { name: "Copilot Light", cls: "bg-copilot-light" },
+    { name: "Aurora Borealis", cls: "bg-aurora" },
     { name: "Off-white", cls: "bg-offwhite" },
     { name: "Dark Blue", cls: "bg-darkblue" },
     { name: "White", cls: "bg-white" },
@@ -3056,12 +3057,30 @@
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
   settingTodoPanel.checked = localStorage.getItem("dg-todo-panel") !== "0";
 
+  const swedishTag = $("#swedish-tag");
+
+  function updateSwedishTag(cls) {
+    swedishTag.style.display = cls === "bg-aurora" ? "flex" : "none";
+    swedishTag.classList.remove("fading");
+  }
+
+  // Fade the tag on first click anywhere
+  document.addEventListener("click", () => {
+    if (swedishTag.style.display === "flex" && !swedishTag.classList.contains("fading")) {
+      swedishTag.classList.add("fading");
+    }
+  }, { once: true });
+
   settingBg.addEventListener("change", () => {
     const cls = settingBg.value;
     localStorage.setItem("dg-bg", cls);
     backdrop.className = cls;
     bgIndex = bgOptions.findIndex(o => o.cls === cls);
+    updateSwedishTag(cls);
   });
+
+  // Init swedish tag on load
+  updateSwedishTag(localStorage.getItem("dg-bg") || "bg-chroma");
 
   settingVersion.addEventListener("change", () => {
     localStorage.setItem("dg-show-version", settingVersion.checked ? "1" : "0");

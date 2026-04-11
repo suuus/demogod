@@ -54,6 +54,7 @@
 .gl {
   animation: typeLetter .5s ease-out calc(0.8s + var(--i) * 0.12s) forwards, goldShimmer 2.5s ease-in-out 2.6s infinite;
 }
+.splash-god { position: relative; }
 @keyframes goldShimmer {
   0%, 100% { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,.4); }
   50%      { color: #ffec80; text-shadow: 0 0 16px rgba(255,236,128,.6); }
@@ -70,8 +71,8 @@
 
 .splash-halo {
   position: absolute;
-  left: calc(50% + .6em); top: -0.55em;
-  width: 2.2em; height: .6em;
+  left: 0; top: -0.55em;
+  width: 100%; height: .6em;
   border: 2px solid #ffd700;
   border-radius: 50%;
   filter: drop-shadow(0 0 6px rgba(255,215,0,.5));
@@ -164,6 +165,50 @@ html, body {
     radial-gradient(ellipse 60% 40% at 80% 50%, rgba(254, 76, 37, .3), transparent),
     radial-gradient(ellipse 60% 40% at 20% 50%, rgba(184, 112, 255, .3), transparent),
     #fafafa;
+}
+#backdrop.bg-aurora {
+  background: #0a1628;
+  overflow: hidden;
+}
+#backdrop.bg-aurora::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 20%, rgba(30,107,78,.5), transparent),
+    radial-gradient(ellipse 50% 35% at 70% 30%, rgba(123,45,142,.4), transparent),
+    radial-gradient(ellipse 40% 30% at 50% 60%, rgba(30,80,120,.3), transparent),
+    radial-gradient(ellipse 70% 50% at 60% 10%, rgba(62,142,126,.3), transparent);
+  animation: auroraDrift 20s ease-in-out infinite alternate;
+}
+
+/* Swedish tag — bottom-left, only on aurora theme */
+.swedish-tag {
+  display: none;
+  position: fixed;
+  left: 16px;
+  bottom: 30px;
+  z-index: 1;
+  background: #006AA7;
+  border-radius: 14px;
+  padding: 5px 12px 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  white-space: nowrap;
+  gap: 8px;
+  align-items: center;
+  transition: opacity 2s ease-out;
+}
+.swedish-tag.fading { opacity: 0; }
+@keyframes auroraDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(5%, -3%) scale(1.05); }
+  50%  { transform: translate(-3%, 5%) scale(1.02); }
+  75%  { transform: translate(4%, 2%) scale(1.07); }
+  100% { transform: translate(-2%, -4%) scale(1); }
 }
 
 /* ─── Control Panel ───────────────────────────────── */
