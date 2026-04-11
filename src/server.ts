@@ -5,11 +5,11 @@ import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
 import { readFile, readdir, stat, mkdir, writeFile } from "fs/promises";
 import { existsSync, realpathSync } from "fs";
-import { homedir, platform } from "os";
+import { homedir } from "os";
 import { randomBytes } from "crypto";
 import { spawn } from "child_process";
 import { CopilotBridge } from "./copilot-bridge.js";
-import * as pty from "node-pty";
+import { setupPtyServer } from "./pty-server.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -239,15 +239,15 @@ function verifyWsClient(info: { origin: string; secure: boolean; req: import("ht
 }
 
 const wss = new WebSocketServer({ noServer: true, verifyClient: verifyWsClient });
-const wssPty = new WebSocketServer({ noServer: true, verifyClient: verifyWsClient });
+const wssPty = setupPtyServer(server, verifyWsClient);
 
 server.on("upgrade", (req, socket, head) => {
   const pathname = new URL(req.url || "/", `http://${req.headers.host}`).pathname;
   if (pathname === "/pty") {
-    wssPty.handleUpgrade(req, socket, head, (ws) => wssPty.emit("connection", ws, req));
-  } else {
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+    // Handled by setupPtyServer's own upgrade listener
+    return;
   }
+  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
 });
 
 // Shared bridge instance for listing models before a session exists
@@ -892,71 +892,6 @@ function safeSend(ws: WebSocket, data: object) {
   }
 }
 
-// ─── PTY WebSocket bridge ───────────────────────────────────────────────────
-function getDefaultShell(): string {
-  if (platform() === "win32") return "powershell.exe";
-  return process.env.SHELL || "/bin/bash";
-}
-
-const ALLOWED_SHELLS = new Set([
-  getDefaultShell(),
-  "/bin/bash", "/bin/zsh", "/bin/sh",
-  "powershell.exe", "cmd.exe", "wsl.exe",
-]);
-
-wssPty.on("connection", (ws, req) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host}`);
-  const requestedShell = url.searchParams.get("shell") || getDefaultShell();
-  const shell = ALLOWED_SHELLS.has(requestedShell) ? requestedShell : getDefaultShell();
-  const requestedCwd = url.searchParams.get("cwd") || homedir();
-  const home = homedir();
-  const realCwd = safeRealpath(requestedCwd);
-  const cwd = (realCwd && isUnderHome(realCwd)) ? realCwd : home;
-  const cols = parseInt(url.searchParams.get("cols") || "120", 10);
-  const rows = parseInt(url.searchParams.get("rows") || "30", 10);
-
-  console.log(`[PTY] Spawning: ${shell} (${cols}x${rows}) in ${cwd}`);
-
-  let term: pty.IPty;
-  try {
-    term = pty.spawn(shell, [], { name: "xterm-256color", cols, rows, cwd, env: process.env as Record<string, string> });
-  } catch (err: any) {
-    ws.send(JSON.stringify({ type: "error", message: `Failed to spawn shell: ${err.message}` }));
-    ws.close();
-    return;
-  }
-
-  term.onData((data) => {
-    if (ws.readyState === WebSocket.OPEN) ws.send(data);
-  });
-
-  term.onExit(({ exitCode }) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "exit", exitCode }));
-      ws.close();
-    }
-  });
-
-  ws.on("message", (msg) => {
-    const str = msg.toString();
-    // JSON messages for resize, plain text for input
-    if (str.startsWith("{")) {
-      try {
-        const cmd = JSON.parse(str);
-        if (cmd.type === "resize" && cmd.cols && cmd.rows) {
-          term.resize(cmd.cols, cmd.rows);
-        }
-      } catch { /* not JSON, treat as input */ term.write(str); }
-    } else {
-      term.write(str);
-    }
-  });
-
-  ws.on("close", () => {
-    console.log("[PTY] Client disconnected");
-    term.kill();
-  });
-});
 
 // ─── Terminal startup animation ──────────────────────────────────────────────
 const GOLD = "\x1b[33m";
