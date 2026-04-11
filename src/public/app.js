@@ -2072,6 +2072,10 @@
 
       if (mdl) mdl.textContent = session.mode === "scripted" ? "Script" : "Live";
       if (mdi) mdi.textContent = session.mode === "scripted" ? "\u25b6\ufe0f" : "\u2328\ufe0f";
+
+      // Sync terminal window border to active session's mode
+      const tw = document.getElementById("terminal-window");
+      if (tw) tw.dataset.copilotMode = session.copilotMode || "interactive";
     }
 
     setLayoutMode(mode) {
