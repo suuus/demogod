@@ -6,7 +6,7 @@
 
 > Demo video generator for GitHub Copilot CLI
 
-📹 **[Watch the UI Showcase](docs/showcase.webm)** — model picker, agents, mode cycling, capabilities, skills, live prompting, multi-session, floating layout *(recorded with Playwright)*
+https://github.com/suuus/demogod/raw/main/docs/showcase.webm
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg)](https://nodejs.org/)
