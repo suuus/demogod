@@ -21,7 +21,7 @@ safe-outputs:
   create-issue:
     title-prefix: "[review-panel] "
     labels: [automation, code-review]
-    assignees: [suuus, copilot]
+    assignees: [suuus]
     max: 5
     expires: 7d
     group: true
