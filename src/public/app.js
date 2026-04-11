@@ -3211,16 +3211,19 @@
         }
         html += '</div>';
       } else {
-        // Check if we've discovered tools for this server at runtime
+        // Check if we've discovered tools for this server
         const observed = session.discoveredMcpTools[s.name] || [];
         if (observed.length > 0) {
           html += '<div class="cap-tools">';
-          for (const toolName of observed) {
+          for (const item of observed) {
+            const toolName = typeof item === 'string' ? item : item.name;
+            const desc = typeof item === 'string' ? toolName : (item.description || toolName);
+            const shortName = toolName.replace(s.name + '-', '').replace(s.name + '_', '');
             const isExcluded = session.excludedTools.has(toolName);
             html += '<span class="cap-tool-chip' + (isExcluded ? ' excluded' : '') + '"' +
               ' data-tool="' + escapeHtml(toolName) + '"' +
-              ' title="' + escapeHtml(toolName) + '"' +
-              '>' + escapeHtml(toolName.replace(s.name + '-', '').replace(s.name + '_', '')) + '</span>';
+              ' title="' + escapeHtml(desc) + '"' +
+              '>' + escapeHtml(shortName) + '</span>';
           }
           html += '</div>';
         } else if (isEnabled && s.status === 'connected') {

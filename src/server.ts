@@ -7,6 +7,7 @@ import { readFile, readdir, stat, mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { homedir, platform } from "os";
 import { randomBytes } from "crypto";
+import { spawn } from "child_process";
 import { CopilotBridge } from "./copilot-bridge.js";
 import * as pty from "node-pty";
 
@@ -313,6 +314,108 @@ async function getPluginAgents(): Promise<PluginAgent[]> {
       cachedPluginAgents.map(a => a.name).join(", "));
   }
   return cachedPluginAgents;
+}
+
+// ---------- MCP tool discovery via protocol ----------
+// Spawns an MCP server process, sends initialize + tools/list, collects tools.
+interface McpToolInfo { name: string; description: string; }
+
+async function queryMcpServerTools(command: string, args: string[], env?: Record<string, string>): Promise<McpToolInfo[]> {
+  return new Promise((resolve) => {
+    const proc = spawn(command, args, {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, ...env },
+    });
+    let buffer = "";
+    let phase: "init" | "tools" | "done" = "init";
+    const tools: McpToolInfo[] = [];
+    const timeout = setTimeout(() => { proc.kill(); resolve(tools); }, 8000);
+
+    proc.stdout.on("data", (chunk: Buffer) => {
+      buffer += chunk.toString();
+      // Parse JSON-RPC messages (newline-delimited)
+      let idx;
+      while ((idx = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (!line) continue;
+        try {
+          const msg = JSON.parse(line);
+          if (phase === "init" && msg.result) {
+            // Initialize response received — send tools/list
+            phase = "tools";
+            proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }) + "\n");
+          } else if (phase === "tools" && msg.result?.tools) {
+            for (const t of msg.result.tools) {
+              tools.push({ name: t.name, description: t.description || "" });
+            }
+            phase = "done";
+            clearTimeout(timeout);
+            proc.kill();
+            resolve(tools);
+          }
+        } catch {}
+      }
+    });
+    proc.on("error", () => { clearTimeout(timeout); resolve(tools); });
+    proc.on("exit", () => { clearTimeout(timeout); resolve(tools); });
+
+    // Send initialize
+    proc.stdin.write(JSON.stringify({
+      jsonrpc: "2.0", id: 1, method: "initialize",
+      params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "demogod", version: "0.0.8" } },
+    }) + "\n");
+  });
+}
+
+// Scan all plugin MCP configs and query their tools
+async function discoverAllMcpTools(): Promise<Record<string, McpToolInfo[]>> {
+  const result: Record<string, McpToolInfo[]> = {};
+  const pluginsRoot = join(homedir(), ".copilot", "installed-plugins");
+  try { await stat(pluginsRoot); } catch { return result; }
+
+  // Find all .mcp.json files
+  async function findMcpConfigs(dir: string, depth = 0): Promise<void> {
+    if (depth > 3) return;
+    let entries;
+    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.name === ".mcp.json" || e.name === "mcp.json") {
+        try {
+          const raw = await readFile(join(dir, e.name), "utf-8");
+          const cfg = JSON.parse(raw);
+          for (const [name, srv] of Object.entries(cfg.mcpServers || {})) {
+            const s = srv as any;
+            if (s.command) {
+              try {
+                const tools = await queryMcpServerTools(s.command, s.args || [], s.env);
+                if (tools.length > 0) result[name] = tools;
+              } catch (err) {
+                console.warn(`[MCP] Failed to query tools for ${name}:`, err);
+              }
+            }
+          }
+        } catch {}
+      }
+      if (e.isDirectory() && !e.name.startsWith(".")) {
+        await findMcpConfigs(join(dir, e.name), depth + 1);
+      }
+    }
+  }
+  await findMcpConfigs(pluginsRoot);
+  return result;
+}
+
+// Cache discovered MCP tools
+let cachedMcpToolMap: Record<string, McpToolInfo[]> | null = null;
+async function getMcpToolMap(): Promise<Record<string, McpToolInfo[]>> {
+  if (!cachedMcpToolMap) {
+    cachedMcpToolMap = await discoverAllMcpTools();
+    for (const [name, tools] of Object.entries(cachedMcpToolMap)) {
+      console.log(`[MCP] ${name}: ${tools.length} tools (${tools.map(t => t.name).join(", ")})`);
+    }
+  }
+  return cachedMcpToolMap;
 }
 
 const PORT = parseInt(process.env.PORT || "3456", 10);
@@ -1041,7 +1144,9 @@ wss.on("connection", (ws) => {
               let tools: any[] = [];
               try { tools = await bridge.listTools(); } catch (e: any) { console.warn("[Capabilities] Tools list failed:", e.message); }
               console.log(`[Capabilities] ${mcpServers.length} MCP servers, ${skills.length} skills, ${tools.length} tools`);
-              safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools, mcpTools: bridge.discoveredMcpTools });
+              const mcpToolMap = await getMcpToolMap();
+              const allMcpTools = { ...mcpToolMap, ...bridge.discoveredMcpTools };
+              safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools, mcpTools: allMcpTools });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to list capabilities: ${err.message}` });
             }
