@@ -372,12 +372,11 @@ html, body {
   transform: translate(-50%, -50%);
   width: min(900px, 90vw);
   height: min(620px, 80vh);
-  transition: border-color 0.3s ease;
 }
 
 /* Mode-based border colors (per session) */
-#terminal-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
-#terminal-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
+.session-container[data-copilot-mode="autopilot"] { --titlebar-border: rgba(166, 227, 161, 0.4); }
+.session-container[data-copilot-mode="plan"] { --titlebar-border: rgba(180, 160, 232, 0.4); }
 .floating-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
 .floating-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
 
