@@ -970,6 +970,9 @@
           if (smodeEl) {
             smodeEl.textContent = (modeIconsMap[msg.mode] || "") + " " + (modeLabelsMap[msg.mode] || msg.mode);
           }
+          // Update terminal window border color based on mode
+          const tw = document.getElementById("terminal-window");
+          if (tw) tw.dataset.copilotMode = msg.mode;
           if (msg.type === "mode_changed") {
             this.appendSystemMessage("Mode switched to " + (modeLabelsMap[msg.mode] || msg.mode), "info");
           }

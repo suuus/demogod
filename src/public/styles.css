@@ -372,7 +372,10 @@ html, body {
   transform: translate(-50%, -50%);
   width: min(900px, 90vw);
   height: min(620px, 80vh);
+  transition: border-color 0.3s ease;
 }
+#terminal-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
+#terminal-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
 
 .window-titlebar {
   display: flex;
