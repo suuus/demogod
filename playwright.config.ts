@@ -4,7 +4,7 @@ import { homedir } from "os";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["seed.spec.ts", "tests/showcase*.spec.ts"],
+  testMatch: ["seed.spec.ts", "tests/showcase*.spec.ts", "tests/e2e/*.spec.ts"],
   timeout: 180000,
   use: {
     baseURL: "http://localhost:3456",
@@ -12,7 +12,7 @@ export default defineConfig({
     video: "on",
     trace: "on-first-retry",
   },
-  outputDir: join(homedir(), "Desktop", "demogod-recordings"),
+  outputDir: join(homedir(), ".demogod", "test-results"),
   webServer: {
     command: "npx tsx src/server.ts",
     port: 3456,
