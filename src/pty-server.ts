@@ -1,20 +1,8 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server as HttpServer } from "http";
 import { homedir, platform } from "os";
-import { realpathSync } from "fs";
-import { resolve } from "path";
 import * as pty from "node-pty";
-
-/** Resolve path and follow symlinks; returns null if path doesn't exist */
-function safeRealpath(p: string): string | null {
-  try { return realpathSync(resolve(p)); } catch { return null; }
-}
-
-/** Check if a resolved real path is under the user's home directory */
-function isUnderHome(realPath: string): boolean {
-  const home = homedir();
-  return realPath === home || realPath.startsWith(home + "/");
-}
+import { safeRealpath, isUnderHome } from "./path-utils.js";
 
 export function getDefaultShell(): string {
   if (platform() === "win32") return "powershell.exe";

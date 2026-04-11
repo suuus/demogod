@@ -4,12 +4,13 @@ import { WebSocketServer, WebSocket } from "ws";
 import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
 import { readFile, readdir, stat, mkdir, writeFile } from "fs/promises";
-import { existsSync, realpathSync } from "fs";
+import { existsSync } from "fs";
 import { homedir } from "os";
 import { randomBytes } from "crypto";
 import { spawn } from "child_process";
 import { CopilotBridge } from "./copilot-bridge.js";
 import { setupPtyServer } from "./pty-server.js";
+import { safeRealpath, isUnderHome } from "./path-utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -161,16 +162,7 @@ try {
 
 const app = express();
 
-/** Resolve path and follow symlinks; returns null if path doesn't exist */
-function safeRealpath(p: string): string | null {
-  try { return realpathSync(resolve(p)); } catch { return null; }
-}
-
-/** Check if a resolved real path is under the user's home directory */
-function isUnderHome(realPath: string): boolean {
-  const home = homedir();
-  return realPath === home || realPath.startsWith(home + "/");
-}
+// safeRealpath and isUnderHome imported from ./path-utils.js
 
 // CORS: allow Tauri desktop app (serves from tauri:// origin) to call our API
 app.use((_req, res, next) => {
@@ -701,7 +693,7 @@ wss.on("connection", (ws) => {
           break;
 
         case "send_prompt":
-          handlePrompt(msg.prompt);
+          await handlePrompt(msg.prompt);
           break;
 
         case "user_input_response":

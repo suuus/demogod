@@ -1582,7 +1582,7 @@
           if (value) this.send("open_file", { path: value });
           break;
         case "new_session":
-          this.manager.addSession();
+          this.manager.createSession();
           break;
       }
     }
