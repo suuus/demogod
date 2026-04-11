@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { fileURLToPath } from "url";
-import { dirname, join, resolve, normalize } from "path";
+import { dirname, join, resolve } from "path";
 import { readFile, readdir, stat, mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { homedir, platform } from "os";
@@ -15,306 +15,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const DEMOS_DIR = resolve(__dirname, "..", "demos");
 
-// ---------- Plugin skill scanner ----------
-// Plugin skills are NOT returned by the SDK's skills.list() RPC.
-// They live in ~/.copilot/installed-plugins/ and we parse SKILL.md frontmatter.
-interface PluginSkill {
-  name: string;
-  description: string;
-  source: string; // "plugin"
-  pluginName: string;
-  enabled: boolean;
-  userInvocable: boolean;
-}
-
-async function scanPluginSkills(): Promise<PluginSkill[]> {
-  const pluginsRoot = join(homedir(), ".copilot", "installed-plugins");
-  const skills: PluginSkill[] = [];
-  try {
-    await stat(pluginsRoot);
-  } catch {
-    return skills;
-  }
-
-  // Walk marketplace dirs → plugin dirs → look for plugin.json or .mcp.json
-  async function walkDir(dir: string, depth = 0): Promise<void> {
-    if (depth > 3) return;
-    let entries;
-    try {
-      entries = await readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    // Try to find a plugin name from plugin.json (multiple locations)
-    let pluginName: string | undefined;
-    let skillsDirFromConfig: string | undefined;
-    for (const jsonPath of [
-      join(dir, "plugin.json"),
-      join(dir, ".claude-plugin", "plugin.json"),
-    ]) {
-      try {
-        const raw = await readFile(jsonPath, "utf-8");
-        const pluginDef = JSON.parse(raw);
-        pluginName = pluginDef.name || pluginName;
-        if (pluginDef.skills) {
-          skillsDirFromConfig = join(dir, pluginDef.skills);
-        }
-      } catch {
-        // Not found — continue
-      }
-    }
-
-    // Scan skills from configured dir, or fallback to common locations
-    const skillsDirs: string[] = [];
-    if (skillsDirFromConfig) skillsDirs.push(resolve(skillsDirFromConfig));
-    // Also check common skill directory patterns
-    for (const candidate of ["skills", ".github/skills"]) {
-      const candidatePath = resolve(dir, candidate);
-      if (!skillsDirs.includes(candidatePath)) {
-        try {
-          const s = await stat(candidatePath);
-          if (s.isDirectory()) skillsDirs.push(candidatePath);
-        } catch {
-          // Not found
-        }
-      }
-    }
-
-    if (skillsDirs.length > 0) {
-      // Fallback: use directory name as plugin name
-      const effectiveName = pluginName || dir.split("/").pop() || "unknown";
-      for (const sd of skillsDirs) {
-        await scanSkillsDirectory(sd, effectiveName, skills);
-      }
-    }
-
-    // Recurse into subdirectories
-    for (const entry of entries) {
-      if (entry.isDirectory() && !entry.name.startsWith(".")) {
-        await walkDir(join(dir, entry.name), depth + 1);
-      }
-    }
-  }
-
-  async function scanSkillsDirectory(
-    skillsDir: string,
-    pluginName: string,
-    out: PluginSkill[]
-  ): Promise<void> {
-    let dirs;
-    try {
-      dirs = await readdir(skillsDir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const d of dirs) {
-      if (!d.isDirectory()) continue;
-      const skillMd = join(skillsDir, d.name, "SKILL.md");
-      try {
-        const content = await readFile(skillMd, "utf-8");
-        const fm = parseFrontmatter(content);
-        out.push({
-          name: fm.name || d.name,
-          description: fm.description || "",
-          source: "plugin",
-          pluginName,
-          enabled: true,
-          userInvocable: fm["user-invocable"] !== false,
-        });
-      } catch {
-        // SKILL.md missing or unreadable — use directory name
-        out.push({
-          name: d.name,
-          description: "",
-          source: "plugin",
-          pluginName,
-          enabled: true,
-          userInvocable: true,
-        });
-      }
-    }
-  }
-
-  function parseFrontmatter(content: string): Record<string, any> {
-    const match = content.match(/^---\n([\s\S]*?)\n---/);
-    if (!match) return {};
-    const result: Record<string, any> = {};
-    for (const line of match[1].split("\n")) {
-      const idx = line.indexOf(":");
-      if (idx === -1) continue;
-      const key = line.slice(0, idx).trim();
-      let value: any = line.slice(idx + 1).trim();
-      // Strip quotes
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-      if (value === "true") value = true;
-      else if (value === "false") value = false;
-      result[key] = value;
-    }
-    return result;
-  }
-
-  await walkDir(pluginsRoot);
-  return skills;
-}
-
-// Cache plugin skills (they don't change during server lifetime)
-let cachedPluginSkills: PluginSkill[] | null = null;
-async function getPluginSkills(): Promise<PluginSkill[]> {
-  if (!cachedPluginSkills) {
-    cachedPluginSkills = await scanPluginSkills();
-    console.log(`[Plugins] Discovered ${cachedPluginSkills.length} plugin skills:`,
-      cachedPluginSkills.map(s => s.name).join(", "));
-  }
-  return cachedPluginSkills;
-}
-
-// Collect skill directory paths for passing to SessionConfig.skillDirectories
-async function getPluginSkillDirectories(): Promise<string[]> {
-  const pluginsRoot = join(homedir(), ".copilot", "installed-plugins");
-  const dirs: string[] = [];
-  try { await stat(pluginsRoot); } catch { return dirs; }
-
-  async function walk(dir: string, depth = 0): Promise<void> {
-    if (depth > 3) return;
-    let entries;
-    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
-
-    let skillsDirFromConfig: string | undefined;
-    for (const jsonPath of [join(dir, "plugin.json"), join(dir, ".claude-plugin", "plugin.json")]) {
-      try {
-        const raw = await readFile(jsonPath, "utf-8");
-        const pluginDef = JSON.parse(raw);
-        if (pluginDef.skills) skillsDirFromConfig = join(dir, pluginDef.skills);
-      } catch {}
-    }
-    const candidates: string[] = [];
-    if (skillsDirFromConfig) candidates.push(resolve(skillsDirFromConfig));
-    for (const c of ["skills", ".github/skills"]) {
-      const p = resolve(dir, c);
-      if (!candidates.includes(p)) {
-        try { if ((await stat(p)).isDirectory()) candidates.push(p); } catch {}
-      }
-    }
-    dirs.push(...candidates);
-    for (const entry of entries) {
-      if (entry.isDirectory() && !entry.name.startsWith(".")) {
-        await walk(join(dir, entry.name), depth + 1);
-      }
-    }
-  }
-  await walk(pluginsRoot);
-  return [...new Set(dirs)];
-}
-
-// ---------- Plugin agent scanner ----------
-interface PluginAgent {
-  name: string;
-  displayName: string;
-  description: string;
-  source: string;
-  pluginName: string;
-  prompt: string;
-}
-
-async function scanPluginAgents(): Promise<PluginAgent[]> {
-  const pluginsRoot = join(homedir(), ".copilot", "installed-plugins");
-  const agents: PluginAgent[] = [];
-  try { await stat(pluginsRoot); } catch { return agents; }
-
-  async function walkDir(dir: string, depth = 0): Promise<void> {
-    if (depth > 3) return;
-    let entries;
-    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
-
-    // Find plugin name
-    let pluginName: string | undefined;
-    let agentsDirFromConfig: string | undefined;
-    for (const jsonPath of [join(dir, "plugin.json"), join(dir, ".claude-plugin", "plugin.json")]) {
-      try {
-        const raw = await readFile(jsonPath, "utf-8");
-        const def = JSON.parse(raw);
-        pluginName = def.name || pluginName;
-        if (def.agents) agentsDirFromConfig = resolve(dir, def.agents);
-      } catch {}
-    }
-
-    // Scan agent directories
-    const agentsDirs: string[] = [];
-    if (agentsDirFromConfig) agentsDirs.push(agentsDirFromConfig);
-    for (const candidate of ["agents", ".github/agents"]) {
-      const p = resolve(dir, candidate);
-      if (!agentsDirs.includes(p)) {
-        try { const s = await stat(p); if (s.isDirectory()) agentsDirs.push(p); } catch {}
-      }
-    }
-
-    if (agentsDirs.length > 0) {
-      const effectiveName = pluginName || dir.split("/").pop() || "unknown";
-      for (const ad of agentsDirs) {
-        try {
-          const files = await readdir(ad);
-          for (const f of files) {
-            if (!f.endsWith(".agent.md")) continue;
-            try {
-              const content = await readFile(join(ad, f), "utf-8");
-              const fm = parseFrontmatter(content);
-              // Extract prompt: everything after the frontmatter closing ---
-              const promptMatch = content.match(/^---\n[\s\S]*?\n---\n?([\s\S]*)/);
-              const prompt = promptMatch ? promptMatch[1].trim() : content;
-              const slug = f.replace(".agent.md", "");
-              agents.push({
-                name: `${effectiveName}:${slug}`,
-                displayName: fm.name || slug,
-                description: fm.description || "",
-                source: "plugin",
-                pluginName: effectiveName,
-                prompt,
-              });
-            } catch {}
-          }
-        } catch {}
-      }
-    }
-
-    for (const entry of entries) {
-      if (entry.isDirectory() && !entry.name.startsWith(".")) {
-        await walkDir(join(dir, entry.name), depth + 1);
-      }
-    }
-  }
-
-  function parseFrontmatter(content: string): Record<string, any> {
-    const match = content.match(/^---\n([\s\S]*?)\n---/);
-    if (!match) return {};
-    const result: Record<string, any> = {};
-    for (const line of match[1].split("\n")) {
-      const idx = line.indexOf(":");
-      if (idx === -1) continue;
-      const key = line.slice(0, idx).trim();
-      let value: any = line.slice(idx + 1).trim();
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
-        value = value.slice(1, -1);
-      result[key] = value;
-    }
-    return result;
-  }
-
-  await walkDir(pluginsRoot);
-  return agents;
-}
-
-let cachedPluginAgents: PluginAgent[] | null = null;
-async function getPluginAgents(): Promise<PluginAgent[]> {
-  if (!cachedPluginAgents) {
-    cachedPluginAgents = await scanPluginAgents();
-    console.log(`[Plugins] Discovered ${cachedPluginAgents.length} plugin agents:`,
-      cachedPluginAgents.map(a => a.name).join(", "));
-  }
-  return cachedPluginAgents;
-}
 
 // ---------- MCP tool discovery via protocol ----------
 // Spawns an MCP server process, sends initialize + tools/list, collects tools.
@@ -748,7 +448,7 @@ wss.on("connection", (ws) => {
   console.log("Client connected");
   let bridge: CopilotBridge | null = null;
   let demoAbort: AbortController | null = null;
-  let selectedPluginAgent: PluginAgent | null = null;
+  
   let currentWorkingDir: string | undefined;
 
   async function createSession(workingDirectory?: string, model?: string) {
@@ -1077,7 +777,7 @@ wss.on("connection", (ws) => {
         case "select_agent":
           if (bridge && msg.name) {
             try {
-              selectedPluginAgent = null;
+              
               const result = await bridge.selectAgent(msg.name);
               safeSend(ws, { type: "agent_selected", agent: result.agent });
             } catch (err: any) {
@@ -1088,7 +788,7 @@ wss.on("connection", (ws) => {
 
         case "deselect_agent":
           if (bridge) {
-            selectedPluginAgent = null;
+            
             try {
               await bridge.deselectAgent();
               safeSend(ws, { type: "agent_deselected" });
