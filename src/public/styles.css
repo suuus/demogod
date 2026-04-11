@@ -375,10 +375,10 @@ html, body {
 }
 
 /* Mode-based border colors (per session) */
-.session-container[data-copilot-mode="autopilot"] { outline: 1.5px solid var(--green); outline-offset: -1.5px; border-radius: var(--radius); }
-.session-container[data-copilot-mode="plan"] { outline: 1.5px solid #b4a0e8; outline-offset: -1.5px; border-radius: var(--radius); }
 #terminal-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
 #terminal-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
+.floating-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
+.floating-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
 
 .window-titlebar {
   display: flex;
