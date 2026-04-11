@@ -8,8 +8,8 @@ export default defineConfig({
   timeout: 180000,
   use: {
     baseURL: "http://localhost:3456",
-    viewport: { width: 1280, height: 720 },
-    video: "on",
+    viewport: { width: 1920, height: 1080 },
+    video: { mode: "on", size: { width: 1920, height: 1080 } },
     trace: "on-first-retry",
   },
   outputDir: join(homedir(), ".demogod", "test-results"),
