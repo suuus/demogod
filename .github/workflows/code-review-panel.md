@@ -17,6 +17,7 @@ imports:
   - shared/reporting.md
 
 safe-outputs:
+  github-token: ${{ secrets.GH_AW_ISSUE_PAT }}
   create-issue:
     title-prefix: "[review-panel] "
     labels: [automation, code-review]
@@ -25,6 +26,7 @@ safe-outputs:
     expires: 7d
     group: true
     close-older-issues: true
+    
 
 tools:
   github:
