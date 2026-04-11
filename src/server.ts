@@ -1024,11 +1024,13 @@ wss.on("connection", (ws) => {
         case "list_capabilities":
           if (bridge) {
             try {
-              const [mcpServers, skills, tools] = await Promise.all([
-                bridge.listMcpServers(),
-                bridge.listSkills(),
-                bridge.listTools(),
+              const [mcpServers, skills] = await Promise.all([
+                bridge.listMcpServers().catch(e => { console.warn("[Capabilities] MCP list failed:", e.message); return []; }),
+                bridge.listSkills().catch(e => { console.warn("[Capabilities] Skills list failed:", e.message); return []; }),
               ]);
+              let tools: any[] = [];
+              try { tools = await bridge.listTools(); } catch (e: any) { console.warn("[Capabilities] Tools list failed:", e.message); }
+              console.log(`[Capabilities] ${mcpServers.length} MCP servers, ${skills.length} skills, ${tools.length} tools`);
               safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to list capabilities: ${err.message}` });

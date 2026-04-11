@@ -3097,6 +3097,43 @@
 
     let html = "";
 
+    // Tools section (built-in + MCP server tools)
+    const filteredBuiltins = builtinTools.filter(t =>
+      !filter || t.name.toLowerCase().includes(filter)
+    );
+    const totalToolCount = tools.length;
+    const excludedCount = session.excludedTools.size;
+
+    html += '<div class="cap-section" id="cap-tools">';
+    html += '<div class="cap-section-header" data-section="cap-tools">';
+    html += '<span class="cap-section-arrow">\u25bc</span>';
+    html += '<span class="cap-section-title">Tools</span>';
+    html += '<span class="cap-section-badge">' + (totalToolCount - excludedCount) + '/' + totalToolCount + '</span>';
+    html += '</div>';
+    html += '<div class="cap-section-items">';
+
+    if (filteredBuiltins.length > 0) {
+      html += '<div class="cap-mcp-card" data-server="__builtin__">';
+      html += '<div class="cap-mcp-header">';
+      html += '<span class="cap-mcp-name">';
+      html += '<span class="cap-mcp-status connected"></span>';
+      html += 'Built-in';
+      html += '</span>';
+      html += '</div>';
+      html += '<div class="cap-tools">';
+      for (const t of filteredBuiltins) {
+        const isExcluded = session.excludedTools.has(t.name);
+        html += '<span class="cap-tool-chip' + (isExcluded ? ' excluded' : '') + '"' +
+          ' data-tool="' + escapeHtml(t.name) + '"' +
+          ' title="' + escapeHtml(t.description || t.name) + '"' +
+          '>' + escapeHtml(t.name) + '</span>';
+      }
+      html += '</div>';
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+
     // MCP Servers section
     const filteredServers = servers.filter(s =>
       !filter || s.name.toLowerCase().includes(filter) ||
@@ -3111,6 +3148,10 @@
     html += '<span class="cap-section-badge">' + enabledServerCount + '/' + servers.length + '</span>';
     html += '</div>';
     html += '<div class="cap-section-items">';
+
+    if (filteredServers.length === 0) {
+      html += '<div class="cap-no-tools">No MCP servers configured</div>';
+    }
 
     for (const s of filteredServers) {
       const isEnabled = s.status !== "disabled";
@@ -3140,30 +3181,6 @@
       } else {
         html += '<div class="cap-no-tools">No tools</div>';
       }
-      html += '</div>';
-    }
-
-    // Built-in tools section (if any match filter)
-    const filteredBuiltins = builtinTools.filter(t =>
-      !filter || t.name.toLowerCase().includes(filter)
-    );
-    if (filteredBuiltins.length > 0) {
-      html += '<div class="cap-mcp-card" data-server="__builtin__">';
-      html += '<div class="cap-mcp-header">';
-      html += '<span class="cap-mcp-name">';
-      html += '<span class="cap-mcp-status connected"></span>';
-      html += 'Built-in Tools';
-      html += '</span>';
-      html += '</div>';
-      html += '<div class="cap-tools">';
-      for (const t of filteredBuiltins) {
-        const isExcluded = session.excludedTools.has(t.name);
-        html += '<span class="cap-tool-chip' + (isExcluded ? ' excluded' : '') + '"' +
-          ' data-tool="' + escapeHtml(t.name) + '"' +
-          ' title="' + escapeHtml(t.description || t.name) + '"' +
-          '>' + escapeHtml(t.name) + '</span>';
-      }
-      html += '</div>';
       html += '</div>';
     }
 
