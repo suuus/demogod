@@ -372,8 +372,11 @@ html, body {
   transform: translate(-50%, -50%);
   width: min(900px, 90vw);
   height: min(620px, 80vh);
-  transition: border-color 0.3s ease;
 }
+
+/* Mode-based border colors (per session) */
+.session-container[data-copilot-mode="autopilot"] { outline: 1.5px solid var(--green); outline-offset: -1.5px; border-radius: var(--radius); }
+.session-container[data-copilot-mode="plan"] { outline: 1.5px solid #b4a0e8; outline-offset: -1.5px; border-radius: var(--radius); }
 #terminal-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
 #terminal-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
 
@@ -1611,6 +1614,8 @@ body.recording #record-icon {
   box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(88, 166, 255, 0.35), 0 0 12px rgba(88, 166, 255, 0.15);
   opacity: 1;
 }
+.floating-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
+.floating-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
 
 .floating-titlebar {
   display: flex;
