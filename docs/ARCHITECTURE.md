@@ -67,14 +67,14 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 
 ```
 src/
-├── server.ts            # ~1300 lines — Express server, WS handler, REST API,
+├── server.ts            # Express server, WS handler, REST API,
 │                        #   plugin scanners (skills + agents), demo engine (live + scripted)
-├── copilot-bridge.ts    # ~440 lines — CopilotClient/Session wrapper,
+├── copilot-bridge.ts    # CopilotClient/Session wrapper,
 │                        #   event forwarding, sub-agent detection, user input handling
 └── public/
     ├── index.html       # Page structure, overlays, dialogs, settings panel, bottom-right controls
-    ├── app.js           # ~3500 lines — all frontend logic (class-based, vanilla JS)
-    └── styles.css       # ~2100 lines — theming, terminal look, dialogs, settings, agent tabs
+    ├── app.js           # All frontend logic (class-based, vanilla JS)
+    └── styles.css       # Theming, terminal look, dialogs, settings, agent tabs
 
 src-tauri/
 ├── src/                 # Rust entry point, sidecar spawning logic
@@ -214,7 +214,7 @@ Plays back JSON demo scripts with realistic timing:
 
 #### `app.js` — Application Logic
 
-Class-based architecture (~3500 lines). Major sections:
+Class-based architecture. Major sections:
 
 | Section | Description |
 |---------|-------------|

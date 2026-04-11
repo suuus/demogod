@@ -19,7 +19,7 @@ Open `http://localhost:3456` in your browser.
 |------|----------------|
 | `src/server.ts` | Express + WebSocket server, REST API routes, demo runner (live + scripted), plugin scanners |
 | `src/copilot-bridge.ts` | Wrapper around `@github/copilot-sdk` — session lifecycle, event forwarding, sub-agent detection |
-| `src/public/` | Static frontend — `index.html`, `app.js` (~3500 lines, class-based vanilla JS), `styles.css` |
+| `src/public/` | Static frontend — `index.html`, `app.js` (class-based vanilla JS), `styles.css` |
 | `src-tauri/` | Tauri desktop shell — Rust entry point, sidecar config, `tauri.conf.json` |
 | `demo/sample-app/` | Tiny Node.js task tracker project for demo showcases |
 | `demos/` | JSON demo scripts — scripted (`intro.json`) and live (`showcase.json`) |

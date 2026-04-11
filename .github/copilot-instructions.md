@@ -17,7 +17,7 @@ src/
 ├── copilot-bridge.ts    # @github/copilot-sdk wrapper, event forwarding, sub-agent detection
 └── public/
     ├── index.html       # Page structure, overlays, control bar, settings panel
-    ├── app.js           # All frontend logic — class-based vanilla JS, ~3500 lines
+    ├── app.js           # All frontend logic — class-based vanilla JS
     └── styles.css       # Theming, terminal chrome, CSS custom properties
 
 demo/sample-app/         # Tiny Node.js project for demo showcases
@@ -141,7 +141,7 @@ The markdown renderer strips internal XML tags (`<reminder>`, `<todo_status>`, e
 
 ## Multi-Session Architecture
 
-The frontend (`app.js`, ~3500 lines) uses a class-based architecture for multi-session support:
+The frontend (`app.js`) uses a class-based architecture for multi-session support:
 
 - **`TerminalSession`** — encapsulates one Copilot session: its own WebSocket, terminal state, DOM output area, and sub-agent tab tracking. `_displayName()` returns "projectname · Session N" for tab and floating window titles.
 - **`SessionManager`** — creates/destroys/switches sessions. Manages the tab bar, keyboard shortcut routing, and settings panel.
