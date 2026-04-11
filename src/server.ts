@@ -265,7 +265,7 @@ app.get("/api/browse", async (req, res) => {
 
   // Security: must be under home directory
   const home = homedir();
-  if (!resolvedPath.startsWith(home) && resolvedPath !== "/") {
+  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/") && resolvedPath !== "/") {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -300,7 +300,7 @@ app.get("/api/browse-files", async (req, res) => {
   const requestedPath = (req.query.path as string) || homedir();
   const resolvedPath = resolve(requestedPath);
   const home = homedir();
-  if (!resolvedPath.startsWith(home) && resolvedPath !== "/") {
+  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/") && resolvedPath !== "/") {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -335,7 +335,7 @@ app.get("/api/file", async (req, res) => {
   const resolved = resolve(filePath);
   // Security: must be under home directory
   const home = homedir();
-  if (!resolved.startsWith(home)) {
+  if (resolved !== home && !resolved.startsWith(home + "/")) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -384,46 +384,7 @@ app.get("/api/demos/:name", async (req, res) => {
   }
 });
 
-// List available models
-// ── Shell config ──────────────────────────────────────────
-const DG_CONFIG_DIR = join(homedir(), ".demogod");
-const DG_CONFIG_PATH = join(DG_CONFIG_DIR, "config.json");
 
-async function readShellConfig(): Promise<{shell: string}> {
-  try {
-    const content = await readFile(DG_CONFIG_PATH, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return { shell: "native" };
-  }
-}
-
-async function writeShellConfig(shell: string): Promise<void> {
-  await mkdir(DG_CONFIG_DIR, { recursive: true });
-  await writeFile(DG_CONFIG_PATH, JSON.stringify({ shell }, null, 2), "utf-8");
-}
-
-app.get("/api/shell", async (_req, res) => {
-  const config = await readShellConfig();
-  res.json({
-    current: config.shell,
-    available: ["native", "wsl", "powershell", "cmd"],
-  });
-});
-
-app.put("/api/shell", async (req, res) => {
-  try {
-    const { shell } = req.body || {};
-    const valid = ["native", "wsl", "powershell", "cmd"];
-    if (!valid.includes(shell)) {
-      return res.status(400).json({ error: "Invalid shell. Use: " + valid.join(", ") });
-    }
-    await writeShellConfig(shell);
-    res.json({ shell, restartRequired: true });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to save shell config" });
-  }
-});
 
 app.get("/api/models", async (_req, res) => {
   try {
@@ -932,10 +893,19 @@ function getDefaultShell(): string {
   return process.env.SHELL || "/bin/bash";
 }
 
+const ALLOWED_SHELLS = new Set([
+  getDefaultShell(),
+  "/bin/bash", "/bin/zsh", "/bin/sh",
+  "powershell.exe", "cmd.exe", "wsl.exe",
+]);
+
 wssPty.on("connection", (ws, req) => {
   const url = new URL(req.url || "/", `http://${req.headers.host}`);
-  const shell = url.searchParams.get("shell") || getDefaultShell();
-  const cwd = url.searchParams.get("cwd") || homedir();
+  const requestedShell = url.searchParams.get("shell") || getDefaultShell();
+  const shell = ALLOWED_SHELLS.has(requestedShell) ? requestedShell : getDefaultShell();
+  const requestedCwd = url.searchParams.get("cwd") || homedir();
+  const home = homedir();
+  const cwd = (requestedCwd === home || requestedCwd.startsWith(home + "/")) ? requestedCwd : home;
   const cols = parseInt(url.searchParams.get("cols") || "120", 10);
   const rows = parseInt(url.searchParams.get("rows") || "30", 10);
 

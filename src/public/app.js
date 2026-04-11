@@ -356,6 +356,7 @@
       this.isProcessing = false;
       this.currentResponseEl = null;
       this.currentResponseText = "";
+      this._streamRafPending = false;
       this.questionCheckPending = false;
       this.selectedProject = opts.project || null;
       this.selectedModel = opts.model || "";
@@ -413,6 +414,8 @@
 
       const output = document.createElement("div");
       output.className = "terminal-output";
+      output.setAttribute("aria-live", "polite");
+      output.setAttribute("aria-relevant", "additions");
 
       const inputLine = document.createElement("div");
       inputLine.className = "input-line";
@@ -1068,9 +1071,17 @@
         this.currentResponseText = "";
       }
       this.currentResponseText += text;
-      this.currentResponseEl.innerHTML = renderMarkdown(this.currentResponseText) +
-        '<span class="streaming-cursor"></span>';
-      this.scrollToBottom();
+      if (!this._streamRafPending) {
+        this._streamRafPending = true;
+        requestAnimationFrame(() => {
+          this._streamRafPending = false;
+          if (this.currentResponseEl) {
+            this.currentResponseEl.innerHTML = renderMarkdown(this.currentResponseText) +
+              '<span class="streaming-cursor"></span>';
+            this.scrollToBottom();
+          }
+        });
+      }
     }
 
     finishResponse(finalContent) {
@@ -2711,25 +2722,6 @@
     }
   }
 
-  let cachedShellConfig = { current: "native", available: ["native", "wsl", "powershell", "cmd"] };
-  const shellDisplayNames = {
-    native: "Native (Direct)",
-    wsl: "WSL (Windows Subsystem for Linux)",
-    powershell: "PowerShell",
-    cmd: "CMD (Command Prompt)",
-  };
-
-  async function loadShellConfig() {
-    try {
-      const res = await fetch(API_BASE + "/api/shell");
-      const data = await res.json();
-      cachedShellConfig = data;
-      const label = document.getElementById("shell-label");
-      if (label) label.textContent = data.current === "native" ? "Native" : data.current.toUpperCase();
-      return data;
-    } catch { return null; }
-  }
-
   function openCapPicker(mode, externalItems) {
     const session = manager.getActive();
     if (!session) return;
@@ -2782,15 +2774,8 @@
         selected: false,
       })));
     } else if (mode === "shell") {
-      cappickerIcon.textContent = "🐚";
-      cappickerTitle.textContent = "Select Shell";
-      renderCapList(cachedShellConfig.available.map((s) => ({
-        id: s,
-        name: shellDisplayNames[s] || s,
-        desc: "",
-        meta: s,
-        selected: s === cachedShellConfig.current,
-      })));
+      // Shell picker removed — using system default shell
+      return;
     }
 
     cappickerOverlay.classList.remove("hidden");
@@ -2848,22 +2833,6 @@
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-    } else if (mode === "shell") {
-      fetch(API_BASE + "/api/shell", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shell: id }),
-      }).then((r) => {
-        if (!r.ok) throw new Error(`Server returned ${r.status}`);
-        return r.json();
-      }).then(() => {
-        cachedShellConfig.current = id;
-        const label = document.getElementById("shell-label");
-        if (label) label.textContent = id === "native" ? "Native" : id.toUpperCase();
-        session.appendSystemMessage("Shell changed to " + (shellDisplayNames[id] || id) + ". Restart the app to apply.", "info");
-      }).catch((err) => {
-        session.appendSystemMessage("Failed to update shell: " + err.message, "error");
-      });
     }
   }
 
@@ -2907,13 +2876,6 @@
     if (session) session.send("list_skills");
     setTimeout(() => openCapPicker("skill"), 300);
   });
-  const btnShell = $("#btn-shell");
-  // Shell switcher hidden for now (TODO: revisit when cross-platform shell support is stable)
-  btnShell.addEventListener("click", async () => {
-    await loadShellConfig();
-    openCapPicker("shell");
-  });
-
   $("#btn-copilot-mode").addEventListener("click", () => {
     const session = manager.getActive();
     if (!session) return;
@@ -3396,7 +3358,7 @@
   manager.createSession();
   loadModels();
   // Shell config loading disabled while shell switcher is hidden
-  // if (window.__TAURI_INTERNALS__) loadShellConfig();
+  // Shell config removed — using system default shell
 
   // Dismiss splash after animation plays
   const splash = document.getElementById("splash");
@@ -3456,8 +3418,7 @@
     const token = document.querySelector('meta[name="dg-token"]')?.getAttribute("content") || "";
     const cols = ptyTerm ? ptyTerm.cols : 120;
     const rows = ptyTerm ? ptyTerm.rows : 24;
-    const shell = cachedShellConfig?.current === "native" ? "" : (cachedShellConfig?.current || "");
-    const wsUrl = `ws://${wsHost}/pty?token=${encodeURIComponent(token)}&cols=${cols}&rows=${rows}` + (shell ? `&shell=${shell}` : "");
+    const wsUrl = `ws://${wsHost}/pty?token=${encodeURIComponent(token)}&cols=${cols}&rows=${rows}`;
 
     ptyWs = new WebSocket(wsUrl);
     ptyWs.onopen = () => {
