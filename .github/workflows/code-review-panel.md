@@ -19,8 +19,12 @@ imports:
 safe-outputs:
   create-issue:
     title-prefix: "[review-panel] "
-    labels: [code-review, automation]
+    labels: [automation, code-review]
+    assignees: [suuus, copilot]
+    max: 5
     expires: 7d
+    group: true
+    close-older-issues: true
 
 tools:
   github:
