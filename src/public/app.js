@@ -1570,6 +1570,12 @@
       this.currentResponseText = "";
       this.setProcessing(false);
       this.setStatus("Switching project...");
+      // Reset cached capabilities for fresh fetch
+      this.cachedAgents = [];
+      this.cachedSkills = [];
+      this.cachedMcpServers = [];
+      this.cachedTools = [];
+      this._agentsAnnounced = false;
       this.send("create_session", { workingDirectory: this.selectedProject, model: this.selectedModel || undefined });
       this._updateTitles();
       this._syncControlBarIfActive();
