@@ -420,7 +420,7 @@
 
       const statusBar = document.createElement("div");
       statusBar.className = "window-statusbar";
-      statusBar.innerHTML = '<span class="status-text">Ready</span><span class="status-cwd status-dim"></span><span class="status-branch status-dim"></span><span class="status-agent status-dim"></span><span class="status-mode status-dim"></span><span class="status-model status-dim"></span>';
+      statusBar.innerHTML = '<span class="status-text">Ready</span><span class="status-cwd status-dim"></span><span class="status-branch status-dim"></span><span class="status-approve status-dim"></span><span class="status-agent status-dim"></span><span class="status-mode status-dim"></span><span class="status-model status-dim"></span>';
 
       body.appendChild(output);
       body.appendChild(inputLine);
@@ -790,6 +790,11 @@
           this.send("list_skills");
           this.send("get_mode");
           this.send("set_auto_approve", { enabled: localStorage.getItem("dg-auto-approve") !== "0" });
+          const approveEl = this.dom.statusBar.querySelector(".status-approve");
+          if (approveEl && localStorage.getItem("dg-auto-approve") !== "0") {
+            approveEl.textContent = "auto-approve";
+            approveEl.style.color = "var(--yellow)";
+          }
           this._syncControlBarIfActive();
           break;
         }
@@ -3136,9 +3141,13 @@
   settingAutoApprove.addEventListener("change", () => {
     const enabled = settingAutoApprove.checked;
     localStorage.setItem("dg-auto-approve", enabled ? "1" : "0");
-    // Notify all active sessions
     for (const [, session] of manager.sessions) {
       session.send("set_auto_approve", { enabled });
+      const el = session.dom.statusBar.querySelector(".status-approve");
+      if (el) {
+        el.textContent = enabled ? "auto-approve" : "";
+        el.style.color = enabled ? "var(--yellow)" : "";
+      }
     }
   });
 
