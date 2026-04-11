@@ -6,7 +6,8 @@
 
 > Demo video generator for GitHub Copilot CLI
 
-https://github.com/suuus/demogod/raw/main/docs/showcase.mp4
+[video.webm](https://github.com/user-attachments/assets/f8280628-19df-4cba-baf4-2e0f58a2933c)
+
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg)](https://nodejs.org/)
