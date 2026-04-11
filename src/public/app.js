@@ -2965,6 +2965,8 @@
   const backdrop = $("#backdrop");
   const bgOptions = [
     { name: "Chroma", cls: "bg-chroma" },
+    { name: "Copilot Dark", cls: "bg-copilot-dark" },
+    { name: "Copilot Light", cls: "bg-copilot-light" },
     { name: "Off-white", cls: "bg-offwhite" },
     { name: "Dark Blue", cls: "bg-darkblue" },
     { name: "White", cls: "bg-white" },

@@ -151,6 +151,20 @@ html, body {
 #backdrop.bg-darkblue   { background: linear-gradient(180deg, #0a1628 0%, #000000 100%); }
 #backdrop.bg-chroma     { background: #00b140; }
 #backdrop.bg-white      { background: #ffffff; }
+#backdrop.bg-copilot-dark {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(133, 52, 243, .25), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(254, 76, 37, .12), transparent),
+    radial-gradient(ellipse 60% 40% at 20% 50%, rgba(184, 112, 255, .12), transparent),
+    #0d0d12;
+}
+#backdrop.bg-copilot-light {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(133, 52, 243, .18), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(254, 76, 37, .10), transparent),
+    radial-gradient(ellipse 60% 40% at 20% 50%, rgba(184, 112, 255, .10), transparent),
+    #fafafa;
+}
 
 /* ─── Control Panel ───────────────────────────────── */
 #controls {
