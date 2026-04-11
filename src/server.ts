@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
 import { readFile, readdir, stat, mkdir, writeFile } from "fs/promises";
-import { existsSync } from "fs";
+import { existsSync, realpathSync } from "fs";
 import { homedir, platform } from "os";
 import { randomBytes } from "crypto";
 import { spawn } from "child_process";
@@ -161,6 +161,17 @@ try {
 
 const app = express();
 
+/** Resolve path and follow symlinks; returns null if path doesn't exist */
+function safeRealpath(p: string): string | null {
+  try { return realpathSync(resolve(p)); } catch { return null; }
+}
+
+/** Check if a resolved real path is under the user's home directory */
+function isUnderHome(realPath: string): boolean {
+  const home = homedir();
+  return realPath === home || realPath.startsWith(home + "/");
+}
+
 // CORS: allow Tauri desktop app (serves from tauri:// origin) to call our API
 app.use((_req, res, next) => {
   const origin = _req.headers.origin;
@@ -261,11 +272,8 @@ app.use(express.json());
 // List directories for project picker
 app.get("/api/browse", async (req, res) => {
   const requestedPath = (req.query.path as string) || homedir();
-  const resolvedPath = resolve(requestedPath);
-
-  // Security: must be under home directory
-  const home = homedir();
-  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/")) {
+  const resolvedPath = safeRealpath(requestedPath);
+  if (!resolvedPath || !isUnderHome(resolvedPath)) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -298,9 +306,8 @@ app.get("/api/browse", async (req, res) => {
 // Browse directories AND files for the file browser
 app.get("/api/browse-files", async (req, res) => {
   const requestedPath = (req.query.path as string) || homedir();
-  const resolvedPath = resolve(requestedPath);
-  const home = homedir();
-  if (resolvedPath !== home && !resolvedPath.startsWith(home + "/")) {
+  const resolvedPath = safeRealpath(requestedPath);
+  if (!resolvedPath || !isUnderHome(resolvedPath)) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -332,10 +339,8 @@ app.get("/api/file", async (req, res) => {
     res.status(400).json({ error: "Missing path parameter" });
     return;
   }
-  const resolved = resolve(filePath);
-  // Security: must be under home directory
-  const home = homedir();
-  if (resolved !== home && !resolved.startsWith(home + "/")) {
+  const resolved = safeRealpath(filePath);
+  if (!resolved || !isUnderHome(resolved)) {
     res.status(403).json({ error: "Access denied" });
     return;
   }
@@ -905,7 +910,8 @@ wssPty.on("connection", (ws, req) => {
   const shell = ALLOWED_SHELLS.has(requestedShell) ? requestedShell : getDefaultShell();
   const requestedCwd = url.searchParams.get("cwd") || homedir();
   const home = homedir();
-  const cwd = (requestedCwd === home || requestedCwd.startsWith(home + "/")) ? requestedCwd : home;
+  const realCwd = safeRealpath(requestedCwd);
+  const cwd = (realCwd && isUnderHome(realCwd)) ? realCwd : home;
   const cols = parseInt(url.searchParams.get("cols") || "120", 10);
   const rows = parseInt(url.searchParams.get("rows") || "30", 10);
 
