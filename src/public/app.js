@@ -366,6 +366,7 @@
       this.cachedMcpServers = [];
       this.cachedTools = [];
       this.excludedTools = new Set();
+      this.discoveredMcpTools = {};
       this._agentsAnnounced = false;
       this.toolCallElements = new Map();
       this.pendingFiles = new Map();
@@ -820,6 +821,20 @@
           // Don't show generic tool chip for task tool when agent tabs handle it
           if (FEAT_AGENT_TABS && msg.toolName === "task") break;
           this.showToolIndicator(msg.toolName, true, msg.parentToolCallId);
+          // Track MCP tools by matching tool name prefix against known servers
+          if (this.cachedMcpServers.length > 0) {
+            for (const srv of this.cachedMcpServers) {
+              const prefix = srv.name + "-";
+              if (msg.toolName.startsWith(prefix) || msg.toolName.startsWith(srv.name + "_")) {
+                if (!this.discoveredMcpTools[srv.name]) this.discoveredMcpTools[srv.name] = [];
+                if (!this.discoveredMcpTools[srv.name].includes(msg.toolName)) {
+                  this.discoveredMcpTools[srv.name].push(msg.toolName);
+                  if (window._capabilitiesOpen) window._renderCapabilities();
+                }
+                break;
+              }
+            }
+          }
           let toolArgs = msg.toolArgs;
           if (typeof toolArgs === "string") {
             try { toolArgs = JSON.parse(toolArgs); } catch {}
@@ -1575,6 +1590,7 @@
       this.cachedSkills = [];
       this.cachedMcpServers = [];
       this.cachedTools = [];
+      this.discoveredMcpTools = {};
       this._agentsAnnounced = false;
       this.send("create_session", { workingDirectory: this.selectedProject, model: this.selectedModel || undefined });
       this._updateTitles();
@@ -3201,7 +3217,23 @@
         }
         html += '</div>';
       } else {
-        html += '<div class="cap-no-tools">No tools</div>';
+        // Check if we've discovered tools for this server at runtime
+        const observed = session.discoveredMcpTools[s.name] || [];
+        if (observed.length > 0) {
+          html += '<div class="cap-tools">';
+          for (const toolName of observed) {
+            const isExcluded = session.excludedTools.has(toolName);
+            html += '<span class="cap-tool-chip' + (isExcluded ? ' excluded' : '') + '"' +
+              ' data-tool="' + escapeHtml(toolName) + '"' +
+              ' title="' + escapeHtml(toolName) + '"' +
+              '>' + escapeHtml(toolName.replace(s.name + '-', '').replace(s.name + '_', '')) + '</span>';
+          }
+          html += '</div>';
+        } else if (isEnabled && s.status === 'connected') {
+          html += '<div class="cap-no-tools">Tools available \u2014 use session to discover</div>';
+        } else {
+          html += '<div class="cap-no-tools">No tools</div>';
+        }
       }
       html += '</div>';
     }
