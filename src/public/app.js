@@ -2932,11 +2932,50 @@
 
   async function startRecording() {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { displaySurface: "browser" },
-        audio: false,
-        preferCurrentTab: true,
-      });
+      let stream;
+      const isTauri = !!window.__TAURI_INTERNALS__;
+
+      if (!isTauri && navigator.mediaDevices?.getDisplayMedia) {
+        // Browser: use native screen capture
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: "browser" },
+          audio: false,
+          preferCurrentTab: true,
+        });
+      } else {
+        // Tauri / fallback: capture the document body via canvas
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const target = document.body;
+        canvas.width = target.offsetWidth * window.devicePixelRatio;
+        canvas.height = target.offsetHeight * window.devicePixelRatio;
+        canvas.style.display = "none";
+        document.body.appendChild(canvas);
+
+        // Paint loop using html-to-canvas via foreignObject SVG
+        let drawing = true;
+        const paintFrame = () => {
+          if (!drawing) { canvas.remove(); return; }
+          const data = new XMLSerializer().serializeToString(document.documentElement);
+          const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + canvas.width + '" height="' + canvas.height + '">' +
+            '<foreignObject width="100%" height="100%">' +
+            '<div xmlns="http://www.w3.org/1999/xhtml" style="transform:scale(' + window.devicePixelRatio + ');transform-origin:0 0;width:' + target.offsetWidth + 'px;height:' + target.offsetHeight + 'px">' +
+            data + '</div></foreignObject></svg>';
+          const img = new Image();
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            if (drawing) requestAnimationFrame(paintFrame);
+          };
+          img.onerror = () => { if (drawing) requestAnimationFrame(paintFrame); };
+          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        };
+        requestAnimationFrame(paintFrame);
+
+        stream = canvas.captureStream(30);
+        stream._stopPaint = () => { drawing = false; };
+      }
+
       recordingStream = stream;
       recordedChunks = [];
 
@@ -2985,6 +3024,7 @@
       mediaRecorder.stop();
     }
     if (recordingStream) {
+      if (recordingStream._stopPaint) recordingStream._stopPaint();
       recordingStream.getTracks().forEach((t) => t.stop());
       recordingStream = null;
     }
