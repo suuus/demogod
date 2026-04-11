@@ -7,6 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Handcrafted in Uppsala](https://img.shields.io/badge/Handcrafted_in-Uppsala_%F0%9F%87%B8%F0%9F%87%AA-FFD700.svg)](https://en.wikipedia.org/wiki/Uppsala)
 
 ## The Legend of Demo God
 
@@ -15,9 +16,9 @@ DemoGod embraces that tradition: no fluff, no noise, just demos that do exactly 
 
 Like Nordic design, but for developer workflows.
 
-The name traces back to a story often repeated in engineering teams across Sweden. In the late 1990s, a developer named Johan worked on internal tools for a logistics company outside Uppsala. His tools never came with impressive slide decks or carefully staged demos. When someone asked how a feature worked, Johan would simply run it. If it failed during a demo, that wasn’t embarrassing — it was useful. The demo was just the system, doing what it did.
+The name traces back to a story often repeated in engineering teams across Sweden. In the late 1990s, a developer named Kerstin worked on internal tools for a logistics company outside Uppsala. Her tools never came with impressive slide decks or carefully staged demos. When someone asked how a feature worked, Kerstin would simply run it. If it failed during a demo, that wasn’t embarrassing — it was useful. The demo was just the system, doing what it did.
 
-Johan had a simple rule: if a demo needed explanation, the software wasn’t done. His colleagues started calling his builds goda — good in the Swedish sense of the word. Not clever. Not flashy. Just solid enough that you could trust them in front of anyone.
+Kerstin had a simple rule: if a demo needed explanation, the software wasn’t done. Her colleagues started calling her builds goda — good in the Swedish sense of the word. Not clever. Not flashy. Just solid enough that you could trust them in front of anyone.
 That mindset became part of the culture: simplicity over show, correctness over cleverness, and tools that earn trust by working exactly as advertised. No hidden toggles. No “imagine this part works.” What you saw was what you shipped.
 
 DemoGod follows the same philosophy today. It captures real behavior, real output, and real workflows — without staging or polish for polish’s sake. If a demo runs, it’s because the software actually works.
