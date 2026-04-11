@@ -838,19 +838,8 @@ wss.on("connection", (ws) => {
     });
 
     try {
-      // Load plugin agents and skill directories so the SDK knows about them
-      const pluginAgents = await getPluginAgents();
-      const customAgents = pluginAgents.map(a => ({
-        name: a.name,
-        displayName: a.displayName,
-        description: a.description,
-        prompt: a.prompt,
-      }));
-      const skillDirs = await getPluginSkillDirectories();
-      console.log(`[Skills] Registering ${skillDirs.length} plugin skill directories`);
-
-      await bridge.createSession(model, currentWorkingDir, customAgents, skillDirs);
-      console.log("Copilot session created with", customAgents.length, "custom agents");
+      await bridge.createSession(model, currentWorkingDir);
+      console.log("Copilot session created");
 
       // Enable all skills so agents/sub-agents can invoke them
       await bridge.enableAllSkills();
@@ -1066,15 +1055,9 @@ wss.on("connection", (ws) => {
         case "list_agents":
           if (bridge) {
             try {
-              const sdkAgents = await bridge.listAgents();
-              const pluginAgents = await getPluginAgents();
-              const sdkNames = new Set(sdkAgents.map((a: any) => a.name));
-              const merged = [
-                ...sdkAgents,
-                ...pluginAgents.filter(pa => !sdkNames.has(pa.name)),
-              ];
-              console.log(`[Agents] ${sdkAgents.length} SDK + ${pluginAgents.length} plugin → ${merged.length} total`);
-              safeSend(ws, { type: "agents_list", agents: merged });
+              const agents = await bridge.listAgents();
+              console.log(`[Agents] ${agents.length} agents`);
+              safeSend(ws, { type: "agents_list", agents });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to list agents: ${err.message}` });
             }
@@ -1084,23 +1067,11 @@ wss.on("connection", (ws) => {
         case "select_agent":
           if (bridge && msg.name) {
             try {
-              // Try SDK agent selection first
               selectedPluginAgent = null;
               const result = await bridge.selectAgent(msg.name);
               safeSend(ws, { type: "agent_selected", agent: result.agent });
             } catch (err: any) {
-              // If SDK doesn't know the agent, check if it's a plugin agent
-              const pluginAgents = await getPluginAgents();
-              const pa = pluginAgents.find(a => a.name === msg.name);
-              if (pa) {
-                selectedPluginAgent = pa;
-                safeSend(ws, {
-                  type: "agent_selected",
-                  agent: { name: pa.name, displayName: pa.displayName, description: pa.description, source: "plugin" },
-                });
-              } else {
-                safeSend(ws, { type: "error", text: `Agent selection failed: ${err.message}` });
-              }
+              safeSend(ws, { type: "error", text: `Agent selection failed: ${err.message}` });
             }
           }
           break;
@@ -1120,16 +1091,9 @@ wss.on("connection", (ws) => {
         case "list_skills":
           if (bridge) {
             try {
-              const sdkSkills = await bridge.listSkills();
-              const pluginSkills = await getPluginSkills();
-              // Merge: SDK skills + plugin skills (deduplicate by name)
-              const sdkNames = new Set(sdkSkills.map((s: any) => s.name));
-              const merged = [
-                ...sdkSkills,
-                ...pluginSkills.filter(ps => !sdkNames.has(ps.name)),
-              ];
-              console.log(`[Skills] ${sdkSkills.length} SDK + ${pluginSkills.length} plugin → ${merged.length} total`);
-              safeSend(ws, { type: "skills_list", skills: merged });
+              const skills = await bridge.listSkills();
+              console.log(`[Skills] ${skills.length} skills`);
+              safeSend(ws, { type: "skills_list", skills });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to list skills: ${err.message}` });
             }
