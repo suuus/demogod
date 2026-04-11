@@ -30,6 +30,33 @@
     return Math.abs(h).toString(36);
   }
 
+  // ─── Dialog focus trap + Escape-to-close ─────────────────
+  function setupDialogOverlay(overlayId, closeCallback) {
+    const overlay = document.getElementById(overlayId);
+    if (!overlay) return;
+    overlay.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        closeCallback();
+        return;
+      }
+      if (e.key === "Tab") {
+        const focusable = overlay.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
+    });
+  }
+
   function renderMarkdown(text) {
     // Convert <system_notification> tags into styled notification lines
     text = text.replace(/<system_notification>([\s\S]*?)<\/system_notification>/g, (_, body) => {
@@ -2778,9 +2805,6 @@
         meta: s.source || "",
         selected: false,
       })));
-    } else if (mode === "shell") {
-      // Shell picker removed — using system default shell
-      return;
     }
 
     cappickerOverlay.classList.remove("hidden");
@@ -3025,13 +3049,12 @@
     { name: "Dark Blue", cls: "bg-darkblue" },
     { name: "White", cls: "bg-white" },
   ];
-  let bgIndex = 0;
 
   // Restore saved background
   const savedBg = localStorage.getItem("dg-bg");
   if (savedBg) {
     const idx = bgOptions.findIndex(o => o.cls === savedBg);
-    if (idx >= 0) { bgIndex = idx; backdrop.className = bgOptions[idx].cls; }
+    if (idx >= 0) { backdrop.className = bgOptions[idx].cls; }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -3074,7 +3097,6 @@
     const cls = settingBg.value;
     localStorage.setItem("dg-bg", cls);
     backdrop.className = cls;
-    bgIndex = bgOptions.findIndex(o => o.cls === cls);
     updateSwedishTag(cls);
   });
 
@@ -3363,8 +3385,6 @@
   const manager = new SessionManager();
   manager.createSession();
   loadModels();
-  // Shell config loading disabled while shell switcher is hidden
-  // Shell config removed — using system default shell
 
   // Dismiss splash after animation plays
   const splash = document.getElementById("splash");
@@ -3387,6 +3407,17 @@
   // ─── INTEGRATED TERMINAL (xterm.js + node-pty) ────────────
   // ═══════════════════════════════════════════════════════════
   // Decoupled into terminal.js ES module — loaded via <script type="module">
+
+  // ═══════════════════════════════════════════════════════════
+  // ─── DIALOG ACCESSIBILITY (focus trap + Escape-to-close) ──
+  // ═══════════════════════════════════════════════════════════
+
+  setupDialogOverlay("settings-overlay", closeSettings);
+  setupDialogOverlay("capabilities-overlay", closeCapabilities);
+  setupDialogOverlay("picker-overlay", closePicker);
+  setupDialogOverlay("filebrowser-overlay", closeFileBrowser);
+  setupDialogOverlay("dialog-overlay", cancelDialog);
+  setupDialogOverlay("cappicker-overlay", closeCapPicker);
 
   // ═══════════════════════════════════════════════════════════
   // ─── GLOBAL: Keyboard Shortcuts ───────────────────────────

@@ -14,6 +14,7 @@ let ptyTerm = null;
 let ptyWs = null;
 let ptyFit = null;
 let ptyOpen = false;
+let resizeHandler = null;
 
 // Show button in Tauri always, in web only if feature-flagged
 if (window.__TAURI_INTERNALS__ || localStorage.getItem("dg-terminal") === "1") {
@@ -84,13 +85,16 @@ export function openPty() {
   });
 
   // Fit on window resize
-  window.addEventListener("resize", () => { if (ptyOpen && ptyFit) ptyFit.fit(); });
+  if (resizeHandler) window.removeEventListener("resize", resizeHandler);
+  resizeHandler = () => { if (ptyOpen && ptyFit) ptyFit.fit(); };
+  window.addEventListener("resize", resizeHandler);
   setTimeout(() => ptyFit?.fit(), 50);
 }
 
 export function closePty() {
   ptyOpen = false;
   ptyPanel.style.display = "none";
+  if (resizeHandler) { window.removeEventListener("resize", resizeHandler); resizeHandler = null; }
   if (ptyWs) { ptyWs.close(); ptyWs = null; }
   if (ptyTerm) { ptyTerm.dispose(); ptyTerm = null; ptyFit = null; }
 }

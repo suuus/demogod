@@ -42,11 +42,11 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 │  │  .ts)           │     │  with timing)            │           │
 │  └────────┬────────┘     └─────────────────────────┘           │
 │           │                                                     │
-│  ┌────────▼────────┐                                            │
-│  │ Plugin Scanners │  Discovers agents/skills from              │
-│  │ (server.ts)     │  ~/.copilot/installed-plugins/             │
-│  │                 │  (used for /skill-name handler only;       │
-│  │                 │  session uses enableConfigDiscovery)       │
+│  ┌────────▼────────┐     ┌─────────────────────────┐           │
+│  │ MCP Discovery   │     │ PTY Server              │           │
+│  │ (server.ts)     │     │ (pty-server.ts)         │           │
+│  │ discovers tools │     │ shell spawn + WS bridge │           │
+│  │ from MCP servers│     └─────────────────────────┘           │
 │  └─────────────────┘                                            │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────┐           │
@@ -68,12 +68,15 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 ```
 src/
 ├── server.ts            # Express server, WS handler, REST API,
-│                        #   plugin scanners (skills + agents), demo engine (live + scripted)
+│                        #   MCP tool discovery, demo engine (live + scripted)
 ├── copilot-bridge.ts    # CopilotClient/Session wrapper,
 │                        #   event forwarding, sub-agent detection, user input handling
+├── pty-server.ts        # PTY WebSocket server (shell spawn, resize, cleanup)
+├── path-utils.ts        # Shared path security (safeRealpath, isUnderHome)
 └── public/
     ├── index.html       # Page structure, overlays, dialogs, settings panel, bottom-right controls
     ├── app.js           # All frontend logic (class-based, vanilla JS)
+    ├── terminal.js      # Integrated terminal module (xterm.js + PTY WebSocket)
     └── styles.css       # Theming, terminal look, dialogs, settings, agent tabs
 
 src-tauri/
@@ -147,14 +150,11 @@ The bridge wraps the `@github/copilot-sdk` and translates SDK events into simple
 
 The server is a single-file Express + WebSocket application with these sections:
 
-#### Plugin Scanners
+#### Plugin / MCP Tool Discovery
 
-Discovers skills and agents from `~/.copilot/installed-plugins/`:
-- **Skill scanner** — walks plugin directories, parses `SKILL.md` frontmatter, collects skill directory paths
-- **Agent scanner** — finds `.agent.md` files, extracts frontmatter + prompt body
-- Both are cached for the server lifetime (lazy singleton)
+The SDK handles plugin and config discovery automatically via `enableConfigDiscovery: true` in the session config. This auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes). The server does **not** manually pass `customAgents` or `skillDirectories` to session creation.
 
-> **Note:** These scanners are only used for the `/skill-name` slash command handler and the skill/agent list API. Session creation uses `enableConfigDiscovery: true` in the SDK config, which auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes).
+Additionally, the server includes a manual MCP tool discovery system (`queryMcpServerTools()`, `discoverAllMcpTools()`) that spawns MCP server processes via stdio to query their tool lists. This is used only for the capabilities panel to show MCP server tools alongside SDK-discovered tools.
 
 #### REST API
 
@@ -166,8 +166,6 @@ Discovers skills and agents from `~/.copilot/installed-plugins/`:
 | `GET /api/demos` | List available demo scripts | None (local only) |
 | `GET /api/demos/:name` | Load demo script JSON | Sanitized name (`[a-zA-Z0-9_-]`), path under `DEMOS_DIR` |
 | `GET /api/models` | List available Copilot models | None (local only) |
-| `GET /api/shell` | Get current shell configuration | None (local only) |
-| `PUT /api/shell` | Set shell configuration | None (local only) |
 
 #### WebSocket Handler
 
@@ -178,7 +176,6 @@ WebSocket connections go through a `verifyClient` gate before the upgrade handsh
 Per-connection state:
 - `bridge` — `CopilotBridge` instance (one per WS connection)
 - `demoAbort` — `AbortController` for cancelling scripted demos
-- `selectedPluginAgent` — currently selected plugin agent
 - `currentWorkingDir` — project directory for the session
 
 **Message routing (Client → Server):**
@@ -316,11 +313,16 @@ Tauri uses a **sidecar** approach to run the Node.js server:
 2. Creates the main webview window pointing at `http://localhost:3456`
 3. When the window is closed, Tauri tears down the sidecar process
 
-### Shell Picker
+### PTY Terminal (`src/pty-server.ts` + `src/public/terminal.js`)
 
-> **Status:** The shell picker UI is currently hidden (v0.0.8+) while cross-platform shell support is being stabilized. The underlying `/api/shell` API and Rust dispatch logic remain in the codebase for future use.
+The integrated terminal is an optional feature (enabled via Settings → Experimental or always visible in Tauri). The PTY server spawns a shell process and bridges it to the browser via a dedicated `/pty` WebSocket endpoint.
 
-The desktop app includes a shell picker for choosing which shell spawns the server. On Windows, options include WSL, PowerShell, CMD, or native. The selection is persisted to `~/.demogod/config.json` and applied via Rust `lib.rs` `spawn_server()` dispatch.
+- **Backend** (`pty-server.ts`): `setupPtyServer(server, verifyWsClient)` creates a `WebSocketServer`, validates the shell against `ALLOWED_SHELLS`, restricts `cwd` to `homedir()` via shared `path-utils.ts`, and handles resize/data/cleanup.
+- **Frontend** (`terminal.js`): ES module that manages xterm.js lifecycle, WebSocket connection, and keyboard shortcut (Ctrl+`).
+
+### Path Security (`src/path-utils.ts`)
+
+Shared module exporting `safeRealpath(path)` and `isUnderHome(realPath)`. Used by both `server.ts` (file APIs) and `pty-server.ts` (cwd validation) to ensure all filesystem access stays under `homedir()`.
 
 ### Build & CI
 
@@ -418,32 +420,11 @@ Background agent output:
 
 **Key limitations**: SDK doesn't stream sub-agent internals (deltas/tool events) to the parent session. With parallel agents, there's no reliable way to route events to specific agent tabs — only start and complete events are tracked.
 
-## Plugin System
-
-DemoGod discovers and integrates plugins from `~/.copilot/installed-plugins/`:
-
-### Plugin / Config Discovery
+## Plugin / Config Discovery
 
 Session creation uses `enableConfigDiscovery: true` in the SDK session config. This auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes). The server does **not** manually pass `customAgents` or `skillDirectories` to session creation.
 
-The manual plugin scanners (`getPluginSkills()`, `getPluginAgents()`, `getPluginSkillDirectories()`) still exist in `server.ts` but are only used for:
-- The `/skill-name` slash command handler
-- The skill/agent list API responses
-
-### Plugin Skills
-- Scanned from `skills/` or `.github/skills/` directories within each plugin
-- Each skill has a `SKILL.md` with YAML frontmatter (`name`, `description`, `user-invocable`)
-- Merged into the skill list API response for the UI picker
-- Users can invoke skills via `/skill-name <prompt>` prefix in the terminal input
-
-### Plugin Agents
-- Scanned from `agents/` or `.github/agents/` directories
-- Each agent is a `.agent.md` file with frontmatter (`name`, `description`) + prompt body
-- Merged with SDK-discovered agents in the `list_agents` response
-- If SDK agent selection fails, falls back to plugin agent matching
-
-### Plugin Scanning
-Both scanners walk up to 3 levels deep, check `plugin.json` for configuration, and cache results for the server lifetime. Results are only computed once (lazy singleton pattern).
+The `/skill-name` slash command handler in `server.ts` still lists skills at runtime via `bridge.listSkills()` to verify the skill name before transforming the prompt.
 
 ## Capabilities Panel
 
@@ -483,7 +464,7 @@ Session containers use mode-colored subtle separator lines via the `--titlebar-b
 ## Extension Points
 
 ### Adding new SDK events
-1. Handle the event in the `session.on()` listener in `copilot-bridge.ts`
+1. Handle the event in `_handleSessionEvent()` in `copilot-bridge.ts`
 2. Emit a named event from the bridge
 3. Listen for it in the WS handler in `server.ts`, forward via `safeSend()`
 4. Handle the message type in `app.js`'s `handleMessage()` switch
@@ -515,7 +496,7 @@ Session containers use mode-colored subtle separator lines via the `--titlebar-b
 
 ## Testing
 
-DemoGod has 47 tests (34 unit via Vitest, 13 E2E via Playwright) covering security, API endpoints, WebSocket lifecycle, and full UI walkthroughs. See **[`docs/TESTING.md`](TESTING.md)** for the complete guide.
+DemoGod has 48 unit tests (via Vitest) and 14 E2E tests (via Playwright) covering security, path validation, PTY exports, MCP discovery, API endpoints, WebSocket lifecycle, and full UI walkthroughs. See **[`docs/TESTING.md`](TESTING.md)** for details.
 
 ## Recording
 

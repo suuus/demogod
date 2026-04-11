@@ -112,7 +112,7 @@
   --titlebar-bg: rgba(40, 40, 58, 0.85);
   --titlebar-border: rgba(255, 255, 255, 0.06);
   --body-text: #cdd6f4;
-  --body-dim: #6c7086;
+  --body-dim: #918994;
   --prompt-color: #89b4fa;
   --response-color: #cdd6f4;
   --accent: #89b4fa;
@@ -123,7 +123,7 @@
   --orange: #fab387;
   --surface0: #313244;
   --surface1: #45475a;
-  --overlay0: #6c7086;
+  --overlay0: #918994;
   --base: #1e1e2e;
   --mantle: #181825;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -1266,7 +1266,7 @@ html, body {
 .dialog-field select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c7086' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23918994' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
@@ -1886,7 +1886,7 @@ body.recording #record-icon {
   display: flex; flex-direction: column; gap: 2px;
   font-size: 13px; color: #fff;
 }
-.settings-hint { font-size: 11px; color: var(--body-text); opacity: 0.7; }
+.settings-hint { font-size: 11px; color: var(--body-dim); }
 .settings-select {
   background: var(--surface0); color: var(--body-text);
   border: 1px solid var(--surface1); border-radius: 6px;

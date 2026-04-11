@@ -162,8 +162,6 @@ try {
 
 const app = express();
 
-// safeRealpath and isUnderHome imported from ./path-utils.js
-
 // CORS: allow Tauri desktop app (serves from tauri:// origin) to call our API
 app.use((_req, res, next) => {
   const origin = _req.headers.origin;
@@ -231,7 +229,7 @@ function verifyWsClient(info: { origin: string; secure: boolean; req: import("ht
 }
 
 const wss = new WebSocketServer({ noServer: true, verifyClient: verifyWsClient });
-const wssPty = setupPtyServer(server, verifyWsClient);
+setupPtyServer(server, verifyWsClient);
 
 server.on("upgrade", (req, socket, head) => {
   const pathname = new URL(req.url || "/", `http://${req.headers.host}`).pathname;
@@ -311,7 +309,7 @@ app.get("/api/browse-files", async (req, res) => {
       .map((e) => ({ name: e.name, path: join(resolvedPath, e.name), isDir: true }))
       .sort((a, b) => a.name.localeCompare(b.name));
     const files = entries
-      .filter((e) => e.isFile())
+      .filter((e) => e.isFile() && SUPPORTED_EXT.test(e.name))
       .map((e) => ({ name: e.name, path: join(resolvedPath, e.name), isDir: false }))
       .sort((a, b) => a.name.localeCompare(b.name));
     res.json({
