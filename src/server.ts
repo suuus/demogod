@@ -724,6 +724,12 @@ wss.on("connection", (ws) => {
       // Enable all skills so agents/sub-agents can invoke them
       await bridge.enableAllSkills();
 
+      // Proactively fetch MCP servers discovered for this project
+      const mcpServers = await bridge.listMcpServers().catch(() => []);
+      if (mcpServers.length > 0) {
+        safeSend(ws, { type: "capabilities_loaded", kind: "mcp_servers", items: mcpServers });
+      }
+
       safeSend(ws, { type: "session_ready", workingDirectory: currentWorkingDir, model: model || "(default)" });
     } catch (err: any) {
       console.error("Failed to create session:", err.message);
