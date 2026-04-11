@@ -228,7 +228,7 @@ Class-based architecture. Major sections:
 | **File browser** | Open files in tabs |
 | **Capability pickers** | Model, agent, skill, and mode selection dialogs |
 | **Screen recording** | MediaRecorder API for capturing demos as video |
-| **Background customization** | Chroma key green or custom colors for video compositing |
+| **Background customization** | Chroma key green, custom colors, or Aurora Borealis animated theme for video compositing |
 | **TerminalSession** | Encapsulates a single Copilot session — its own WS connection, terminal state, and DOM output area. `_displayName()` returns "projectname · Session N" for tab/window titles; `_updateTitles()` refreshes all title surfaces when the project changes |
 | **SessionManager** | Creates, destroys, and switches between `TerminalSession` instances (tab bar or keyboard shortcuts) |
 | **FloatingWindowManager** | Detaches sessions into draggable, resizable floating windows with grid snap zones |
@@ -512,6 +512,14 @@ Session containers use mode-colored subtle separator lines via the `--titlebar-b
 1. Add HTML toggle/dropdown in `#settings-window` in `index.html`
 2. Add a `dg-*` localStorage key
 3. Wire up event listener + init in the settings panel section of `app.js`
+
+## Testing
+
+DemoGod has 47 tests (34 unit via Vitest, 13 E2E via Playwright) covering security, API endpoints, WebSocket lifecycle, and full UI walkthroughs. See **[`docs/TESTING.md`](TESTING.md)** for the complete guide.
+
+## Recording
+
+Demos can be recorded via the browser's built-in ⏺ button (MP4 on Chrome/Edge/Safari, WebM on Firefox) or via Playwright-based automated recording (`npm run record`). See **[`docs/RECORDING.md`](RECORDING.md)** for details.
 
 ## Dependencies
 

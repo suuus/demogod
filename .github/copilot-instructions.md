@@ -80,7 +80,7 @@ JSON files in `demos/` with a `steps` array. Each step has a `type`:
 ### Settings Panel
 
 The ⚙️ Settings button opens a panel with three sections:
-- **Appearance**: Background color, dialog mode (inline/popup), show version badge
+- **Appearance**: Background color (including Aurora Borealis animated theme), dialog mode (inline/popup), show version badge
 - **Features**: (reserved for future toggles)
 - **Experimental**: Integrated terminal, sub-agent activity tabs
 
@@ -139,6 +139,10 @@ The markdown renderer strips internal XML tags (`<reminder>`, `<todo_status>`, e
 3. **Use structured fields.** Prefer `enum`/`boolean` over free-text when options are known.
 4. **Provide defaults.** Always set a sensible `default` value.
 5. **Sub-agents follow the same rules.** Instruct them to use `ask_user`, one question at a time.
+
+### Playwright Test Agents
+
+Three AI-assisted Playwright agents live in `.github/agents/` — `playwright-test-planner`, `playwright-test-generator`, and `playwright-test-healer`. They are available via GitHub Copilot's custom agent system for creating and maintaining E2E tests.
 
 ## Multi-Session Architecture
 
@@ -206,6 +210,9 @@ These are handled in `SessionManager` inside `app.js`.
 | Add setting | HTML toggle in `#settings-window`, localStorage `dg-*` key, wire in settings panel init in `app.js` |
 | Add demo action | Handle in `_handleDemoAction()` in `app.js`, use in demo JSON `{"type":"action","action":"name"}` |
 | Type-check | `npx tsc --noEmit` |
+| Run all tests | `npm test` (unit + E2E) |
+| Run unit tests | `npm run test:unit` (Vitest) |
+| Run E2E tests | `npm run test:e2e` (Playwright) |
 | Run dev server | `npm run dev` (hot reload on :3456) |
 | Run desktop dev | `npm run desktop` (Tauri + Node hot reload) |
 | Build desktop app | `npm run build:desktop` (platform installers) |

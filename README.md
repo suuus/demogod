@@ -85,9 +85,11 @@ npm run desktop
 - **Sub-Agent Activity Tabs** *(experimental)* — Track sub-agent tasks in dedicated tabs
 - **Project Browser** — Browse and select working directories for Copilot sessions
 - **File Change Tracking** — Monitor file modifications during demo execution
-- **Screen Recording** — Built-in recording button — records the browser tab and downloads as `.webm`
+- **Screen Recording** — Built-in recording button — records the browser tab and downloads as `.mp4` (Chrome/Edge/Safari) or `.webm` (Firefox)
+- **Capabilities Panel** — View and toggle MCP servers, tools, and skills from the 🔌 button
+- **Per-project Discovery** — Automatically discovers agents, skills, and MCP servers from project-local configs
 - **Copy & Paste** — Select and copy response text, paste into prompts
-- **Settings Panel** — Configure appearance, feature flags, and experimental options from ⚙️ Settings
+- **Settings Panel** — Configure appearance (including Aurora Borealis background theme), feature flags, and experimental options from ⚙️ Settings
 
 ## Keyboard Shortcuts
 
@@ -195,16 +197,37 @@ PORT=8080 npm start
 DEBUG=* npm start
 ```
 
+## Testing
+
+DemoGod has 47 tests (34 unit via Vitest, 13 E2E via Playwright). See **[`docs/TESTING.md`](docs/TESTING.md)** for the full guide.
+
+```bash
+npm test              # All tests (unit + E2E)
+npm run test:unit     # Unit tests only
+npm run test:e2e      # E2E tests only
+```
+
+## Recording
+
+Record demos via the browser's ⏺ button or Playwright-based automation. See **[`docs/RECORDING.md`](docs/RECORDING.md)** for details.
+
+```bash
+npm run record            # Interactive browser recording
+npm run record:demo intro # Automated headless recording
+```
+
 ## Roadmap
 
 - [x] Live demo mode (real Copilot prompts)
 - [x] Multiple session management
 - [x] Sub-agent activity tabs
 - [x] Demo UI automation (layout, model, tile)
-- [x] Screen recording
+- [x] Screen recording (MP4 + WebM)
 - [x] Copy & paste in session windows
-- [ ] Export demos as video files
-- [ ] Custom themes and styling options
+- [x] Custom themes (Aurora Borealis)
+- [x] Capabilities panel
+- [x] Per-project discovery
+- [ ] Export demos as standalone video files
 - [ ] Saved layout presets
 - [ ] Desktop app production builds (Windows, Linux)
 
