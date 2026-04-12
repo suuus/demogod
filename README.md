@@ -77,6 +77,15 @@ npm run desktop
 
 > Production builds for all platforms are coming soon.
 
+## Tip from the locals
+
+In Uppsala, students have a tradition called *the Flogsta scream*:
+every evening at 22:00, windows open and everyone screams their stress into the night.
+
+We recommend the same before your demo.
+Clear the noise. Exhale. Then just run it.
+
+
 ## Features
 
 - **Scripted & Live Demos** — Execute pre-recorded demo scripts or send real prompts to Copilot
