@@ -6,8 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Got an idea? We'd love to hear it! 💡
-        No need to be formal — just tell us what you're thinking.
+        Have an idea that would make demos even smoother? We're all ears 💡
+        In Swedish, *god* means good — help us make DemoGod better.
 
   - type: textarea
     id: description

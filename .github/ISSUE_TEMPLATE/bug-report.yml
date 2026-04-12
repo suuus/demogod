@@ -6,8 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report this! 🙏
-        Please fill out what you can — even partial info helps us track things down.
+        Something broke mid-demo? We've all been there 😅
+        Fill out what you can — even partial info helps us track it down.
 
   - type: textarea
     id: what-happened

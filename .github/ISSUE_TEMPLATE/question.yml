@@ -6,7 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        No question is too small — happy to help! 😊
+        Trying to get your demo *just right*? We're happy to help 🎬
+        No question is too small — ask away.
 
   - type: textarea
     id: question
