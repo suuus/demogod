@@ -237,7 +237,7 @@ Class-based architecture. Major sections:
 #### `index.html` — Structure
 
 - **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, record button, background color
-- **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch; shows ⚡ auto-approve badge when auto-approve is enabled)
+- **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch; shows yellow `auto-approve` text when auto-approve is enabled)
 - **Overlay dialogs**: project picker, file browser, user input dialog, capability picker
 
 #### `styles.css` — Theming
