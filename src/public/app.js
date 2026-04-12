@@ -3422,6 +3422,7 @@
   // ═══════════════════════════════════════════════════════════
 
   const manager = new SessionManager();
+  window.__demogodManager = manager;
   manager.createSession();
   loadModels();
 

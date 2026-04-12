@@ -3,6 +3,39 @@
  * Used to instruct Copilot to generate demo scripts or Playwright specs.
  */
 
+const DEMOGOD_UI_REFERENCE = `## DemoGod UI Reference
+
+DemoGod is a browser-based tool for demoing GitHub Copilot CLI at http://localhost:3456.
+
+### Control Bar Buttons (top, left to right)
+| Button | ID | Purpose |
+|--------|----|---------|
+| 📁 Project | #btn-project | Open project picker |
+| ⌨️ Mode | #btn-mode | Open demo picker |
+| 📄 Open | #btn-browse-file | Open file browser |
+| 🧪 Model | #btn-model | Select AI model |
+| 🤖 Agent | #btn-agent | Select agent |
+| ⚡ Skill | #btn-skill | Invoke skill |
+| 🎯 Copilot Mode | #btn-copilot-mode | Cycle Interactive/Plan/Autopilot |
+| 📑 Layout | #btn-layout | Toggle Tabs/Floating |
+| ⊞ Tile | #btn-tile | Tile floating windows |
+| 🎬 Studio | #btn-studio | Demo Studio panel |
+| ⚙️ Settings | #btn-settings | Settings panel |
+| 🔌 Capabilities | #btn-capabilities | MCP/tools/skills panel |
+
+### Key Selectors
+- Session input: \`.session-input\` (contenteditable span)
+- Status text: \`.status-text\`
+- Session tab bar: \`.session-tab-bar\`
+- Add session: \`#btn-add-session\`
+- Settings close: \`#settings-close\`
+- Background theme dropdown: \`#setting-bg\` (values: bg-chroma, bg-copilot, bg-copilot-light, bg-aurora, bg-offwhite, bg-darkblue, bg-white)
+- Picker filter: \`#cappicker-search\`
+- Picker items: \`.cappicker-item\`
+- Picker cancel: \`#cappicker-cancel\`
+- Splash screen: \`#splash\` (fades out on load)
+`;
+
 export const DEMO_JSON_SCHEMA = `
 ## DemoGod Demo Script Schema
 
@@ -60,14 +93,7 @@ export const SELF_DEMO_PROMPT = `You are generating a DemoGod demo script that s
 
 ${DEMO_JSON_SCHEMA}
 
-## DemoGod UI Reference
-
-DemoGod is a browser-based tool for demoing GitHub Copilot CLI. The UI has:
-- **Control bar** at top: Project (📁), Mode (⌨️), Open File (📄), Model (🧪), Agent (🤖), Skill (⚡), Copilot Mode, Layout (📑/🪟), Settings (⚙️), Capabilities (🔌)
-- **Terminal window** with session tabs, chat output area, and input field at bottom
-- **Floating window mode** with grid snapping and tiling
-- **Settings panel** with appearance themes (Chroma Green, Aurora Borealis, etc.)
-- **Capabilities panel** showing MCP servers, tools, skills
+${DEMOGOD_UI_REFERENCE}
 
 ## Instructions
 
@@ -79,6 +105,55 @@ Based on the user's description, generate a complete demo JSON script. Use:
 
 Keep typing speeds between 35-50ms. Add pauseAfter (1500-3000ms) between steps for readability.
 Output ONLY the JSON — no explanation before or after.
+`;
+
+export const SELF_PLAYWRIGHT_PROMPT = `You are generating a Playwright test spec that creates a browser-driven demo recording of DemoGod itself.
+
+${DEMOGOD_UI_REFERENCE}
+
+## Playwright Spec Template
+
+\`\`\`typescript
+import { test, expect } from "@playwright/test";
+
+// Helper: open DemoGod with auth token
+async function openDemoGod(page) {
+  const res = await page.request.get("/");
+  const html = await res.text();
+  const token = html.match(/name="dg-token"\\s+content="([^"]+)"/)?.[1] || "";
+  await page.goto("/?token=" + token);
+  await page.waitForSelector("#splash.fade-out", { timeout: 15000 });
+  await page.waitForTimeout(2000);
+  await expect(page.locator(".status-text")).toHaveText("Ready", { timeout: 30000 });
+}
+
+test.use({
+  viewport: { width: 1920, height: 1080 },
+  video: { mode: "on", size: { width: 1920, height: 1080 } },
+});
+
+test("Demo: [TITLE]", async ({ page }) => {
+  await openDemoGod(page);
+  // ... steps here
+});
+\`\`\`
+
+## Instructions
+
+Based on the user's description, generate a Playwright spec that drives DemoGod's UI. Use the real selectors from the reference above. Key patterns:
+
+- **Open settings:** \`await page.click("#btn-settings");\`
+- **Select a theme:** \`await page.selectOption("#setting-bg", "bg-aurora");\` then close with \`await page.click("#settings-close");\`
+- **Open project picker:** \`await page.click("#btn-project");\` then click a folder in \`.picker-list\`
+- **Type a prompt:** \`await page.fill(".session-input", "text"); await page.press(".session-input", "Enter");\`
+- **Wait for response:** \`await expect(page.locator(".status-text")).toHaveText("Ready", { timeout: 60000 });\`
+- **Switch model:** \`await page.click("#btn-model");\` then filter and click an item
+- **Switch layout:** \`await page.click("#btn-layout");\`
+- **Add session:** \`await page.click("#btn-add-session");\`
+- **Pause for visibility:** \`await page.waitForTimeout(2000);\`
+
+Add \`waitForTimeout(1500-3000)\` between steps so the recording looks natural.
+Output ONLY the TypeScript spec — no explanation before or after.
 `;
 
 export const PROJECT_DEMO_PROMPT = `You are generating a Playwright test spec that creates a browser-driven demo recording of a web application.

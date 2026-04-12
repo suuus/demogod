@@ -1,0 +1,58 @@
+{
+  "title": "DemoGod Self-Demo",
+  "description": "A walkthrough of DemoGod features: Aurora Borealis theme, project workflows, multi-session tabs, model switching, and floating layout",
+  "steps": [
+    {
+      "type": "command",
+      "text": "Let me start by customizing the look — I'll open Settings and switch to the Aurora Borealis theme.",
+      "response": "✨ **Aurora Borealis theme activated!**\n\nThe animated gradient background is now live. This theme uses CSS keyframe animations and custom properties for a dynamic visual effect that shifts across the terminal chrome.",
+      "typingSpeed": 42,
+      "pauseAfter": 2500
+    },
+    {
+      "type": "command",
+      "text": "Now let me open the insurance project to work with.",
+      "response": "📁 **Project opened: insyourance**\n\nLoaded project from `~/insyourance`. The workspace is ready — I can see the source tree, docs, and config files.",
+      "typingSpeed": 40,
+      "pauseAfter": 2000
+    },
+    {
+      "type": "command",
+      "text": "Can you review the documentation in this project?",
+      "response": "📄 **Documentation Review: insyourance**\n\nI've reviewed all documentation files in the project. Here's what I found:\n\n### README.md\n- ✅ Project overview is clear and well-structured\n- ✅ Installation instructions are complete\n- ⚠️ API reference section could use more code examples\n- ⚠️ Missing contribution guidelines\n\n### docs/\n- ✅ Architecture doc covers the main data flow\n- ❌ No changelog or versioning docs found\n- ⚠️ Deployment guide references deprecated config keys\n\n### Recommendations\n1. Add code examples to the API reference\n2. Create a `CONTRIBUTING.md`\n3. Update deployment docs for v2 config format\n4. Add a `CHANGELOG.md` to track releases",
+      "typingSpeed": 38,
+      "pauseAfter": 3000
+    },
+    {
+      "type": "action",
+      "action": "new_session",
+      "pauseAfter": 2000
+    },
+    {
+      "type": "command",
+      "text": "Let me open the insurance project in this new tab as well.",
+      "response": "📁 **Project opened: insyourance**\n\nSame project loaded in a new session tab. This lets us run independent analyses side by side.",
+      "typingSpeed": 40,
+      "pauseAfter": 2000
+    },
+    {
+      "type": "action",
+      "action": "model",
+      "value": "gpt-4.1",
+      "pauseAfter": 2000
+    },
+    {
+      "type": "command",
+      "text": "Run a security review of this project.",
+      "response": "🔒 **Security Review: insyourance** (GPT-4.1)\n\n### Critical\n- 🔴 **Hardcoded API key** in `src/config.ts:24` — move to environment variables\n- 🔴 **SQL injection risk** in `src/db/queries.ts:57` — use parameterized queries\n\n### High\n- 🟠 **Missing rate limiting** on `/api/claims` endpoint\n- 🟠 **No input validation** on user-submitted form data in `src/routes/submit.ts`\n\n### Medium\n- 🟡 **Outdated dependency**: `express@4.17.1` has known CVEs — upgrade to 4.21+\n- 🟡 **CORS configured as `*`** in production config\n\n### Low\n- 🔵 **No Content-Security-Policy** headers set\n- 🔵 **Verbose error messages** exposed in production responses\n\n**Summary**: 2 critical, 2 high, 2 medium, 2 low findings. Address critical items immediately.",
+      "typingSpeed": 36,
+      "pauseAfter": 3000
+    },
+    {
+      "type": "action",
+      "action": "layout",
+      "value": "floating",
+      "pauseAfter": 10000
+    }
+  ]
+}

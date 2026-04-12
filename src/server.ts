@@ -11,7 +11,7 @@ import { spawn } from "child_process";
 import { CopilotBridge } from "./copilot-bridge.js";
 import { setupPtyServer } from "./pty-server.js";
 import { safeRealpath, isUnderHome } from "./path-utils.js";
-import { SELF_DEMO_PROMPT, PROJECT_DEMO_PROMPT } from "./demo-plan-prompts.js";
+import { SELF_DEMO_PROMPT, SELF_PLAYWRIGHT_PROMPT, PROJECT_DEMO_PROMPT } from "./demo-plan-prompts.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -925,7 +925,14 @@ wss.on("connection", (ws) => {
           const target = msg.target || "self"; // "self" or "project"
           const format = msg.outputFormat || "demogod"; // "demogod" or "playwright"
           const description = msg.description || "";
-          const systemPrompt = target === "self" ? SELF_DEMO_PROMPT : PROJECT_DEMO_PROMPT;
+          let systemPrompt: string;
+          if (target === "self" && format === "playwright") {
+            systemPrompt = SELF_PLAYWRIGHT_PROMPT;
+          } else if (target === "self") {
+            systemPrompt = SELF_DEMO_PROMPT;
+          } else {
+            systemPrompt = PROJECT_DEMO_PROMPT;
+          }
           const prompt = `${systemPrompt}\n\n## User's Demo Description\n\n${description}`;
           try {
             await bridge.sendPrompt(prompt);
