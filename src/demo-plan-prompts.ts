@@ -145,13 +145,16 @@ Based on the user's description, generate a Playwright spec that drives DemoGod'
 
 - **Open settings:** \`await page.click("#btn-settings");\`
 - **Select a theme:** \`await page.selectOption("#setting-bg", "bg-aurora");\` then close with \`await page.click("#settings-close");\`
-- **Open project picker:** \`await page.click("#btn-project");\` then click a folder in \`.picker-list\`
+- **Open project picker:** \`await page.click("#btn-project");\` → wait for \`.picker-item\` to appear → click the folder → click \`#picker-select\` to confirm
 - **Type a prompt:** \`await page.fill(".session-input", "text"); await page.press(".session-input", "Enter");\`
 - **Wait for response:** \`await expect(page.locator(".status-text")).toHaveText("Ready", { timeout: 60000 });\`
-- **Switch model:** \`await page.click("#btn-model");\` then filter and click an item
+- **Switch model:** \`await page.click("#btn-model");\` → wait for \`.cappicker-item\` → optionally filter with \`await page.fill("#cappicker-search", "gpt");\` → click the desired \`.cappicker-item\` (clicking an item auto-selects and closes the picker)
+- **Select agent:** \`await page.click("#btn-agent");\` → wait for \`.cappicker-item\` → click one (auto-selects and closes)
 - **Switch layout:** \`await page.click("#btn-layout");\`
 - **Add session:** \`await page.click("#btn-add-session");\`
 - **Pause for visibility:** \`await page.waitForTimeout(2000);\`
+
+**Picker behavior:** When the user says "select X" and the picker shows items, click the matching \`.cappicker-item\` directly — this selects and closes the picker in one click. If filtering leaves only one item, click it directly. Always wait for \`await page.locator(".cappicker-item").first().waitFor()\` before clicking.
 
 Add \`waitForTimeout(1500-3000)\` between steps so the recording looks natural.
 
