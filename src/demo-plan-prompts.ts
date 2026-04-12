@@ -146,16 +146,17 @@ Based on the user's description, generate a Playwright spec that drives DemoGod'
 - **Open settings:** \`await page.click("#btn-settings");\`
 - **Select a theme:** \`await page.selectOption("#setting-bg", "bg-aurora");\` then close with \`await page.click("#settings-close");\`
 - **Open project picker:** \`await page.click("#btn-project");\` → wait for \`.picker-item\` to appear → click the folder → click \`#picker-select\` to confirm
-- **Type a prompt:** Use \`keyboard.type()\` not \`fill()\` for contenteditable inputs:
+- **Type a prompt:** Use \`keyboard.type()\` not \`fill()\` for contenteditable inputs. Target the **active** session:
   \`\`\`
-  const input = page.locator(".session-input");
-  await input.waitFor({ state: "visible", timeout: 10000 });
+  const input = page.locator(".session-active .session-input");
+  await input.waitFor({ state: "visible", timeout: 30000 });
   await input.click();
   await page.keyboard.type("prompt text", { delay: 30 });
   await page.keyboard.press("Enter");
   \`\`\`
 - **Wait for response:** \`await expect(page.locator(".status-text")).toHaveText("Ready", { timeout: 180000 });\`
-- **After project select or new session:** Always \`await expect(page.locator(".status-text")).toHaveText("Ready", { timeout: 60000 });\` — the session reinitializes
+- **After project select or new session:** Always wait for Ready — the session reinitializes:
+  \`await expect(page.locator(".status-text")).toHaveText("Ready", { timeout: 60000 });\`
 - **Switch model:** \`await page.click("#btn-model");\` → wait for \`.cappicker-item\` → optionally filter with \`await page.fill("#cappicker-search", "gpt");\` → click the desired \`.cappicker-item\` (clicking an item auto-selects and closes the picker)
 - **Select agent:** \`await page.click("#btn-agent");\` → wait for \`.cappicker-item\` → click one (auto-selects and closes)
 - **Switch layout:** \`await page.click("#btn-layout");\`
