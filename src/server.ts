@@ -161,6 +161,25 @@ try {
   APP_VERSION = pkg.version || APP_VERSION;
 } catch (e: any) { console.warn("[Init] Failed to read package.json:", e.message); }
 
+// Check for updates once at startup (non-blocking, cached for session lifetime)
+let latestVersion: string | null = null;
+(async () => {
+  try {
+    const res = await fetch("https://api.github.com/repos/suuus/demogod/releases/latest", {
+      headers: { "Accept": "application/vnd.github.v3+json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const remote = (data.tag_name || "").replace(/^v/, "");
+      if (remote && remote !== APP_VERSION) {
+        latestVersion = remote;
+        console.log(`[Update] New version available: v${remote} (current: v${APP_VERSION})`);
+      }
+    }
+  } catch { /* offline or rate-limited — silently skip */ }
+})();
+
 const app = express();
 
 // CORS: allow Tauri desktop app (serves from tauri:// origin) to call our API
@@ -581,7 +600,7 @@ wss.on("connection", (ws) => {
         } catch (e: any) { console.debug("[Git] Branch detection failed:", e.message); }
       }
 
-      safeSend(ws, { type: "session_ready", workingDirectory: currentWorkingDir, model: model || "(default)", branch });
+      safeSend(ws, { type: "session_ready", workingDirectory: currentWorkingDir, model: model || "(default)", branch, version: APP_VERSION, ...(latestVersion ? { latestVersion } : {}) });
     } catch (err: any) {
       console.error("Failed to create session:", err.message);
       safeSend(ws, { type: "error", text: `Session creation failed: ${err.message}` });

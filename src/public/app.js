@@ -845,6 +845,26 @@
             approveEl.style.color = "var(--yellow)";
           }
           this._syncControlBarIfActive();
+
+          // "What's new" notification after update
+          if (msg.version) {
+            const lastSeen = localStorage.getItem("dg-last-version");
+            if (lastSeen && lastSeen !== msg.version) {
+              this.appendSystemMessage(
+                `Updated to v${msg.version} — [What's new](https://github.com/suuus/demogod/blob/main/CHANGELOG.md)`,
+                "info"
+              );
+            }
+            localStorage.setItem("dg-last-version", msg.version);
+          }
+
+          // Update available notification
+          if (msg.latestVersion) {
+            this.appendSystemMessage(
+              `v${msg.latestVersion} is available (you have v${msg.version}). Run \`git pull && npm install\` to update.`,
+              "info"
+            );
+          }
           break;
         }
 
@@ -3546,11 +3566,16 @@
     }, 3800);
   }
 
-  // Show version badge
+  // Show version badge (clickable → changelog)
   const dgVersion = document.querySelector('meta[name="dg-version"]')?.getAttribute("content");
   const versionBadge = document.getElementById("version-badge");
   if (versionBadge && dgVersion) {
     versionBadge.textContent = "v" + dgVersion;
+    versionBadge.title = "View changelog";
+    versionBadge.style.cursor = "pointer";
+    versionBadge.addEventListener("click", () => {
+      window.open("https://github.com/suuus/demogod/blob/main/CHANGELOG.md", "_blank");
+    });
     if (localStorage.getItem("dg-show-version") === "1") versionBadge.classList.remove("hidden");
   }
 
