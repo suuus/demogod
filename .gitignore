@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Internal planning (not published)
+FEATURE_IDEAS.md
+
 # Build output
 dist/
 
