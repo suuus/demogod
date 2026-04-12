@@ -3182,6 +3182,20 @@
   const settingAgentTabs = $("#setting-agent-tabs");
   const settingTodoPanel = $("#setting-todo-panel");
   const settingAutoApprove = $("#setting-auto-approve");
+  const settingAmbient = $("#setting-ambient");
+
+  // Ambient music — loops at 8% volume, starts on first user interaction
+  let ambientAudio = null;
+  function startAmbient() {
+    if (ambientAudio) return;
+    ambientAudio = new Audio("ambient.mp3");
+    ambientAudio.loop = true;
+    ambientAudio.volume = 0.08;
+    ambientAudio.play().catch(() => {});
+  }
+  function stopAmbient() {
+    if (ambientAudio) { ambientAudio.pause(); ambientAudio = null; }
+  }
 
   // Init settings from localStorage
   settingBg.value = localStorage.getItem("dg-bg") || "bg-chroma";
@@ -3191,6 +3205,18 @@
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
   settingTodoPanel.checked = localStorage.getItem("dg-todo-panel") !== "0";
   settingAutoApprove.checked = localStorage.getItem("dg-auto-approve") !== "0";
+  settingAmbient.checked = localStorage.getItem("dg-ambient") === "1";
+
+  // Auto-start ambient on first interaction if enabled
+  if (settingAmbient.checked) {
+    const startOnInteraction = () => {
+      startAmbient();
+      document.removeEventListener("click", startOnInteraction);
+      document.removeEventListener("keydown", startOnInteraction);
+    };
+    document.addEventListener("click", startOnInteraction, { once: true });
+    document.addEventListener("keydown", startOnInteraction, { once: true });
+  }
 
   const swedishTag = $("#swedish-tag");
 
@@ -3239,6 +3265,12 @@
 
   settingTodoPanel.addEventListener("change", () => {
     localStorage.setItem("dg-todo-panel", settingTodoPanel.checked ? "1" : "0");
+  });
+
+  settingAmbient.addEventListener("change", () => {
+    localStorage.setItem("dg-ambient", settingAmbient.checked ? "1" : "0");
+    if (settingAmbient.checked) startAmbient();
+    else stopAmbient();
   });
 
   settingAutoApprove.addEventListener("change", () => {
