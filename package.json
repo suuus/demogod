@@ -16,7 +16,8 @@
     "test:unit": "vitest run tests/unit",
     "test:e2e": "npx playwright test",
     "test:headed": "npx playwright test --headed",
-    "test:showcase": "npx playwright test tests/showcase --headed"
+    "test:showcase": "npx playwright test tests/showcase --headed",
+    "test:generated": "npx playwright test tests/generated --headed"
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.2.1",

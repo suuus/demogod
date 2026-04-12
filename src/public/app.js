@@ -1260,7 +1260,7 @@
         const onSaved = (msg) => {
           if (msg.type === "demo_plan_saved") {
             if (format === "playwright") {
-              statusSpan.textContent = `✓ Saved! Run: ${msg.runCommand}`;
+              statusSpan.textContent = `✓ Saved! Run: npm run test:generated`;
             } else {
               statusSpan.textContent = `✓ Saved! Run: npm run record -- --demo ${msg.name}`;
             }

@@ -4,7 +4,7 @@ import { homedir } from "os";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["seed.spec.ts", "tests/showcase*.spec.ts", "tests/e2e/*.spec.ts"],
+  testMatch: ["seed.spec.ts", "tests/showcase*.spec.ts", "tests/e2e/*.spec.ts", "tests/generated/*.spec.ts"],
   timeout: 180000,
   use: {
     baseURL: "http://localhost:3456",
