@@ -83,6 +83,10 @@
         <span>⬛</span>
         <span>Terminal</span>
       </button>
+      <button id="btn-studio" class="ctrl-btn" title="Demo Studio — generate demos with AI">
+        <span>🎬</span>
+        <span>Studio</span>
+      </button>
       <button id="btn-settings" class="ctrl-btn" title="Settings">
         <span>⚙️</span>
         <span>Settings</span>
@@ -385,9 +389,50 @@
     </div>
   </div>
 
+  <!-- Demo Studio overlay -->
+  <div id="studio-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Demo Studio">
+    <div id="studio-window" class="window dialog-window" style="width: 540px;">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="studio-close"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon">🎬</span>
+          Demo Studio
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body dialog-body" style="padding: 16px;">
+        <div style="margin-bottom: 12px;">
+          <label class="settings-label" style="margin-bottom: 6px; display: block;">Target</label>
+          <label style="margin-right: 16px; cursor: pointer;"><input type="radio" name="studio-target" value="self" checked /> DemoGod (demo itself)</label>
+          <label style="cursor: pointer;"><input type="radio" name="studio-target" value="project" /> Current project</label>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label class="settings-label" style="margin-bottom: 6px; display: block;">Output format</label>
+          <label style="margin-right: 16px; cursor: pointer;"><input type="radio" name="studio-format" value="demogod" checked /> DemoGod script</label>
+          <label style="cursor: pointer;"><input type="radio" name="studio-format" value="playwright" /> Playwright spec</label>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label class="settings-label" style="margin-bottom: 6px; display: block;">Describe your demo</label>
+          <textarea id="studio-description" rows="4" style="width: 100%; background: var(--mantle); color: var(--body-text); border: 1px solid var(--surface1); border-radius: 6px; padding: 8px; font-family: inherit; font-size: 13px; resize: vertical;" placeholder="Show the model picker, filter for Claude models, select one, then send a prompt asking to explain recursion..."></textarea>
+        </div>
+        <div id="studio-preview" class="hidden" style="margin-bottom: 12px; max-height: 200px; overflow-y: auto; background: var(--mantle); border-radius: 6px; padding: 8px; font-size: 12px; font-family: monospace; white-space: pre-wrap;"></div>
+        <div id="studio-status" class="hidden" style="margin-bottom: 12px; color: var(--body-dim); font-size: 12px; font-style: italic;"></div>
+        <div class="dialog-actions">
+          <button id="studio-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
+          <button id="studio-generate" class="dialog-btn dialog-btn-primary">Generate Demo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/vendor/xterm.js"></script>
   <script src="/vendor/xterm-addon-fit.js"></script>
   <script src="app.js"></script>
   <script type="module" src="terminal.js"></script>
+  <script type="module" src="demo-studio.js"></script>
 </body>
 </html>

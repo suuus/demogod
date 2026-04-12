@@ -2046,6 +2046,7 @@
 
       session.dom.inputEl.focus();
       this._syncControlBar(session);
+      window.__demogodActiveSession = session;
 
       // Re-fetch capabilities if panel is open (different session = different data)
       if (window._capabilitiesOpen) session.send("list_capabilities");
