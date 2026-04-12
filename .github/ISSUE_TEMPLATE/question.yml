@@ -1,0 +1,32 @@
+---
+name: ❓ Question
+description: Ask about setup, usage, or how something works
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No question is too small — happy to help! 😊
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What's your question?
+      description: Ask away. Include context about what you're trying to do if it helps.
+      placeholder: "How do I...? / Is it possible to...? / What does X do?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any relevant details — what you've tried, your setup, etc.
+
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before asking
+      options:
+        - label: I checked the [README](https://github.com/suuus/demogod#readme) and [docs](https://github.com/suuus/demogod/tree/main/docs)
+        - label: I searched [existing issues](https://github.com/suuus/demogod/issues)

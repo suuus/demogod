@@ -1,0 +1,62 @@
+---
+name: 🐛 Bug Report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! 🙏
+        Please fill out what you can — even partial info helps us track things down.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe what you saw vs. what you expected.
+      placeholder: "When I click X, Y happens instead of Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we see the same thing?
+      placeholder: |
+        1. Start the server with `npm start`
+        2. Open the browser
+        3. Click "..."
+        4. See error
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Any relevant details about your setup.
+      placeholder: |
+        - OS: macOS 15.2 / Windows 11 / Ubuntu 24.04
+        - Node: v22.x
+        - Browser: Chrome 130
+      render: markdown
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste any error messages, console output, or screenshots.
+      render: shell
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of DemoGod is affected?
+      options:
+        - Terminal UI
+        - Demo playback
+        - Copilot session
+        - Settings / config
+        - Integrated terminal (PTY)
+        - Desktop app (Tauri)
+        - Other

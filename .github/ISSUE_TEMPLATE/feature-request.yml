@@ -1,0 +1,47 @@
+---
+name: ✨ Feature Request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea? We'd love to hear it! 💡
+        No need to be formal — just tell us what you're thinking.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What would you like?
+      description: Describe the feature or improvement you have in mind.
+      placeholder: "It would be great if DemoGod could..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this useful?
+      description: What problem does this solve or what workflow does it improve?
+      placeholder: "When I'm demoing X, I often need to..."
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you tried any workarounds or thought of other approaches?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of DemoGod would this affect?
+      options:
+        - Terminal UI
+        - Demo scripts
+        - Copilot integration
+        - Settings / config
+        - Integrated terminal (PTY)
+        - Desktop app (Tauri)
+        - Documentation
+        - Other
