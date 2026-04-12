@@ -89,14 +89,17 @@ btnGenerate.addEventListener("click", () => {
   closeStudio();
 
   // Wait for the Copilot session to be fully ready before sending
+  const format = getFormat();
+  const target = getTarget();
   session.onReady(() => {
+    session._pendingDemoPlan = { format };
     session.addCommandEntry(desc);
     session.setProcessing(true);
     session.setStatus("Generating demo plan...");
     session.send("generate_demo_plan", {
       description: desc,
-      target: getTarget(),
-      outputFormat: getFormat(),
+      target,
+      outputFormat: format,
     });
   });
 });

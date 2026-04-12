@@ -391,6 +391,7 @@
       this.copilotMode = "interactive";
       this.isSessionReady = false;
       this._onReadyCallbacks = [];
+      this._pendingDemoPlan = null; // tracks {format} when generating a demo plan
       this.cachedAgents = [];
       this.cachedSkills = [];
       this.cachedMcpServers = [];
@@ -516,6 +517,7 @@
           this.setProcessing(true);
           this.setStatus("Thinking...");
           if (this.copilotMode === "demo_plan") {
+            this._pendingDemoPlan = { format: "demogod" };
             this.send("generate_demo_plan", {
               description: text,
               target: "self",
@@ -799,6 +801,10 @@
 
     handleMessage(msg) {
       console.log(`[WS:${this.id}]`, msg.type, msg);
+      if (this._oneShotHandler) {
+        this._oneShotHandler(msg);
+        if (msg.type === "demo_plan_saved") this._oneShotHandler = null;
+      }
       switch (msg.type) {
         case "session_ready": {
           this.isSessionReady = true;
@@ -858,6 +864,10 @@
           if (this.questionCheckPending) {
             this.questionCheckPending = false;
             this.detectAndShowQuestion();
+          }
+          if (this._pendingDemoPlan) {
+            this._showSaveDemoPlanButton(this._pendingDemoPlan.format);
+            this._pendingDemoPlan = null;
           }
           break;
 
@@ -1212,6 +1222,59 @@
     onReady(fn) {
       if (this.isSessionReady) fn();
       else this._onReadyCallbacks.push(fn);
+    }
+
+    /** Show a save button after demo plan generation completes. */
+    _showSaveDemoPlanButton(format) {
+      // Extract the generated content from the last response
+      const responseEls = this.dom.output.querySelectorAll(".response-text");
+      const lastResponse = responseEls[responseEls.length - 1];
+      if (!lastResponse) return;
+
+      const responseText = lastResponse.textContent || "";
+
+      const bar = document.createElement("div");
+      bar.style.cssText = "display:flex; gap:8px; padding:8px 0; align-items:center;";
+
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.placeholder = "demo-name";
+      nameInput.value = "generated-demo";
+      nameInput.style.cssText = "background:var(--mantle); color:var(--body-text); border:1px solid var(--surface1); border-radius:4px; padding:4px 8px; font-size:12px; width:140px;";
+
+      const saveBtn = document.createElement("button");
+      saveBtn.textContent = format === "playwright" ? "💾 Save Playwright Spec" : "💾 Save & Play Demo";
+      saveBtn.style.cssText = "background:var(--accent); color:#1e1e2e; border:none; border-radius:4px; padding:6px 12px; font-size:12px; cursor:pointer; font-weight:600;";
+
+      const statusSpan = document.createElement("span");
+      statusSpan.style.cssText = "font-size:12px; color:var(--body-dim);";
+
+      saveBtn.addEventListener("click", () => {
+        const name = nameInput.value.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+        if (!name) { statusSpan.textContent = "Enter a valid name (a-z, 0-9, -, _)"; return; }
+        saveBtn.disabled = true;
+        statusSpan.textContent = "Saving...";
+        this.send("save_demo_plan", { name, format, content: responseText });
+
+        const origHandler = this.handleMessage.bind(this);
+        const onSaved = (msg) => {
+          if (msg.type === "demo_plan_saved") {
+            if (format === "playwright") {
+              statusSpan.textContent = `✓ Saved! Run: ${msg.runCommand}`;
+            } else {
+              statusSpan.textContent = `✓ Saved! Run: npm run record -- --demo ${msg.name}`;
+            }
+            saveBtn.textContent = "✓ Saved";
+          }
+        };
+        this._oneShotHandler = onSaved;
+      });
+
+      bar.appendChild(nameInput);
+      bar.appendChild(saveBtn);
+      bar.appendChild(statusSpan);
+      this.dom.output.appendChild(bar);
+      this.scrollToBottom();
     }
 
     // ─── Sub-agent tab helpers ──────────────────────────
