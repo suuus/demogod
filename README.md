@@ -8,6 +8,8 @@
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Handcrafted in Uppsala](https://img.shields.io/badge/Handcrafted_in-Uppsala_%F0%9F%87%B8%F0%9F%87%AA-FFD700.svg)](https://en.wikipedia.org/wiki/Uppsala)
+[![Code Review Panel](https://github.com/suuus/demogod/actions/workflows/code-review-panel.lock.yml/badge.svg)](https://github.com/suuus/demogod/actions/workflows/code-review-panel.lock.yml)
+[![Daily Doc Updater](https://github.com/suuus/demogod/actions/workflows/daily-doc-updater.lock.yml/badge.svg)](https://github.com/suuus/demogod/actions/workflows/daily-doc-updater.lock.yml)
 
 ## The Legend of Demo God
 
