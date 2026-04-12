@@ -1246,12 +1246,8 @@
 
     /** Show a save button after demo plan generation completes. */
     _showSaveDemoPlanButton(format) {
-      // Extract the generated content from the last response
-      const responseEls = this.dom.output.querySelectorAll(".response-text");
-      const lastResponse = responseEls[responseEls.length - 1];
-      if (!lastResponse) return;
-
-      const responseText = lastResponse.textContent || "";
+      const responseText = this.currentResponseText || "";
+      if (!responseText) return;
 
       const bar = document.createElement("div");
       bar.style.cssText = "display:flex; gap:8px; padding:8px 0; align-items:center;";
