@@ -3566,15 +3566,23 @@
     }, 3800);
   }
 
-  // Show version badge (clickable → changelog)
+  // Show version badge (clickable → show changelog in a tab)
   const dgVersion = document.querySelector('meta[name="dg-version"]')?.getAttribute("content");
   const versionBadge = document.getElementById("version-badge");
   if (versionBadge && dgVersion) {
     versionBadge.textContent = "v" + dgVersion;
-    versionBadge.title = "View changelog";
+    versionBadge.removeAttribute("href");
+    versionBadge.removeAttribute("target");
     versionBadge.style.cursor = "pointer";
-    versionBadge.addEventListener("click", () => {
-      window.open("https://github.com/suuus/demogod/blob/main/CHANGELOG.md", "_blank");
+    versionBadge.title = "View changelog";
+    versionBadge.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch(API_BASE + "/api/changelog");
+        if (!res.ok) return;
+        const data = await res.json();
+        addReportTab("Changelog", data.content);
+      } catch {}
     });
     if (localStorage.getItem("dg-show-version") === "1") versionBadge.classList.remove("hidden");
   }

@@ -454,6 +454,16 @@ app.post("/api/specs/save", async (req, res) => {
   }
 });
 
+// Serve changelog
+app.get("/api/changelog", async (_req, res) => {
+  try {
+    const content = await readFile(resolve(__dirname, "..", "CHANGELOG.md"), "utf-8");
+    res.json({ content });
+  } catch {
+    res.status(404).json({ error: "Changelog not found" });
+  }
+});
+
 
 
 app.get("/api/models", async (_req, res) => {
