@@ -389,6 +389,8 @@
       this.selectedModel = opts.model || "";
       this.selectedAgent = null;
       this.copilotMode = "interactive";
+      this.isSessionReady = false;
+      this._onReadyCallbacks = [];
       this.cachedAgents = [];
       this.cachedSkills = [];
       this.cachedMcpServers = [];
@@ -799,6 +801,9 @@
       console.log(`[WS:${this.id}]`, msg.type, msg);
       switch (msg.type) {
         case "session_ready": {
+          this.isSessionReady = true;
+          for (const cb of this._onReadyCallbacks) cb();
+          this._onReadyCallbacks = [];
           this.setStatus("Ready");
           this.setProcessing(false);
           const dir = msg.workingDirectory;
@@ -1201,6 +1206,12 @@
 
     scrollToBottom() {
       this.dom.body.scrollTop = this.dom.body.scrollHeight;
+    }
+
+    /** Call fn immediately if session is ready, or queue it for when session_ready fires. */
+    onReady(fn) {
+      if (this.isSessionReady) fn();
+      else this._onReadyCallbacks.push(fn);
     }
 
     // ─── Sub-agent tab helpers ──────────────────────────

@@ -88,28 +88,17 @@ btnGenerate.addEventListener("click", () => {
   // Close the studio panel — the user will see output in the new session tab
   closeStudio();
 
-  // Wait for the session to connect, then send the generation request
-  const checkReady = setInterval(() => {
-    if (session.ws && session.ws.readyState === WebSocket.OPEN) {
-      clearInterval(checkReady);
-      session.addCommandEntry(desc);
-      session.setProcessing(true);
-      session.setStatus("Generating demo plan...");
-      session.send("generate_demo_plan", {
-        description: desc,
-        target: getTarget(),
-        outputFormat: getFormat(),
-      });
-    }
-  }, 200);
-
-  // Timeout after 10s if WS never connects
-  setTimeout(() => {
-    clearInterval(checkReady);
-    if (generating) {
-      generating = false;
-    }
-  }, 10000);
+  // Wait for the Copilot session to be fully ready before sending
+  session.onReady(() => {
+    session.addCommandEntry(desc);
+    session.setProcessing(true);
+    session.setStatus("Generating demo plan...");
+    session.send("generate_demo_plan", {
+      description: desc,
+      target: getTarget(),
+      outputFormat: getFormat(),
+    });
+  });
 });
 
 btnCancel.addEventListener("click", closeStudio);
