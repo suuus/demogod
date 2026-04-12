@@ -13,18 +13,23 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 
 ```
 src/
-├── server.ts            # Express + WS server, REST API, plugin scanners, demo engine
+├── server.ts            # Express + WS server, REST API, MCP discovery, demo engine
 ├── copilot-bridge.ts    # @github/copilot-sdk wrapper, event forwarding, sub-agent detection
+├── pty-server.ts        # PTY WebSocket server (shell spawn, resize, cleanup)
+├── path-utils.ts        # Shared path security (safeRealpath, isUnderHome)
+├── demo-plan-prompts.ts # Prompt templates for Demo Plan Mode
 └── public/
     ├── index.html       # Page structure, overlays, control bar, settings panel
-    ├── app.js           # All frontend logic — class-based vanilla JS
+    ├── app.js           # Core frontend logic — class-based vanilla JS (IIFE)
+    ├── terminal.js      # Integrated terminal module (xterm.js + PTY WebSocket)
+    ├── demo-studio.js   # Demo Studio panel (AI-powered demo generation)
     └── styles.css       # Theming, terminal chrome, CSS custom properties
 
 demo/sample-app/         # Tiny Node.js project for demo showcases
 demos/                   # JSON demo scripts (loaded via /api/demos/:name)
 src-tauri/               # Tauri desktop app (Rust shell + config)
 docs/ARCHITECTURE.md     # Deep architecture reference
-.github/workflows/desktop-build.yml  # CI for Tauri builds
+.github/workflows/       # CI workflows + agentic workflows
 ```
 
 ## Tech Stack & Conventions
@@ -44,6 +49,56 @@ docs/ARCHITECTURE.md     # Deep architecture reference
 5. **Sanitize demo names** — `[a-zA-Z0-9_-]` only, resolved path must be under `DEMOS_DIR`.
 6. **Do NOT remove or weaken `verifyClient`** — it's the primary WS auth layer (token + origin checks).
 7. **Do NOT push to remote (`git push`) without explicit user permission.** Commit locally, then ask before pushing.
+
+### TypeScript / ESM Conventions
+
+1. **Use `.js` extensions in all local imports** — ESM requires them: `import { foo } from "./bar.js"`, not `"./bar"` or `"./bar.ts"`.
+2. **Derive `__filename`/`__dirname` from `import.meta.url`** — ESM doesn't provide these globals.
+3. **Use `import type` for type-only imports** — `import type { SessionEvent } from "@github/copilot-sdk"`.
+4. **Use `fs/promises` for async file operations** — sync variants only in `path-utils.ts` where security validation must be atomic.
+5. **`tsx` is the runtime** — no separate compile step. Type-check with `npx tsc --noEmit`.
+
+### Error Handling Conventions
+
+1. **Never silently swallow errors.** Every `catch` must log (`console.debug`/`warn`/`error`), forward to client via `safeSend`, or return a meaningful fallback.
+2. **Use `safeSend()` for all WebSocket writes** — checks `readyState` before sending. Never call `ws.send()` directly.
+3. **Use `AbortController` for cancellable operations** — check `signal.aborted` or catch `AbortError` by name.
+
+### Security Coding Rules
+
+1. **Path validation is two-step: `safeRealpath()` + `isUnderHome()`** — import from `path-utils.ts`. Never use `resolve()` alone.
+2. **Name sanitization uses allowlist regex** — `safeDemoPath()` strips `[^a-zA-Z0-9_-]` then verifies equality.
+3. **Extension allowlist for file reading** — `/api/file` and `/api/browse-files` restrict to known text extensions.
+4. **Shell allowlist for PTY** — `ALLOWED_SHELLS` is a `Set`. Unknown shells fall back to default.
+5. **Token per-process, injected via `<meta>` tag** — never hardcode in static HTML.
+6. **CSP injected server-side** — never add it to `index.html` directly.
+
+### Frontend Conventions (Vanilla JS)
+
+1. **`app.js` is a single IIFE** — `(() => { "use strict"; ... })()`. No global variables.
+2. **ES modules for satellite features** — new standalone features go in separate `<script type="module">` files (like `terminal.js`, `demo-studio.js`). Communicate via `window.__demogodManager` or `window.__demogodActiveSession`.
+3. **`$()` is the local selector shorthand** — `const $ = (sel) => document.querySelector(sel)`. Defined in each module.
+4. **`escapeHtml()` before any `innerHTML`** — uses the `textContent` → `innerHTML` pattern. Never interpolate user input into HTML strings.
+5. **`textContent` for text-only, `classList` for classes, `dataset` for data attributes**.
+6. **`requestAnimationFrame` for high-frequency DOM updates** — streaming deltas coalesce via rAF.
+7. **`aria-live` management** — set `"off"` during streaming, restore `"polite"` when idle.
+8. **Settings use `localStorage` with `dg-` prefix** — keys: `dg-bg`, `dg-dialog-mode`, `dg-terminal`, `dg-agent-tabs`, `dg-show-version`, `dg-layout`, `dg-auto-approve`, `dg-todo-panel`.
+9. **Dialogs must have `role="dialog"`, `aria-modal="true"`, focus trapping, and Escape-to-close** — use `setupDialogOverlay()`.
+
+### CSS Conventions
+
+1. **All colors via CSS custom properties** — defined on `:root`. Use `var(--accent)`, never hardcode hex values.
+2. **Catppuccin Mocha-inspired palette** — `--base`, `--mantle`, `--surface0`, `--overlay0`, etc.
+3. **Mode borders via `data-copilot-mode` attribute** — not inline styles.
+4. **`hidden` class for visibility toggling** — overlays use `classList.add/remove("hidden")`.
+5. **No CSS preprocessors** — plain CSS with custom properties only.
+
+### Testing Conventions
+
+1. **Unit tests** — Vitest in `tests/unit/*.test.ts`. Import from `vitest`, mock with `vi.mock()`.
+2. **E2E tests** — Playwright in `tests/e2e/*.spec.ts`. Extract `dg-token` from HTML for WS tests.
+3. **Generated specs** — Demo Plan output goes to `tests/generated/*.spec.ts` (gitignored).
+4. **Run:** `npm run test:unit` | `npm run test:e2e` | `npm test` (both) | `npm run test:generated` (headed)
 
 ## Key Patterns
 
@@ -67,7 +122,7 @@ When adding a new message type, update **all four** locations.
 
 The SDK handles plugin and config discovery automatically via `enableConfigDiscovery: true` in the session config. This auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes). The server does **not** manually pass `customAgents` or `skillDirectories` to session creation.
 
-> **Note:** `getPluginSkills()`, `getPluginAgents()`, and `getPluginSkillDirectories()` functions still exist in `server.ts` but are only used for the `/skill-name` slash command handler — they are **not** used for session creation.
+The `/skill-name` slash command handler uses `bridge.listSkills()` at runtime to verify skill names before transforming the prompt.
 
 ### Demo Scripts
 
@@ -105,6 +160,7 @@ The status bar displays the current git branch (detected via `git rev-parse --ab
 Session containers use mode-colored subtle separator lines via the `--titlebar-border` CSS variable, overridden per session through the `data-copilot-mode` attribute on `.session-container`:
 - **Green** border = autopilot mode
 - **Purple** border = plan mode
+- **Gold** border = demo plan mode (client-side only, not a Copilot SDK mode)
 
 ### Sub-Agent Tab Detection (v0.0.7)
 
@@ -174,45 +230,35 @@ DemoGod can run as a native desktop app via Tauri v2. Source is in `src-tauri/`.
 
 When modifying Tauri config, edit `src-tauri/tauri.conf.json`. Rust code is in `src-tauri/src/`.
 
-### Shell Picker (v0.0.4+)
-
-The desktop app includes a shell picker (🐚 button) in the control bar **visible only in Tauri** (detected via `window.__TAURI_INTERNALS__`). Users can select between **WSL**, **PowerShell**, **CMD**, or **native** shell for spawning the server. The selection is:
-- Persisted to `~/.demogod/config.json`
-- Applied at server startup via `lib.rs` command dispatch with fallback logic
-- Read/written via new REST endpoints:
-  - `GET /api/shell` — read current shell config
-  - `PUT /api/shell` — update shell config
-
-In browser mode, the shell picker is hidden.
-
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Shift+T` | New session |
-| `Ctrl+W` | Close current session |
-| `Ctrl+Tab` | Next session |
-| `Ctrl+Shift+Tab` | Previous session |
-
-> On macOS, use `Cmd` instead of `Ctrl`.
-
-These are handled in `SessionManager` inside `app.js`.
+| Shortcut (macOS: Ctrl, other: Alt) | Action |
+|-------------------------------------|--------|
+| `Ctrl/Alt + T` | New session |
+| `Ctrl/Alt + W` | Close current session |
+| `Ctrl/Alt + N` | Next session |
+| `Ctrl/Alt + P` | Previous session |
+| `Ctrl + \`` | Toggle integrated terminal |
+| `Escape` | Close any open dialog/overlay |
 
 ## Common Tasks Quick Reference
 
 | Task | What to do |
 |------|-----------|
-| Add REST endpoint | Add route in `server.ts`, enforce `homedir()` security, document in README |
-| Add WS message type | Update `server.ts` switch + `app.js` `handleMessage()` switch + README protocol table |
+| Add REST endpoint | Add route in `server.ts`, enforce `homedir()` security via `path-utils.ts`, document in ARCHITECTURE.md |
+| Add WS message type | Update `server.ts` switch + `copilot-bridge.ts` event + `app.js` `send()` + `handleMessage()` (all four locations) |
 | Add UI button | HTML in `index.html` `#controls`, CSS in `styles.css`, JS handler in `app.js` |
-| Add SDK event | Handle in `copilot-bridge.ts` `session.on()`, emit, wire through `server.ts` → `app.js` |
+| Add SDK event | Handle in `copilot-bridge.ts` `_handleSessionEvent()`, emit, wire through `server.ts` → `app.js` |
 | Add demo step type | Handle in `runDemo()` in `server.ts`, add `demo_step_*` handling in `app.js` |
-| Add setting | HTML toggle in `#settings-window`, localStorage `dg-*` key, wire in settings panel init in `app.js` |
-| Add demo action | Handle in `_handleDemoAction()` in `app.js`, use in demo JSON `{"type":"action","action":"name"}` |
+| Add setting | HTML toggle in `#settings-window`, localStorage `dg-*` key, wire in settings panel section of `app.js` |
+| Add overlay/dialog | Add HTML with `role="dialog" aria-modal="true"`, call `setupDialogOverlay()` in `app.js` |
+| Add ES module | Create `src/public/name.js`, add `<script type="module">` in `index.html`, use `window.__demogod*` for IIFE bridge |
 | Type-check | `npx tsc --noEmit` |
 | Run all tests | `npm test` (unit + E2E) |
 | Run unit tests | `npm run test:unit` (Vitest) |
 | Run E2E tests | `npm run test:e2e` (Playwright) |
-| Run dev server | `npm run dev` (hot reload on :3456) |
-| Run desktop dev | `npm run desktop` (Tauri + Node hot reload) |
-| Build desktop app | `npm run build:desktop` (platform installers) |
+| Run showcase | `npm run test:showcase` (headed) |
+| Run generated demos | `npm run test:generated` (headed) |
+| Record a demo | `npm run record` (interactive) or `npm run record -- --demo name` (automated) |
+| Dev server | `npm run dev` (hot reload on :3456) |
+| Desktop dev | `npm run desktop` (Tauri + Node hot reload) |
