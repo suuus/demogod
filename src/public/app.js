@@ -3503,12 +3503,17 @@
   // Dismiss splash after animation plays
   const splash = document.getElementById("splash");
   if (splash) {
-    // Play startup sound (user interaction not required for autoplay of short sounds on most browsers)
-    try {
-      const startupSound = new Audio("startup.wav");
-      startupSound.volume = 0.5;
-      startupSound.play().catch(() => {}); // silently fail if autoplay blocked
-    } catch {}
+    // Browsers block autoplay before user interaction — play on first click/key
+    const startupSound = new Audio("startup.wav");
+    startupSound.volume = 0.5;
+    const playSound = () => {
+      startupSound.play().catch(() => {});
+      document.removeEventListener("click", playSound);
+      document.removeEventListener("keydown", playSound);
+    };
+    document.addEventListener("click", playSound, { once: true });
+    document.addEventListener("keydown", playSound, { once: true });
+
     setTimeout(() => {
       splash.classList.add("fade-out");
       setTimeout(() => splash.remove(), 600);
