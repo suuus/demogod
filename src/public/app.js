@@ -513,7 +513,15 @@
           inputEl.textContent = "";
           this.setProcessing(true);
           this.setStatus("Thinking...");
-          this.send("send_prompt", { prompt: text });
+          if (this.copilotMode === "demo_plan") {
+            this.send("generate_demo_plan", {
+              description: text,
+              target: "self",
+              outputFormat: "demogod",
+            });
+          } else {
+            this.send("send_prompt", { prompt: text });
+          }
         }
       });
 
@@ -1024,8 +1032,8 @@
         case "mode_current":
         case "mode_changed": {
           this.copilotMode = msg.mode;
-          const modeLabelsMap = { interactive: "Interactive", plan: "Plan", autopilot: "Autopilot" };
-          const modeIconsMap = { interactive: "\ud83c\udfaf", plan: "\ud83d\udccb", autopilot: "\ud83d\ude80" };
+          const modeLabelsMap = { interactive: "Interactive", plan: "Plan", autopilot: "Autopilot", demo_plan: "Demo Plan" };
+          const modeIconsMap = { interactive: "\ud83c\udfaf", plan: "\ud83d\udccb", autopilot: "\ud83d\ude80", demo_plan: "\ud83c\udfac" };
           const smodeEl = this.dom.statusBar.querySelector(".status-mode");
           if (smodeEl) {
             smodeEl.textContent = (modeIconsMap[msg.mode] || "") + " " + (modeLabelsMap[msg.mode] || msg.mode);
@@ -1059,6 +1067,14 @@
 
         case "demo_action":
           this._handleDemoAction(msg);
+          break;
+
+        case "demo_plan_saved":
+          if (msg.format === "playwright") {
+            this.appendSystemMessage(`Playwright spec saved! Run with:\n\`${msg.runCommand}\``, "info");
+          } else {
+            this.appendSystemMessage(`Demo "${msg.name}" saved! Select it from the demo picker to play.`, "info");
+          }
           break;
       }
     }
@@ -2125,8 +2141,8 @@
       if (al) al.textContent = session.selectedAgent?.displayName || session.selectedAgent?.name || "Agent";
       if (ba) ba.classList.toggle("active", !!session.selectedAgent);
 
-      const modeLabelsMap = { interactive: "Interactive", plan: "Plan", autopilot: "Autopilot" };
-      const modeIconsMap = { interactive: "\ud83c\udfaf", plan: "\ud83d\udccb", autopilot: "\ud83d\ude80" };
+      const modeLabelsMap = { interactive: "Interactive", plan: "Plan", autopilot: "Autopilot", demo_plan: "Demo Plan" };
+      const modeIconsMap = { interactive: "\ud83c\udfaf", plan: "\ud83d\udccb", autopilot: "\ud83d\ude80", demo_plan: "\ud83c\udfac" };
       if (cml) cml.textContent = modeLabelsMap[session.copilotMode] || session.copilotMode;
       if (bcm) {
         const iconSpan = bcm.querySelector("span");
@@ -2765,13 +2781,15 @@
     if (mode === "demo") {
       cappickerIcon.textContent = "🎬";
       cappickerTitle.textContent = "Run Demo";
-      renderCapList((externalItems || []).map((d) => ({
+      const createItem = { id: "__create_demo__", name: "✨ Create New Demo", desc: "Describe a demo and let Copilot generate it", meta: "", selected: false };
+      const demoItems = (externalItems || []).map((d) => ({
         id: d.name,
         name: d.name,
         desc: d.description || "",
         meta: "",
         selected: false,
-      })));
+      }));
+      renderCapList([createItem, ...demoItems]);
     } else if (mode === "model") {
       cappickerIcon.textContent = "\ud83e\uddea";
       cappickerTitle.textContent = "Select Model";
@@ -2841,6 +2859,17 @@
     const mode = cappickerMode;
     closeCapPicker();
     if (mode === "demo") {
+      if (id === "__create_demo__") {
+        session.copilotMode = "demo_plan";
+        session.dom.container.dataset.copilotMode = "demo_plan";
+        if (session.floatingEl) session.floatingEl.dataset.copilotMode = "demo_plan";
+        const smodeEl = session.dom.statusBar.querySelector(".status-mode");
+        if (smodeEl) smodeEl.textContent = "🎬 Demo Plan";
+        session.appendSystemMessage("Demo Plan mode — describe the demo you want to create. I'll generate a runnable script.", "info");
+        session.dom.inputEl.focus();
+        manager._syncControlBar(session);
+        return;
+      }
       session.mode = "scripted";
       session.setProcessing(true);
       session.send("start_demo", { demo: id });
@@ -2908,6 +2937,15 @@
   $("#btn-copilot-mode").addEventListener("click", () => {
     const session = manager.getActive();
     if (!session) return;
+    // If in client-side demo_plan mode, exit back to interactive
+    if (session.copilotMode === "demo_plan") {
+      session.copilotMode = "interactive";
+      session.dom.container.dataset.copilotMode = "interactive";
+      if (session.floatingEl) session.floatingEl.dataset.copilotMode = "interactive";
+      session.appendSystemMessage("Exited Demo Plan mode", "info");
+      manager._syncControlBar(session);
+      return;
+    }
     const modes = ["interactive", "plan", "autopilot"];
     const next = modes[(modes.indexOf(session.copilotMode) + 1) % modes.length];
     session.send("set_mode", { mode: next });

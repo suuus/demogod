@@ -422,8 +422,10 @@ html, body {
 /* Mode-based border colors (per session) */
 .session-container[data-copilot-mode="autopilot"] { --titlebar-border: rgba(166, 227, 161, 0.4); }
 .session-container[data-copilot-mode="plan"] { --titlebar-border: rgba(180, 160, 232, 0.4); }
+.session-container[data-copilot-mode="demo_plan"] { --titlebar-border: rgba(250, 200, 80, 0.4); }
 .floating-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
 .floating-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
+.floating-window[data-copilot-mode="demo_plan"] { border-color: #fac850; }
 
 .window-titlebar {
   display: flex;
@@ -1055,6 +1057,9 @@ html, body {
   content: 'Ask Copilot anything...';
   color: var(--overlay0);
   font-weight: 400;
+}
+.session-container[data-copilot-mode="demo_plan"] .session-input:empty::before {
+  content: 'Describe the demo you want to create...';
 }
 .session-input.touched:empty::before {
   content: none;
@@ -1702,6 +1707,7 @@ body.recording #record-icon {
 }
 .floating-window[data-copilot-mode="autopilot"] { border-color: var(--green); }
 .floating-window[data-copilot-mode="plan"] { border-color: #b4a0e8; }
+.floating-window[data-copilot-mode="demo_plan"] { border-color: #fac850; }
 
 .floating-titlebar {
   display: flex;
