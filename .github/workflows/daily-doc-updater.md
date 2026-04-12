@@ -22,6 +22,7 @@ network:
     - github
 
 safe-outputs:
+  github-token: ${{ secrets.GH_AW_ISSUE_PAT }}
   create-pull-request:
     expires: 1d
     title-prefix: "[docs] "
