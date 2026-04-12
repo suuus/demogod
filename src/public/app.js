@@ -3503,30 +3503,11 @@
   // Dismiss splash after animation plays
   const splash = document.getElementById("splash");
   if (splash) {
-    // Use Web Audio API for autoplay — more permissive than <audio>.play()
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      fetch("startup.wav")
-        .then(r => r.arrayBuffer())
-        .then(buf => audioCtx.decodeAudioData(buf))
-        .then(decoded => {
-          const source = audioCtx.createBufferSource();
-          const gain = audioCtx.createGain();
-          gain.gain.value = 0.08;
-          source.buffer = decoded;
-          source.connect(gain);
-          gain.connect(audioCtx.destination);
-          source.start(0);
-        })
-        .catch(() => {});
-    } catch {}
-
     splash.style.cursor = "pointer";
     splash.addEventListener("click", () => {
       splash.classList.add("fade-out");
       setTimeout(() => splash.remove(), 600);
     });
-
     setTimeout(() => {
       splash.classList.add("fade-out");
       setTimeout(() => splash.remove(), 600);
