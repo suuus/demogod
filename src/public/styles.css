@@ -2070,3 +2070,13 @@ body.recording #record-icon {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Global focus-visible indicator for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.session-input:focus-visible {
+  outline: none;
+  box-shadow: 0 1px 0 var(--accent);
+}

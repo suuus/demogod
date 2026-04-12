@@ -449,11 +449,11 @@
 
       const inputLine = document.createElement("div");
       inputLine.className = "input-line";
-      inputLine.innerHTML = '<span class="prompt-symbol">\u276f</span><span class="session-input" contenteditable="true" spellcheck="false"></span>';
+      inputLine.innerHTML = '<span class="prompt-symbol">\u276f</span><span class="session-input" contenteditable="true" spellcheck="false" role="textbox" aria-label="Chat input" aria-multiline="false"></span>';
 
       const statusBar = document.createElement("div");
       statusBar.className = "window-statusbar";
-      statusBar.innerHTML = '<span class="status-text">Ready</span><span class="status-cwd status-dim"></span><span class="status-branch status-dim"></span><span class="status-approve status-dim"></span><span class="status-agent status-dim"></span><span class="status-mode status-dim"></span><span class="status-model status-dim"></span>';
+      statusBar.innerHTML = '<span class="status-text" role="status">Ready</span><span class="status-cwd status-dim"></span><span class="status-branch status-dim"></span><span class="status-approve status-dim"></span><span class="status-agent status-dim"></span><span class="status-mode status-dim"></span><span class="status-model status-dim"></span>';
 
       body.appendChild(output);
       body.appendChild(inputLine);
@@ -2134,9 +2134,15 @@
         }
       }
 
-      document.querySelectorAll(".session-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".session-tab").forEach(t => {
+        t.classList.remove("active");
+        t.setAttribute("aria-selected", "false");
+      });
       const tab = document.querySelector('[data-session-tab="' + id + '"]');
-      if (tab) tab.classList.add("active");
+      if (tab) {
+        tab.classList.add("active");
+        tab.setAttribute("aria-selected", "true");
+      }
 
       session.dom.inputEl.focus();
       this._syncControlBar(session);
@@ -2164,10 +2170,12 @@
       const tab = document.createElement("div");
       tab.className = "session-tab";
       tab.dataset.sessionTab = session.id;
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", "false");
       tab.innerHTML =
         '<span class="session-tab-dot" style="background: #28c840"></span>' +
         '<span class="session-tab-name">' + escapeHtml(session._displayName()) + '</span>' +
-        '<span class="session-tab-close" title="Close">\u00d7</span>';
+        '<button class="session-tab-close" aria-label="Close session" title="Close">\u00d7</button>';
 
       tab.addEventListener("click", (e) => {
         if (e.target.classList.contains("session-tab-close")) {
@@ -2363,12 +2371,18 @@
   // ═══════════════════════════════════════════════════════════
 
   function switchTab(tabId) {
-    tabBar.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tabBar.querySelectorAll(".tab").forEach(t => {
+      t.classList.remove("active");
+      t.setAttribute("aria-selected", "false");
+    });
     tabPanels.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
 
     const tab = tabBar.querySelector('[data-tab="' + tabId + '"]');
     const panel = document.getElementById("panel-" + tabId);
-    if (tab) tab.classList.add("active");
+    if (tab) {
+      tab.classList.add("active");
+      tab.setAttribute("aria-selected", "true");
+    }
     if (panel) panel.classList.add("active");
 
     if (tab) {
@@ -2383,10 +2397,12 @@
     const tab = document.createElement("div");
     tab.className = "tab";
     tab.dataset.tab = tabId;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", "false");
     tab.innerHTML =
       '<span class="tab-icon">\ud83d\udcc4</span>' +
       '<span class="tab-label">' + escapeHtml(title) + '</span>' +
-      '<span class="tab-close" title="Close tab">\u2715</span>';
+      '<button class="tab-close" aria-label="Close tab" title="Close tab">\u2715</button>';
     tab.addEventListener("click", (e) => {
       if (!e.target.classList.contains("tab-close")) {
         switchTab(tabId);
@@ -2401,6 +2417,8 @@
     const panel = document.createElement("div");
     panel.className = "tab-panel";
     panel.id = "panel-" + tabId;
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-label", title);
     const reportDiv = document.createElement("div");
     reportDiv.className = "report-panel";
     reportDiv.innerHTML = renderReportMarkdown(markdownContent);
@@ -2463,10 +2481,12 @@
     const tab = document.createElement("div");
     tab.className = "tab";
     tab.dataset.tab = tabId;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", "false");
     tab.innerHTML =
       '<span class="tab-icon">\ud83d\udcc4</span>' +
       '<span class="tab-label" title="' + escapeHtml(filePath) + '">' + escapeHtml(filename) + '</span>' +
-      '<span class="tab-close" title="Close tab">\u2715</span>';
+      '<button class="tab-close" aria-label="Close tab" title="Close tab">\u2715</button>';
     tab.addEventListener("click", (e) => {
       if (!e.target.classList.contains("tab-close")) switchTab(tabId);
     });
@@ -2480,6 +2500,8 @@
     const panel = document.createElement("div");
     panel.className = "tab-panel";
     panel.id = "panel-" + tabId;
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-label", filename);
     const reportDiv = document.createElement("div");
     reportDiv.className = "report-panel";
     reportDiv.innerHTML = renderReportMarkdown(content);
@@ -2628,6 +2650,7 @@
     for (const dir of data.dirs) {
       const item = document.createElement("div");
       item.className = "picker-item";
+      item.setAttribute("role", "option");
 
       const icon = document.createElement("span");
       icon.className = "picker-item-icon";
@@ -2754,6 +2777,7 @@
     for (const item of data.items) {
       const row = document.createElement("div");
       row.className = "picker-item";
+      row.setAttribute("role", "option");
 
       const icon = document.createElement("span");
       icon.className = "picker-item-icon";
@@ -2939,6 +2963,8 @@
       const el = document.createElement("div");
       el.className = "cappicker-item" + (item.selected ? " selected" : "");
       el.dataset.id = item.id;
+      el.setAttribute("role", "option");
+      el.setAttribute("aria-selected", item.selected ? "true" : "false");
       el.innerHTML =
         '<div class="cappicker-item-name">' + escapeHtml(item.name) + '</div>' +
         (item.desc ? '<div class="cappicker-item-desc">' + escapeHtml(item.desc) + '</div>' : "") +

@@ -41,57 +41,57 @@
   <div id="backdrop"></div>
 
   <!-- Control panel -->
-  <div id="controls">
+  <div id="controls" role="toolbar" aria-label="Controls">
     <div class="control-group">
-      <button id="btn-project" class="ctrl-btn" title="Choose project directory">
+      <button id="btn-project" class="ctrl-btn" title="Choose project directory" aria-label="Choose project directory">
         <span>📁</span>
         <span id="project-label">No project</span>
       </button>
-      <button id="btn-mode" class="ctrl-btn" title="Toggle mode">
+      <button id="btn-mode" class="ctrl-btn" title="Toggle mode" aria-label="Toggle mode">
         <span id="mode-icon">⌨️</span>
         <span id="mode-label">Live</span>
       </button>
-      <button id="btn-browse-file" class="ctrl-btn" title="Browse and open a file">
+      <button id="btn-browse-file" class="ctrl-btn" title="Browse and open a file" aria-label="Browse and open a file">
         <span>📄</span>
         <span>Open</span>
       </button>
-      <button id="btn-model" class="ctrl-btn" title="Select model">
+      <button id="btn-model" class="ctrl-btn" title="Select model" aria-label="Select model">
         <span>🧪</span>
         <span id="model-label">Model</span>
       </button>
-      <button id="btn-agent" class="ctrl-btn" title="Select agent">
+      <button id="btn-agent" class="ctrl-btn" title="Select agent" aria-label="Select agent">
         <span>🤖</span>
         <span id="agent-label">Agent</span>
       </button>
-      <button id="btn-skill" class="ctrl-btn" title="Invoke a skill">
+      <button id="btn-skill" class="ctrl-btn" title="Invoke a skill" aria-label="Invoke a skill">
         <span>⚡</span>
         <span id="skill-label">Skill</span>
       </button>
-      <button id="btn-copilot-mode" class="ctrl-btn" title="Switch Copilot mode">
+      <button id="btn-copilot-mode" class="ctrl-btn" title="Switch Copilot mode" aria-label="Switch Copilot mode">
         <span>🎯</span>
         <span id="copilot-mode-label">Interactive</span>
       </button>
-      <button id="btn-layout" class="ctrl-btn" title="Toggle layout mode">
+      <button id="btn-layout" class="ctrl-btn" title="Toggle layout mode" aria-label="Toggle layout mode">
         <span id="layout-icon">📑</span>
         <span id="layout-label">Tabs</span>
       </button>
-      <button id="btn-tile" class="ctrl-btn hidden" title="Tile all windows">
+      <button id="btn-tile" class="ctrl-btn hidden" title="Tile all windows" aria-label="Tile all windows">
         <span>⊞</span>
         <span>Tile</span>
       </button>
-      <button id="btn-terminal" class="ctrl-btn" title="Toggle integrated terminal" style="display:none">
+      <button id="btn-terminal" class="ctrl-btn" title="Toggle integrated terminal" aria-label="Toggle integrated terminal" style="display:none">
         <span>⬛</span>
         <span>Terminal</span>
       </button>
-      <button id="btn-studio" class="ctrl-btn" title="Demo Studio — generate demos with AI">
+      <button id="btn-studio" class="ctrl-btn" title="Demo Studio" aria-label="Demo Studio">
         <span>🎬</span>
         <span>Studio</span>
       </button>
-      <button id="btn-settings" class="ctrl-btn" title="Settings">
+      <button id="btn-settings" class="ctrl-btn" title="Settings" aria-label="Settings">
         <span>⚙️</span>
         <span>Settings</span>
       </button>
-      <button id="btn-capabilities" class="ctrl-btn" title="MCP servers, tools & skills">
+      <button id="btn-capabilities" class="ctrl-btn" title="Capabilities" aria-label="Capabilities">
         <span>🔌</span>
         <span>Capabilities</span>
       </button>
@@ -113,18 +113,18 @@
       <div class="window-titlebar-spacer"></div>
     </div>
     <!-- Session tab bar -->
-    <div class="session-tab-bar" id="session-tab-bar">
-      <button class="session-tab-add" id="btn-add-session" title="New session">+</button>
+    <div class="session-tab-bar" id="session-tab-bar" role="tablist" aria-label="Sessions">
+      <button class="session-tab-add" id="btn-add-session" title="New session" aria-label="New session">+</button>
     </div>
     <!-- Inner tab bar (file/report tabs) -->
-    <div class="tab-bar" id="tab-bar">
-      <div class="tab active" data-tab="chat">
+    <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Content tabs">
+      <div class="tab active" data-tab="chat" role="tab" aria-selected="true" tabindex="0">
         <span class="tab-icon">❯</span>
         <span class="tab-label">Chat</span>
       </div>
     </div>
     <div class="tab-panels" id="session-panels">
-      <div class="tab-panel active" id="panel-chat">
+      <div class="tab-panel active" id="panel-chat" role="tabpanel" aria-label="Chat">
         <!-- Session containers are added here dynamically in tab mode -->
       </div>
     </div>
@@ -144,9 +144,9 @@
 
   <!-- Bottom-right corner controls -->
   <div id="bottom-right-controls" class="bottom-right-controls">
-    <a id="version-badge" class="version-badge hidden" href="https://github.com/suuus/demogod/releases" target="_blank" rel="noopener"></a>
-    <button id="btn-new-session" class="bottom-right-btn" title="Reset session">↻</button>
-    <button id="btn-record" class="bottom-right-btn" title="Record screen (Esc to stop)"><span id="record-icon">⏺</span><span id="record-label" class="hidden"></span></button>
+    <a id="version-badge" class="version-badge hidden" href="https://github.com/suuus/demogod/releases" target="_blank" rel="noopener" aria-label="Version"></a>
+    <button id="btn-new-session" class="bottom-right-btn" title="Reset session" aria-label="Reset session">↻</button>
+    <button id="btn-record" class="bottom-right-btn" title="Record screen (Esc to stop)" aria-label="Record screen"><span id="record-icon">⏺</span><span id="record-label" class="hidden"></span></button>
   </div>
 
   <!-- Swedish maker's mark (aurora theme only) -->
@@ -164,7 +164,7 @@
     <div id="settings-window" class="window dialog-window" style="width: 420px;">
       <div class="window-titlebar">
         <div class="traffic-lights">
-          <span class="dot dot-close" id="settings-close"></span>
+          <span class="dot dot-close" id="settings-close" role="button" tabindex="0" aria-label="Close settings"></span>
           <span class="dot dot-minimize"></span>
           <span class="dot dot-maximize"></span>
         </div>
@@ -276,7 +276,7 @@
     <div id="capabilities-window" class="window dialog-window" style="width: 520px;">
       <div class="window-titlebar">
         <div class="traffic-lights">
-          <span class="dot dot-close" id="capabilities-close"></span>
+          <span class="dot dot-close" id="capabilities-close" role="button" tabindex="0" aria-label="Close capabilities"></span>
           <span class="dot dot-minimize"></span>
           <span class="dot dot-maximize"></span>
         </div>
@@ -299,7 +299,7 @@
     <div id="picker-window" class="window dialog-window">
       <div class="window-titlebar">
         <div class="traffic-lights">
-          <span class="dot dot-close" id="picker-close"></span>
+          <span class="dot dot-close" id="picker-close" role="button" tabindex="0" aria-label="Close picker"></span>
           <span class="dot dot-minimize"></span>
           <span class="dot dot-maximize"></span>
         </div>
@@ -311,7 +311,7 @@
       </div>
       <div class="window-body dialog-body">
         <div id="picker-breadcrumb" class="picker-breadcrumb"></div>
-        <div id="picker-list" class="picker-list"></div>
+        <div id="picker-list" class="picker-list" role="listbox" aria-label="Directories"></div>
         <div class="dialog-actions">
           <button id="picker-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
           <button id="picker-select" class="dialog-btn dialog-btn-primary">Select This Folder</button>
@@ -325,7 +325,7 @@
     <div id="filebrowser-window" class="window dialog-window">
       <div class="window-titlebar">
         <div class="traffic-lights">
-          <span class="dot dot-close" id="filebrowser-close"></span>
+          <span class="dot dot-close" id="filebrowser-close" role="button" tabindex="0" aria-label="Close file browser"></span>
           <span class="dot dot-minimize"></span>
           <span class="dot dot-maximize"></span>
         </div>
@@ -337,7 +337,7 @@
       </div>
       <div class="window-body dialog-body">
         <div id="filebrowser-breadcrumb" class="picker-breadcrumb"></div>
-        <div id="filebrowser-list" class="picker-list"></div>
+        <div id="filebrowser-list" class="picker-list" role="listbox" aria-label="Files and folders"></div>
         <div class="dialog-actions">
           <button id="filebrowser-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
         </div>
@@ -350,7 +350,7 @@
     <div id="dialog-window" class="window dialog-window">
       <div class="window-titlebar">
         <div class="traffic-lights">
-          <span class="dot dot-close" id="dialog-close"></span>
+          <span class="dot dot-close" id="dialog-close" role="button" tabindex="0" aria-label="Close dialog"></span>
           <span class="dot dot-minimize"></span>
           <span class="dot dot-maximize"></span>
         </div>
@@ -376,7 +376,7 @@
     <div id="cappicker-window" class="window dialog-window cappicker-dialog">
       <div class="window-titlebar">
         <div class="traffic-lights">
-          <span class="dot dot-close" id="cappicker-close"></span>
+          <span class="dot dot-close" id="cappicker-close" role="button" tabindex="0" aria-label="Close picker"></span>
           <span class="dot dot-minimize"></span>
           <span class="dot dot-maximize"></span>
         </div>
@@ -390,7 +390,7 @@
         <div id="cappicker-search-wrap" class="cappicker-search-wrap">
           <input type="text" id="cappicker-search" class="cappicker-search" placeholder="Filter…" autocomplete="off" />
         </div>
-        <div id="cappicker-list" class="picker-list cappicker-list"></div>
+        <div id="cappicker-list" class="picker-list cappicker-list" role="listbox" aria-label="Options"></div>
         <div class="dialog-actions">
           <button id="cappicker-cancel" class="dialog-btn dialog-btn-secondary">Cancel</button>
           <button id="cappicker-deselect" class="dialog-btn dialog-btn-secondary hidden">Reset to default</button>
@@ -404,7 +404,7 @@
     <div id="studio-window" class="window dialog-window" style="width: 540px;">
       <div class="window-titlebar">
         <div class="traffic-lights">
-          <span class="dot dot-close" id="studio-close"></span>
+          <span class="dot dot-close" id="studio-close" role="button" tabindex="0" aria-label="Close studio"></span>
           <span class="dot dot-minimize"></span>
           <span class="dot dot-maximize"></span>
         </div>
