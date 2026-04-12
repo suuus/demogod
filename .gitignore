@@ -44,3 +44,4 @@ src-tauri/target/
 test-results/
 playwright-report/
 demogod-recordings/
+startup_sound 2.wav

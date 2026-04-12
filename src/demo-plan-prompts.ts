@@ -104,7 +104,8 @@ Based on the user's description, generate a complete demo JSON script. Use:
 - "question" steps to showcase the dialog/form system
 
 Keep typing speeds between 35-50ms. Add pauseAfter (1500-3000ms) between steps for readability.
-Output ONLY the JSON — no explanation before or after.
+
+IMPORTANT: Output the JSON as a code block in your response. Do NOT use file creation tools to write the file — the user will save it via the UI. Respond with ONLY the JSON code block, no explanation before or after.
 `;
 
 export const SELF_PLAYWRIGHT_PROMPT = `You are generating a Playwright test spec that creates a browser-driven demo recording of DemoGod itself.
@@ -153,7 +154,8 @@ Based on the user's description, generate a Playwright spec that drives DemoGod'
 - **Pause for visibility:** \`await page.waitForTimeout(2000);\`
 
 Add \`waitForTimeout(1500-3000)\` between steps so the recording looks natural.
-Output ONLY the TypeScript spec — no explanation before or after.
+
+IMPORTANT: Output the spec as a code block in your response. Do NOT use file creation tools to write the file — the user will save it via the UI. Respond with ONLY the TypeScript code block, no explanation before or after.
 `;
 
 export const PROJECT_DEMO_PROMPT = `You are generating a Playwright test spec that creates a browser-driven demo recording of a web application.
@@ -200,5 +202,6 @@ test("Demo: [TITLE]", async ({ page }) => {
 - Use \`waitForSelector\` before interacting with dynamic content
 - Add descriptive comments for each step
 - Keep the demo focused — 10-20 actions max
-- Output ONLY the TypeScript spec — no explanation before or after.
+
+IMPORTANT: Output the spec as a code block in your response. Do NOT use file creation tools to write the file — the user will save it via the UI. Respond with ONLY the TypeScript code block, no explanation before or after.
 `;
