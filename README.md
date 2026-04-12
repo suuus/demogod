@@ -89,7 +89,8 @@ npm run desktop
 - **Capabilities Panel** — View and toggle MCP servers, tools, and skills from the 🔌 button
 - **Per-project Discovery** — Automatically discovers agents, skills, and MCP servers from project-local configs
 - **Copy & Paste** — Select and copy response text, paste into prompts
-- **Settings Panel** — Configure appearance (including Aurora Borealis background theme), feature flags, and experimental options from ⚙️ Settings
+- **Permission Approval Toggle** — Settings → Features → *Auto-approve Permissions*. When enabled (default), all tool permission requests are auto-approved; when disabled, an inline **Allow / Deny** prompt appears in the terminal for file writes, shell commands, and MCP calls. A yellow ⚡ **auto-approve** badge in the status bar shows the current state.
+- **Settings Panel** — Configure appearance (including Aurora Borealis background theme), permission behavior, feature flags, and experimental options from ⚙️ Settings
 
 ## Keyboard Shortcuts
 
@@ -240,6 +241,7 @@ DemoGod uses several [GitHub Agentic Workflows](https://github.com/github/gh-aw)
 | **issue-triage-agent** | Every hour | Automatically labels new unlabeled issues (`bug`, `feature`, `enhancement`, `documentation`, `question`, `help-wanted`, `good-first-issue`) and posts a triage comment |
 | **code-simplifier** | Daily | Reviews recently modified code and opens PRs with clarity/maintainability improvements — preserving all functionality |
 | **daily-doc-updater** | Daily (6 am UTC) | Scans merged PRs and commits from the last 24 hours and updates documentation files to reflect new features and changes |
+| **code-review-panel** | Weekly | Runs 5 expert reviewer personas (Security, Code Quality, Performance, UX/A11y, Tech Debt) sequentially, then synthesizes a consolidated scorecard and opens a GitHub issue with cross-persona agreements, quick wins, and trend tracking |
 
 Workflow source files live in `.github/workflows/` (`.md` for the agent prompt, `.lock.yml` for the compiled workflow).
 

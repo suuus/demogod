@@ -139,10 +139,11 @@ The bridge wraps the `@github/copilot-sdk` and translates SDK events into simple
 | `task_complete` | `{summary}` | Task finished |
 | `capabilities_loaded` | `{kind, items, ...}` | Skills/agents/MCP/extensions loaded |
 | `mcp_status` | `{serverName, status}` | MCP server status change |
+| `permission_request` | `{requestId, permissionKind, details}` | Tool permission awaiting user approval (when auto-approve is off) |
 
 **Critical design decisions:**
 - Uses `session.send()` not `session.sendAndWait()` — sub-agent tasks can run indefinitely
-- `onPermissionRequest: approveAll` — demo mode auto-approves everything
+- `onPermissionRequest` is configurable at runtime via `bridge.autoApprove` (toggled by `set_auto_approve` WS message). When `true` (default), all permission requests are auto-approved; when `false`, a `permission_request` event is emitted and the frontend shows an inline Allow/Deny prompt — see [Permission Requests](#permission-requests) below.
 - `systemMessage: { mode: "append" }` — adds `ask_user` instructions without replacing the default system prompt
 - `infiniteSessions: { enabled: true }` — session persists across long interactions
 
@@ -236,7 +237,7 @@ Class-based architecture. Major sections:
 #### `index.html` — Structure
 
 - **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, record button, background color
-- **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch)
+- **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch; shows ⚡ auto-approve badge when auto-approve is enabled)
 - **Overlay dialogs**: project picker, file browser, user input dialog, capability picker
 
 #### `styles.css` — Theming
@@ -364,6 +365,24 @@ SDK calls onUserInputRequest or onElicitationRequest
                 → SDK callback returns, agent continues
 ```
 
+### Permission Requests
+
+When **Auto-approve Permissions** is disabled (`bridge.autoApprove = false`), the Copilot SDK's `onPermissionRequest` hook routes through the frontend instead of immediately approving:
+
+```
+SDK calls onPermissionRequest (file write, shell command, MCP call, …)
+  → bridge stores Promise resolver in pendingPermissions map, emits "permission_request"
+    → server.ts safeSend({type:"permission_request", requestId, permissionKind, details})
+      → app.js renders inline Allow / Deny prompt in the terminal output
+        → User clicks Allow or Deny
+          → app.js sends {type:"permission_response", requestId, approved: true|false}
+            → server.ts bridge.resolvePermission(requestId, approved)
+              → bridge resolves the stored Promise
+                → SDK callback returns { kind: "approved" } or { kind: "denied-interactively-by-user" }
+```
+
+The toggle state is persisted in `localStorage` (`dg-auto-approve`). When auto-approve is **on**, a yellow ⚡ **auto-approve** badge is shown in the session status bar. The frontend syncs the current toggle state to the server on session creation and on every toggle change via `{type:"set_auto_approve", enabled: bool}`.
+
 ### Scripted Demo Playback
 
 ```
@@ -457,9 +476,9 @@ Session containers use mode-colored subtle separator lines via the `--titlebar-b
 | Origin checking | `verifyClient` rejects WS connections from non-localhost origins (prevents CSRF) |
 | Localhost binding | `server.listen(PORT, "127.0.0.1")` — server is never accessible from the network |
 | WebSocket | One bridge per connection, input validated per message type |
-| Copilot permissions | `approveAll` — auto-approves for demo purposes |
+| Copilot permissions | Configurable: auto-approve (default, for demo use) or interactive Allow/Deny prompt per request — toggled via Settings → Features |
 
-> **Important**: DemoGod is designed for **local development use**. The `approveAll` permission policy and unrestricted tool access are intentional for demo purposes. Do not expose to untrusted networks without additional access controls.
+> **Important**: DemoGod is designed for **local development use**. The default auto-approve permission policy and unrestricted tool access are intentional for demo purposes — use Settings → Features → *Auto-approve Permissions* to require explicit approval for each request. Do not expose to untrusted networks without additional access controls.
 
 ## Extension Points
 

@@ -146,6 +146,7 @@ The project runs several [GitHub Agentic Workflows](https://github.com/github/gh
 - **issue-triage-agent** *(runs hourly)*: Automatically labels new unlabeled issues and posts a triage comment. If your issue or PR is miscategorized, you can add or change labels manually.
 - **code-simplifier** *(runs daily)*: Reviews code changed in the last 24 hours and may open a follow-up PR with clarity improvements. These PRs are labeled `refactoring` / `code-quality` / `automation` and assigned to `copilot` for review.
 - **daily-doc-updater** *(runs daily at 6 am UTC)*: Scans merged PRs and commits from the last 24 hours and updates documentation to reflect them. You don't need to update every doc yourself — but for complex features, a brief note in your PR description helps the agent document it accurately.
+- **code-review-panel** *(runs weekly)*: Runs 5 expert reviewer personas (Security, Code Quality, Performance, UX/A11y, Tech Debt) sequentially across the codebase, then synthesizes a consolidated scorecard. Output is posted as a GitHub issue. Cross-persona findings and quick-win suggestions are highlighted to guide prioritization.
 
 Workflow source files: `.github/workflows/*.md` (prompt) and `.github/workflows/*.lock.yml` (compiled).
 
