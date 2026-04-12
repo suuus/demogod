@@ -3503,6 +3503,12 @@
   // Dismiss splash after animation plays
   const splash = document.getElementById("splash");
   if (splash) {
+    // Play startup sound (user interaction not required for autoplay of short sounds on most browsers)
+    try {
+      const startupSound = new Audio("startup.wav");
+      startupSound.volume = 0.5;
+      startupSound.play().catch(() => {}); // silently fail if autoplay blocked
+    } catch {}
     setTimeout(() => {
       splash.classList.add("fade-out");
       setTimeout(() => splash.remove(), 600);
