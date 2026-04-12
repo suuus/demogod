@@ -11,6 +11,7 @@ import { spawn } from "child_process";
 import { CopilotBridge } from "./copilot-bridge.js";
 import { setupPtyServer } from "./pty-server.js";
 import { safeRealpath, isUnderHome } from "./path-utils.js";
+import { SELF_DEMO_PROMPT, PROJECT_DEMO_PROMPT } from "./demo-plan-prompts.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -377,6 +378,60 @@ app.get("/api/demos/:name", async (req, res) => {
     res.json(JSON.parse(data));
   } catch {
     res.status(404).json({ error: "Demo not found" });
+  }
+});
+
+// Save a generated demo script
+app.post("/api/demos/save", async (req, res) => {
+  const { name, demo } = req.body;
+  if (!name || !demo) {
+    res.status(400).json({ error: "Missing name or demo" });
+    return;
+  }
+  const demoPath = safeDemoPath(name);
+  if (!demoPath) {
+    res.status(400).json({ error: "Invalid demo name (use a-z, 0-9, -, _ only)" });
+    return;
+  }
+  if (!demo.steps || !Array.isArray(demo.steps)) {
+    res.status(400).json({ error: "Demo must have a steps array" });
+    return;
+  }
+  const validTypes = new Set(["command", "live", "question", "action"]);
+  for (const step of demo.steps) {
+    if (!validTypes.has(step.type)) {
+      res.status(400).json({ error: `Invalid step type: ${step.type}` });
+      return;
+    }
+  }
+  try {
+    await writeFile(demoPath, JSON.stringify(demo, null, 2), "utf-8");
+    res.json({ name, path: demoPath, steps: demo.steps.length });
+  } catch (err: any) {
+    res.status(500).json({ error: `Failed to save demo: ${err.message}` });
+  }
+});
+
+// Save a generated Playwright spec
+const GENERATED_SPECS_DIR = resolve(__dirname, "..", "tests", "generated");
+app.post("/api/specs/save", async (req, res) => {
+  const { name, content } = req.body;
+  if (!name || !content) {
+    res.status(400).json({ error: "Missing name or content" });
+    return;
+  }
+  const safeName = name.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!safeName || safeName !== name) {
+    res.status(400).json({ error: "Invalid spec name (use a-z, 0-9, -, _ only)" });
+    return;
+  }
+  try {
+    await mkdir(GENERATED_SPECS_DIR, { recursive: true });
+    const specPath = resolve(GENERATED_SPECS_DIR, `${safeName}.spec.ts`);
+    await writeFile(specPath, content, "utf-8");
+    res.json({ name: safeName, path: specPath });
+  } catch (err: any) {
+    res.status(500).json({ error: `Failed to save spec: ${err.message}` });
   }
 });
 
@@ -861,6 +916,54 @@ wss.on("connection", (ws) => {
             }
           }
           break;
+
+        case "generate_demo_plan": {
+          if (!bridge) {
+            safeSend(ws, { type: "error", text: "No active session" });
+            break;
+          }
+          const target = msg.target || "self"; // "self" or "project"
+          const format = msg.outputFormat || "demogod"; // "demogod" or "playwright"
+          const description = msg.description || "";
+          const systemPrompt = target === "self" ? SELF_DEMO_PROMPT : PROJECT_DEMO_PROMPT;
+          const prompt = `${systemPrompt}\n\n## User's Demo Description\n\n${description}`;
+          try {
+            await bridge.sendPrompt(prompt);
+          } catch (err: any) {
+            safeSend(ws, { type: "error", text: `Failed to generate demo plan: ${err.message}` });
+          }
+          break;
+        }
+
+        case "save_demo_plan": {
+          const { name: planName, format: planFormat, content: planContent } = msg;
+          if (!planName || !planContent) {
+            safeSend(ws, { type: "error", text: "Missing name or content" });
+            break;
+          }
+          try {
+            if (planFormat === "playwright") {
+              await mkdir(resolve(__dirname, "..", "tests", "generated"), { recursive: true });
+              const safeName = planName.replace(/[^a-zA-Z0-9_-]/g, "");
+              const specPath = resolve(__dirname, "..", "tests", "generated", `${safeName}.spec.ts`);
+              await writeFile(specPath, planContent, "utf-8");
+              safeSend(ws, { type: "demo_plan_saved", format: "playwright", name: safeName, path: specPath,
+                runCommand: `npx playwright test tests/generated/${safeName}.spec.ts --headed` });
+            } else {
+              const parsed = typeof planContent === "string" ? JSON.parse(planContent) : planContent;
+              const demoPath = safeDemoPath(planName);
+              if (!demoPath) {
+                safeSend(ws, { type: "error", text: "Invalid demo name" });
+                break;
+              }
+              await writeFile(demoPath, JSON.stringify(parsed, null, 2), "utf-8");
+              safeSend(ws, { type: "demo_plan_saved", format: "demogod", name: planName, path: demoPath });
+            }
+          } catch (err: any) {
+            safeSend(ws, { type: "error", text: `Failed to save demo plan: ${err.message}` });
+          }
+          break;
+        }
       }
     } catch (err: any) {
       console.error("Message handling error:", err.message);
