@@ -1270,7 +1270,11 @@
         if (!name) { statusSpan.textContent = "Enter a valid name (a-z, 0-9, -, _)"; return; }
         saveBtn.disabled = true;
         statusSpan.textContent = "Saving...";
-        this.send("save_demo_plan", { name, format, content: responseText });
+        // Strip markdown code fences if present (```typescript ... ``` or ```json ... ```)
+        let content = responseText;
+        const fenceMatch = content.match(/```(?:\w*)\n([\s\S]*?)```/);
+        if (fenceMatch) content = fenceMatch[1].trim();
+        this.send("save_demo_plan", { name, format, content });
 
         const origHandler = this.handleMessage.bind(this);
         const onSaved = (msg) => {
