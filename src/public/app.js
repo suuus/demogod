@@ -885,7 +885,7 @@
             this.questionCheckPending = false;
             this.detectAndShowQuestion();
           }
-          if (this._pendingDemoPlan) {
+          if (this._pendingDemoPlan && this.currentResponseText) {
             this._showSaveDemoPlanButton(this._pendingDemoPlan.format);
             this._pendingDemoPlan = null;
           }
