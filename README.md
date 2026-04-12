@@ -89,7 +89,7 @@ npm run desktop
 - **Capabilities Panel** — View and toggle MCP servers, tools, and skills from the 🔌 button
 - **Per-project Discovery** — Automatically discovers agents, skills, and MCP servers from project-local configs
 - **Copy & Paste** — Select and copy response text, paste into prompts
-- **Permission Approval Toggle** — Settings → Features → *Auto-approve Permissions*. When enabled (default), all tool permission requests are auto-approved; when disabled, an inline **Allow / Deny** prompt appears in the terminal for file writes, shell commands, and MCP calls. A yellow ⚡ **auto-approve** badge in the status bar shows the current state.
+- **Permission Approval Toggle** — Settings → Features → *Auto-approve Permissions*. When enabled (default), all tool permission requests are auto-approved; when disabled, an inline **Allow / Deny** prompt appears in the terminal for file writes, shell commands, and MCP calls. A yellow **auto-approve** status indicator in the status bar shows the current state.
 - **Settings Panel** — Configure appearance (including Aurora Borealis background theme), permission behavior, feature flags, and experimental options from ⚙️ Settings
 
 ## Keyboard Shortcuts
