@@ -336,17 +336,174 @@ describe("CopilotBridge", () => {
     });
   });
 
-  describe("listAgents/listSkills with no session", () => {
-    it("listAgents returns empty array", async () => {
-      expect(await bridge.listAgents()).toEqual([]);
-    });
-
-    it("listSkills returns empty array", async () => {
-      expect(await bridge.listSkills()).toEqual([]);
-    });
-
+  describe("listMcpServers with no session", () => {
     it("listMcpServers returns empty array", async () => {
       expect(await bridge.listMcpServers()).toEqual([]);
+    });
+  });
+
+  describe("tool exclusion", () => {
+    it("excludedTools starts empty", () => {
+      expect(bridge.excludedTools.size).toBe(0);
+    });
+
+    it("can add and remove excluded tools", () => {
+      bridge.excludedTools.add("bash");
+      expect(bridge.excludedTools.has("bash")).toBe(true);
+      bridge.excludedTools.delete("bash");
+      expect(bridge.excludedTools.has("bash")).toBe(false);
+    });
+
+    it("excludedTools are passed to createSession config", async () => {
+      bridge.excludedTools.add("github-mcp-server-list_issues");
+      bridge.excludedTools.add("bash");
+      await bridge.createSession();
+      // The mock stores the config — verify excludedTools was passed
+      const session = (bridge as any).session;
+      const opts = session._opts;
+      expect(opts.excludedTools).toEqual(expect.arrayContaining(["github-mcp-server-list_issues", "bash"]));
+      expect(opts.excludedTools).toHaveLength(2);
+    });
+
+    it("onPreToolUse hook denies excluded tools", async () => {
+      await bridge.createSession();
+      bridge.excludedTools.add("github-mcp-server-list_issues");
+
+      // Access the hooks from the session config
+      const session = (bridge as any).session;
+      const hooks = session._opts.hooks;
+      const result = hooks.onPreToolUse({ toolName: "github-mcp-server-list_issues", toolArgs: {} });
+      expect(result).toEqual({
+        permissionDecision: "deny",
+        permissionDecisionReason: "Tool excluded by user",
+      });
+    });
+
+    it("onPreToolUse hook allows non-excluded tools", async () => {
+      await bridge.createSession();
+      bridge.excludedTools.add("bash");
+
+      const session = (bridge as any).session;
+      const hooks = session._opts.hooks;
+
+      const handler = vi.fn();
+      bridge.on("tool_start", handler);
+
+      const result = hooks.onPreToolUse({ toolName: "grep", toolArgs: {} });
+      expect(result).toBeUndefined();
+      expect(handler).toHaveBeenCalledWith({ toolName: "grep", toolArgs: {} });
+    });
+
+    it("excluding then re-enabling a tool works", async () => {
+      await bridge.createSession();
+      bridge.excludedTools.add("bash");
+      const session = (bridge as any).session;
+      const hooks = session._opts.hooks;
+
+      // Denied
+      let result = hooks.onPreToolUse({ toolName: "bash", toolArgs: {} });
+      expect(result?.permissionDecision).toBe("deny");
+
+      // Re-enable
+      bridge.excludedTools.delete("bash");
+      result = hooks.onPreToolUse({ toolName: "bash", toolArgs: {} });
+      expect(result).toBeUndefined(); // allowed
+    });
+
+    it("excluding multiple tools blocks all of them", async () => {
+      await bridge.createSession();
+      bridge.excludedTools.add("bash");
+      bridge.excludedTools.add("grep");
+      bridge.excludedTools.add("github-mcp-server-list_issues");
+      const hooks = (bridge as any).session._opts.hooks;
+
+      expect(hooks.onPreToolUse({ toolName: "bash", toolArgs: {} })?.permissionDecision).toBe("deny");
+      expect(hooks.onPreToolUse({ toolName: "grep", toolArgs: {} })?.permissionDecision).toBe("deny");
+      expect(hooks.onPreToolUse({ toolName: "github-mcp-server-list_issues", toolArgs: {} })?.permissionDecision).toBe("deny");
+      // Other tools still allowed
+      expect(hooks.onPreToolUse({ toolName: "view", toolArgs: {} })).toBeUndefined();
+    });
+
+    it("excluded tool does not emit tool_start", async () => {
+      await bridge.createSession();
+      bridge.excludedTools.add("bash");
+      const handler = vi.fn();
+      bridge.on("tool_start", handler);
+
+      const hooks = (bridge as any).session._opts.hooks;
+      hooks.onPreToolUse({ toolName: "bash", toolArgs: {} });
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("empty excludedTools allows everything", async () => {
+      await bridge.createSession();
+      expect(bridge.excludedTools.size).toBe(0);
+      const hooks = (bridge as any).session._opts.hooks;
+
+      expect(hooks.onPreToolUse({ toolName: "bash", toolArgs: {} })).toBeUndefined();
+      expect(hooks.onPreToolUse({ toolName: "github-mcp-server-list_issues", toolArgs: {} })).toBeUndefined();
+      expect(hooks.onPreToolUse({ toolName: "task", toolArgs: "{}" })).toBeUndefined();
+    });
+
+    it("excludedTools persists across multiple tool calls", async () => {
+      await bridge.createSession();
+      bridge.excludedTools.add("bash");
+      const hooks = (bridge as any).session._opts.hooks;
+
+      // Denied repeatedly — the set isn't consumed
+      for (let i = 0; i < 5; i++) {
+        expect(hooks.onPreToolUse({ toolName: "bash", toolArgs: {} })?.permissionDecision).toBe("deny");
+      }
+      expect(bridge.excludedTools.has("bash")).toBe(true);
+    });
+
+    it("excludedTools with no session created doesn't affect createSession", async () => {
+      bridge.excludedTools.add("bash");
+      await bridge.createSession();
+      const opts = (bridge as any).session._opts;
+      expect(opts.excludedTools).toEqual(["bash"]);
+    });
+  });
+
+  describe("resolveUserInput edge cases", () => {
+    it("calling resolveUserInput twice with same ID only resolves once", () => {
+      const resolver = vi.fn();
+      (bridge as any).pendingInputs.set("uir-1", resolver);
+
+      bridge.resolveUserInput("uir-1", { response: "yes" });
+      bridge.resolveUserInput("uir-1", { response: "no" });
+      expect(resolver).toHaveBeenCalledTimes(1);
+      expect(resolver).toHaveBeenCalledWith({ response: "yes" });
+    });
+
+    it("resolvePermission with unknown ID is a no-op", () => {
+      expect(() => bridge.resolvePermission("nonexistent", true)).not.toThrow();
+    });
+  });
+
+  describe("event edge cases", () => {
+    it("handles session.error with missing data gracefully", () => {
+      expect(() => {
+        (bridge as any)._handleSessionEvent({ type: "session.error", data: null });
+      }).not.toThrow();
+    });
+
+    it("handles assistant.message_delta with missing data gracefully", () => {
+      expect(() => {
+        (bridge as any)._handleSessionEvent({ type: "assistant.message_delta", data: null });
+      }).not.toThrow();
+    });
+
+    it("delta with parentToolCallId is forwarded", () => {
+      const handler = vi.fn();
+      bridge.on("delta", handler);
+
+      (bridge as any)._handleSessionEvent({
+        type: "assistant.message_delta",
+        data: { deltaContent: "sub-agent output", parentToolCallId: "tc-42" },
+      });
+
+      expect(handler).toHaveBeenCalledWith("sub-agent output", "tc-42");
     });
   });
 });

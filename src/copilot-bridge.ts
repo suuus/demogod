@@ -178,7 +178,7 @@ export class CopilotBridge extends EventEmitter {
                   this.backgroundAgentMap.set(agentId, entry.agentName);
                 }
               }
-            } catch {}
+            } catch (e) { console.debug("[Bridge] Background agent parse error:", e); }
             this.emit("subagent_complete", {
               agentName: entry?.agentName || "sub-agent",
               result: resultStr,

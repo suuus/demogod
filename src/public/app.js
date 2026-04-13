@@ -556,7 +556,15 @@
       inputEl.addEventListener("paste", (e) => {
         e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData("text/plain");
-        document.execCommand("insertText", false, text);
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(document.createTextNode(text));
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
       });
 
       inputEl.addEventListener("focus", () => {
@@ -662,7 +670,7 @@
             }
           }
         }
-      } catch {}
+      } catch (e) { console.debug("[Parse]", e); }
     }
 
     _splitSqlValues(str) {
@@ -948,7 +956,7 @@
           this.showToolIndicator(msg.toolName, true, msg.parentToolCallId);
           let toolArgs = msg.toolArgs;
           if (typeof toolArgs === "string") {
-            try { toolArgs = JSON.parse(toolArgs); } catch {}
+            try { toolArgs = JSON.parse(toolArgs); } catch (e) { console.debug("[Parse]", e); }
           }
           if (["create", "edit", "view", "show_file"].includes(msg.toolName) && toolArgs?.path) {
             this.trackPendingFile(msg.toolName, toolArgs.path);
@@ -1319,6 +1327,7 @@
           }
         };
         this._oneShotHandler = onSaved;
+        setTimeout(() => { if (this._oneShotHandler === onSaved) this._oneShotHandler = null; }, 30000);
       });
 
       bar.appendChild(nameInput);
@@ -1411,7 +1420,7 @@
             agent._agentId = agentId;
             if (statusEl) { statusEl.className = "agent-tab-status running"; statusEl.textContent = "\u23f3 background"; }
           }
-        } catch {}
+        } catch (e) { console.debug("[Parse]", e); }
       }
 
       if (!isBackground) {
@@ -1466,7 +1475,7 @@
         } else if (parsed.textResultForLlm) {
           displayText = parsed.textResultForLlm;
         }
-      } catch {}
+      } catch (e) { console.debug("[Parse]", e); }
 
       // Append or replace content
       if (displayText) {
@@ -1803,6 +1812,7 @@
       this.toolCallElements.clear();
       this.currentResponseEl = null;
       this.currentResponseText = "";
+      this._pendingSqlQuery = null;
       this.setProcessing(false);
       this.setStatus("Switching project...");
       // Reset cached capabilities for fresh fetch
@@ -2507,7 +2517,7 @@
           const reportDiv = panel.querySelector(".report-panel");
           if (reportDiv) reportDiv.innerHTML = renderReportMarkdown(data.content);
         }
-      } catch {}
+      } catch (e) { console.debug("[Parse]", e); }
       return;
     }
     globalOpenedFiles.add(normalPath);
@@ -3576,45 +3586,47 @@
     html += '</div></div>';
 
     capContent.innerHTML = html;
-
-    // Wire toggle handlers via delegation
-    capContent.onclick = function(e) {
-      const toggle = e.target.closest('[data-toggle-mcp]');
-      if (toggle) {
-        const name = toggle.dataset.toggleMcp;
-        const enabled = toggle.checked;
-        session.send("toggle_mcp", { name, enabled });
-        return;
-      }
-      const skillToggle = e.target.closest('[data-toggle-skill]');
-      if (skillToggle) {
-        const name = skillToggle.dataset.toggleSkill;
-        const enabled = skillToggle.checked;
-        session.send("toggle_skill", { name, enabled });
-        return;
-      }
-      const toolChip = e.target.closest('[data-tool]');
-      if (toolChip) {
-        const toolName = toolChip.dataset.tool;
-        const nowExcluded = !session.excludedTools.has(toolName);
-        if (nowExcluded) {
-          session.excludedTools.add(toolName);
-          toolChip.classList.add("excluded");
-        } else {
-          session.excludedTools.delete(toolName);
-          toolChip.classList.remove("excluded");
-        }
-        session.send("toggle_tool", { name: toolName, excluded: nowExcluded });
-        return;
-      }
-      const sectionHeader = e.target.closest('.cap-section-header');
-      if (sectionHeader) {
-        const sectionId = sectionHeader.dataset.section;
-        const section = document.getElementById(sectionId);
-        if (section) section.classList.toggle("collapsed");
-      }
-    };
   };
+
+  // Persistent delegated click handler for capabilities panel (not inside render — H4 fix)
+  capContent.addEventListener("click", function(e) {
+    const session = manager.getActive();
+    if (!session) return;
+    const toggle = e.target.closest('[data-toggle-mcp]');
+    if (toggle) {
+      const name = toggle.dataset.toggleMcp;
+      const enabled = toggle.checked;
+      session.send("toggle_mcp", { name, enabled });
+      return;
+    }
+    const skillToggle = e.target.closest('[data-toggle-skill]');
+    if (skillToggle) {
+      const name = skillToggle.dataset.toggleSkill;
+      const enabled = skillToggle.checked;
+      session.send("toggle_skill", { name, enabled });
+      return;
+    }
+    const toolChip = e.target.closest('[data-tool]');
+    if (toolChip) {
+      const toolName = toolChip.dataset.tool;
+      const nowExcluded = !session.excludedTools.has(toolName);
+      if (nowExcluded) {
+        session.excludedTools.add(toolName);
+        toolChip.classList.add("excluded");
+      } else {
+        session.excludedTools.delete(toolName);
+        toolChip.classList.remove("excluded");
+      }
+      session.send("toggle_tool", { name: toolName, excluded: nowExcluded });
+      return;
+    }
+    const sectionHeader = e.target.closest('.cap-section-header');
+    if (sectionHeader) {
+      const sectionId = sectionHeader.dataset.section;
+      const section = document.getElementById(sectionId);
+      if (section) section.classList.toggle("collapsed");
+    }
+  });
 
   capFilter.addEventListener("input", () => {
     if (window._capabilitiesOpen) window._renderCapabilities();
@@ -3663,7 +3675,7 @@
         if (!res.ok) return;
         const data = await res.json();
         addReportTab("Changelog", data.content);
-      } catch {}
+      } catch (e) { console.debug("[Parse]", e); }
     });
     if (localStorage.getItem("dg-show-version") === "1") versionBadge.classList.remove("hidden");
   }
