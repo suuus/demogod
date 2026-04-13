@@ -101,6 +101,9 @@ Clear the noise. Exhale. Then just run it.
 - **Per-project Discovery** — Automatically discovers agents, skills, and MCP servers from project-local configs
 - **Copy & Paste** — Select and copy response text, paste into prompts
 - **Permission Approval Toggle** — Settings → Features → *Auto-approve Permissions*. When enabled (default), all tool permission requests are auto-approved; when disabled, an inline **Allow / Deny** prompt appears in the terminal for file writes, shell commands, and MCP calls. A yellow **auto-approve** status indicator in the status bar shows the current state.
+- **Ambient Music** — Settings → Experimental → *Ambient Music*. Plays a seamless looping background track at low volume during demos (starts on first user interaction to satisfy browser autoplay policy). Persisted to `localStorage`.
+- **Accessibility** — Comprehensive ARIA role attributes (toolbar, tablist, tab, tabpanel, listbox, option, textbox, status) and `:focus-visible` styles throughout the UI for screen reader support and Playwright `getByRole` compatibility.
+- **Clickable Version Badge** — When *Show Version* is enabled in Settings, the version number appears in the bottom-right corner; clicking it opens `CHANGELOG.md` in a tab.
 - **Settings Panel** — Configure appearance (including Aurora Borealis background theme), permission behavior, feature flags, and experimental options from ⚙️ Settings
 
 ## Keyboard Shortcuts
@@ -239,6 +242,8 @@ npm run record:demo intro # Automated headless recording
 - [x] Custom themes (Aurora Borealis)
 - [x] Capabilities panel
 - [x] Per-project discovery
+- [x] Ambient music for demos
+- [x] ARIA accessibility (screen reader + Playwright getByRole support)
 - [ ] Export demos as standalone video files
 - [ ] Saved layout presets
 - [ ] Desktop app production builds (Windows, Linux)
