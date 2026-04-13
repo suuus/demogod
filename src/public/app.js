@@ -612,11 +612,29 @@
       if (!colMatch) return;
       const cols = colMatch[1].split(",").map(c => c.trim().toLowerCase());
       const valuesStr = query.slice(colMatch.index + colMatch[0].length);
-      // Extract each (...) tuple
-      const tupleRe = /\(([^)]+)\)/g;
-      let m;
-      while ((m = tupleRe.exec(valuesStr)) !== null) {
-        const vals = this._splitSqlValues(m[1]);
+      // Extract each (...) tuple using the quote-aware splitter
+      const tuples = [];
+      let depth = 0, start = -1, inQuote = false, qChar = "";
+      for (let i = 0; i < valuesStr.length; i++) {
+        const ch = valuesStr[i];
+        if (inQuote) {
+          if (ch === qChar && valuesStr[i + 1] === qChar) { i++; continue; }
+          if (ch === qChar) inQuote = false;
+        } else if (ch === "'" || ch === '"') {
+          inQuote = true; qChar = ch;
+        } else if (ch === "(") {
+          if (depth === 0) start = i + 1;
+          depth++;
+        } else if (ch === ")") {
+          depth--;
+          if (depth === 0 && start >= 0) {
+            tuples.push(valuesStr.slice(start, i));
+            start = -1;
+          }
+        }
+      }
+      for (const tuple of tuples) {
+        const vals = this._splitSqlValues(tuple);
         const row = {};
         cols.forEach((col, i) => { row[col] = this._unquoteSql(vals[i] || ""); });
         if (row.id) {

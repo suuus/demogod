@@ -110,4 +110,37 @@ test.describe("REST API", () => {
     const body = await res.json();
     expect(body).toHaveProperty("error");
   });
+
+  test("POST /api/demos/save without Authorization header returns 401", async ({ request }) => {
+    const res = await request.post("/api/demos/save", {
+      data: { name: "test-csrf", demo: { steps: [] } },
+    });
+    expect(res.status()).toBe(401);
+  });
+
+  test("POST /api/demos/save with valid token succeeds", async ({ request }) => {
+    const token = await getToken(request);
+    const res = await request.post("/api/demos/save", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { name: "test-auth", demo: { title: "Test", steps: [{ type: "command", text: "hi", response: "hello" }] } },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.name).toBe("test-auth");
+  });
+
+  test("POST /api/specs/save without Authorization header returns 401", async ({ request }) => {
+    const res = await request.post("/api/specs/save", {
+      data: { name: "test-csrf", content: "// spec" },
+    });
+    expect(res.status()).toBe(401);
+  });
+
+  test("POST /api/demos/save with wrong token returns 401", async ({ request }) => {
+    const res = await request.post("/api/demos/save", {
+      headers: { Authorization: "Bearer wrong-token" },
+      data: { name: "test", demo: { steps: [] } },
+    });
+    expect(res.status()).toBe(401);
+  });
 });

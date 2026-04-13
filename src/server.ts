@@ -400,8 +400,15 @@ app.get("/api/demos/:name", async (req, res) => {
   }
 });
 
+// Auth middleware for mutating REST endpoints — requires session token
+function requireToken(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const auth = req.headers.authorization;
+  if (auth === `Bearer ${SESSION_TOKEN}`) return next();
+  res.status(401).json({ error: "Unauthorized" });
+}
+
 // Save a generated demo script
-app.post("/api/demos/save", async (req, res) => {
+app.post("/api/demos/save", requireToken, async (req, res) => {
   const { name, demo } = req.body;
   if (!name || !demo) {
     res.status(400).json({ error: "Missing name or demo" });
@@ -433,7 +440,7 @@ app.post("/api/demos/save", async (req, res) => {
 
 // Save a generated Playwright spec
 const GENERATED_SPECS_DIR = resolve(__dirname, "..", "tests", "generated");
-app.post("/api/specs/save", async (req, res) => {
+app.post("/api/specs/save", requireToken, async (req, res) => {
   const { name, content } = req.body;
   if (!name || !content) {
     res.status(400).json({ error: "Missing name or content" });
@@ -490,6 +497,7 @@ wss.on("connection", (ws) => {
   console.log("Client connected");
   let bridge: CopilotBridge | null = null;
   let demoAbort: AbortController | null = null;
+  let pendingAutoApprove: boolean | null = null;
   
   let currentWorkingDir: string | undefined;
 
@@ -500,6 +508,13 @@ wss.on("connection", (ws) => {
 
     bridge = new CopilotBridge();
     currentWorkingDir = workingDirectory;
+
+    // Apply queued auto-approve setting
+    if (pendingAutoApprove !== null) {
+      bridge.autoApprove = pendingAutoApprove;
+      console.log(`[Security] Auto-approve (queued): ${bridge.autoApprove}`);
+      pendingAutoApprove = null;
+    }
 
     bridge.on("delta", (text: string, parentToolCallId?: string) => {
       safeSend(ws, { type: "delta", text, ...(parentToolCallId ? { parentToolCallId } : {}) });
@@ -795,6 +810,8 @@ wss.on("connection", (ws) => {
           if (bridge) {
             bridge.autoApprove = !!msg.enabled;
             console.log(`[Security] Auto-approve: ${bridge.autoApprove}`);
+          } else {
+            pendingAutoApprove = !!msg.enabled;
           }
           break;
 
