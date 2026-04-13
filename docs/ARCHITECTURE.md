@@ -527,10 +527,10 @@ DemoGod has comprehensive ARIA role attributes throughout its UI, enabling scree
 | All control bar buttons | `aria-label` (deterministic names) | Deterministic `aria-label`s support `getByRole` locators |
 | `.session-tab-bar` | `role="tablist"` | Session tab strip |
 | Dynamic session tabs | `role="tab"` + `aria-selected` | `aria-selected` managed by `switchTo()` |
-| Tab close buttons | `<button>` + `aria-label` | Changed from `<span>` for keyboard access |
-| `#tab-bar` | `role="tablist"` | Inner file/report tab bar |
-| Chat tab + dynamic tabs | `role="tab"` + `aria-selected` | Managed by `switchTab()` |
-| Tab panels | `role="tabpanel"` + `aria-label` | Chat, file view, report panels |
+| File/report tab close buttons | `<button>` + `aria-label` | Inner tab close controls; changed from `<span>` for keyboard access |
+| `#tab-bar` | `role="tablist"` | Inner chat/file/report tab bar |
+| Chat tab + file/report tabs | `role="tab"` + `aria-selected` | Managed by `switchTab()`; excludes sub-agent tabs created separately in `app.js` |
+| Chat/file/report tab panels | `role="tabpanel"` + `aria-label` | Chat, file view, and report panels; excludes sub-agent panels |
 | `.session-input` (contenteditable) | `role="textbox"` + `aria-label="Chat input"` | Chat prompt input |
 | `.status-text` | `role="status"` | Announces status changes to screen readers |
 | Picker lists | `role="listbox"` | `#picker-list`, `#filebrowser-list`, `#cappicker-list` |
