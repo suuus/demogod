@@ -2,6 +2,35 @@
 
 All notable changes to DemoGod are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.1] — 2026-04-13
+
+### Added
+- **Tool exclusion** — click tool chips in Capabilities panel to exclude/re-enable tools instantly via `onPreToolUse` deny (no session restart)
+- **Auto-open File Tabs** setting — Settings → Features toggle (on by default); auto-opened tabs no longer steal focus
+- **REST CSRF protection** — POST endpoints require `Authorization: Bearer <token>` header
+- **Auto-approve in Autopilot** — entering Autopilot mode auto-enables permission approval, reverts on mode change
+
+### Fixed
+- A11y: 52 ARIA attributes — `aria-label` on all buttons, `role="tab/tablist/tabpanel/option/listbox/textbox/status"`, focus-visible styles, keyboard tab navigation with arrow keys, focus restoration on dialog close
+- `set_auto_approve` queued if sent before session creation (no longer silently lost)
+- `capContent.onclick` handler moved to persistent `addEventListener` (no more overwrite on re-render)
+- Silent `catch {}` blocks now log via `console.debug` (7 locations)
+- `_oneShotHandler` auto-clears after 30s timeout (prevents leak)
+- Deprecated `document.execCommand` replaced with Range API
+- Deprecated `navigator.platform` replaced with `navigator.userAgentData` fallback
+- SQL todo parser: quote-aware tuple extraction handles `)` in values and multi-line SQL
+- `task_complete` summary tab now respects Sub-agent Tabs feature flag (#20)
+- `_pendingSqlQuery` cleared on project switch (prevents stale SQL parsing)
+- MCP tool names use full server prefix (`github-mcp-server-list_issues`) for consistent exclusion matching
+- MCP tool map built from live `listTools()` response instead of runtime discovery
+- `mcp_tools_discovered` merges into existing list instead of replacing
+
+### Tests
+- 19 SQL parser unit tests (splitSqlValues, unquoteSql, extractTuples, parseTodoInsert edge cases)
+- 13 tool exclusion + edge case tests (deny/allow/toggle, null data handling, double-resolve)
+- 5 CSRF E2E tests (401 without token, 200 with token, wrong token rejected)
+- Total: 145 tests (126 unit + 19 E2E)
+
 ## [0.2.0] — 2026-04-12
 
 ### Added
