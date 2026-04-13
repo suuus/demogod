@@ -3,6 +3,7 @@ node_modules/
 
 # Internal planning (not published)
 FEATURE_IDEAS.md
+CONTEXT_WIZARD_BRAINSTORM.md
 
 # Generated Playwright specs (created by Demo Plan mode)
 tests/generated/
