@@ -2,6 +2,12 @@
 
 All notable changes to DemoGod are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.2] — 2026-04-13
+
+### Fixed
+- **Windows: all file operations broken** — `isUnderHome()` used hardcoded `/` separator, failing on Windows `\` paths. All browse/read/save operations were rejected as "outside homedir" (#22)
+- **Focus outline on dropdowns/inputs** — scoped `:focus-visible` to buttons and controls only; suppressed on form inputs for WebKit/Tauri (#21)
+
 ## [0.2.1] — 2026-04-13
 
 ### Added

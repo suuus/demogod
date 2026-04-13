@@ -1,6 +1,6 @@
 {
   "name": "demogod",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "description": "Demo video generator for GitHub Copilot CLI",
   "scripts": {
