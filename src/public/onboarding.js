@@ -40,8 +40,12 @@ export function openWizard() {
   const manager = window.__demogodManager;
   if (!manager) return;
 
-  // Create a dedicated session for the wizard
-  wizardSession = manager.createSession();
+  // Use the active session's project as the wizard's working directory
+  const activeSession = window.__demogodActiveSession;
+  const project = activeSession?.selectedProject;
+
+  // Create a dedicated session for the wizard, pointed at the same project
+  wizardSession = manager.createSession({ project });
 
   // Move the session's DOM into the wizard panel
   const container = wizardSession.dom.container;
@@ -70,17 +74,29 @@ export function openWizard() {
   };
 
   // Wait for session ready, then auto-start the wizard
-  wizardSession.onReady(() => {
-    wizardSession.send("select_agent", { name: "context-wizard" });
-    // Small delay for agent selection, then send the opening prompt
-    setTimeout(() => {
-      wizardSession.addCommandEntry("Begin context setup for this project");
-      wizardSession.setProcessing(true);
-      wizardSession.setStatus("Setting up...");
-      wizardSession.send("send_prompt", {
-        prompt: "Begin context setup for this project. Start with Phase 1: detect what tools and stack this project uses.",
-      });
-    }, 1000);
+  wizardSession.onReady(async () => {
+    const projectName = project ? project.split("/").pop() : "this project";
+
+    // Fetch the wizard agent prompt from the server
+    let wizardPrompt = "";
+    try {
+      const res = await fetch("/api/wizard-prompt");
+      if (res.ok) {
+        const data = await res.json();
+        wizardPrompt = data.prompt;
+      }
+    } catch (e) { console.debug("[Onboarding] Failed to fetch wizard prompt:", e); }
+
+    wizardSession.addCommandEntry("Begin context setup for " + projectName);
+    wizardSession.setProcessing(true);
+    wizardSession.setStatus("Setting up...");
+
+    // Send the wizard instructions + opening prompt as a single message
+    const prompt = wizardPrompt
+      ? wizardPrompt + "\n\n---\n\nBegin context setup for this project. The working directory is already set to " + (project || "the default directory") + ". Start with Phase 1: detect what tools and stack this project uses. Read .mcp.json first to see what MCP servers are already configured."
+      : "You are a Context Setup Wizard. Scan this project, find what tools it uses, discover MCP servers for them, and help configure everything. Start by reading .mcp.json and scanning the project structure.";
+
+    wizardSession.send("send_prompt", { prompt });
   });
 }
 

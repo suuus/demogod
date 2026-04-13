@@ -11,7 +11,7 @@ Guide the user through setting up their enterprise context layer: MCP servers, s
 
 ## Workflow
 
-Follow these phases IN ORDER. Use the appropriate skill for each phase. After completing each phase, output a phase marker on its own line so the UI can track progress:
+Follow these phases IN ORDER. After completing each phase, output a phase marker on its own line so the UI can track progress:
 
 ```
 <!--phase:1:complete-->
@@ -23,25 +23,96 @@ When starting a new phase:
 ```
 
 ### Phase 1: DETECT
-Use the `/context-detect` skill to scan the project.
+Scan the project in the current working directory:
+- Read package.json, requirements.txt, go.mod, Cargo.toml, pom.xml — detect languages and frameworks
+- Check .github/workflows/, Jenkinsfile, .gitlab-ci.yml — detect CI/CD
+- Look for infra/bicep/terraform/cloudformation/docker files — detect cloud platform
+- **Read .mcp.json** — list ALL currently configured MCP servers. These are already working and must be preserved.
+- Check .github/copilot-instructions.md, .github/agents/, .github/skills/ — existing config
+- Check recent git log for tool references (JIRA-123, LINEAR-456, etc.)
+- Summarize everything found
 
-### Phase 2: DISCOVER  
-Use the `/context-discover` skill to find MCP servers for each tool in the stack.
+### Phase 2: DISCOVER
+Find the best MCP servers for each tool category. **First check what's already installed** in .mcp.json.
+
+Known MCP server coverage:
+- `github-mcp-server` → GitHub (issues, PRs, code search, actions) — read + write
+- `workiq` → Microsoft 365 (SharePoint, Outlook, OneDrive, Teams, Calendar) — **read-only**
+- `playwright` → Browser automation, testing — read + write
+- `atlassian-mcp-server` → Jira, Confluence — read + write
+
+If a server is already installed, show ✅ Already configured. For read-only servers (workiq), ask if write access is also needed.
+
+For tools NOT already covered, search using this priority:
+1. 🐙 GitHub/MCP official: search GitHub topic:mcp-server + vendor name
+2. 🏢 Org catalog: try to read {org}/.github/mcp-catalog.json
+3. 🔰 Vendor docs: use web_search for "{tool} MCP server official"
+4. 👥 Community: other GitHub results
+
+Use `ask_user` with **multi-select** (checkboxes) for each category. Always include "Other (specify)".
+
+Categories — ask about ALL of these, do not skip any:
+1. Source control
+2. Project management (Jira, Linear, GitHub Issues, Azure Boards)
+3. CI/CD
+4. Cloud platform
+5. Monitoring / observability
+6. Documentation / wiki (SharePoint → workiq, Confluence → atlassian-mcp-server)
+7. Security scanning
+8. **Communication** (Teams → workiq, Slack → slack-mcp-server, Discord)
 
 ### Phase 3: DOCUMENTATION
-Use the `/context-docs` skill to identify where team knowledge lives.
+Ask where team knowledge lives. Use `ask_user` with choices + "Other" for each:
+- Engineering documentation
+- Security & compliance policies
+- API specifications
+- Runbooks & incident procedures
+- Architecture decisions
 
 ### Phase 4: REVIEW
-Use the `/context-review` skill to present the plan and get confirmation.
+Present the complete plan for confirmation:
+- MCP servers to install (with trust badges)
+- Skills to enable
+- Changes to .github/copilot-instructions.md
+- Changes to .mcp.json
+Ask for confirmation before proceeding.
 
 ### Phase 5: INSTALL
-Use the `/context-install` skill to write MCP server configurations.
+For each approved MCP server:
+- Read existing .mcp.json (preserve existing entries)
+- Add new entries. **CRITICAL**: every entry MUST have `"type": "local"` and `"tools": ["*"]` — without these the SDK won't load the server. Use this exact format:
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "npx",
+      "args": ["-y", "@vendor/mcp-server@latest"],
+      "type": "local",
+      "tools": ["*"],
+      "env": {
+        "API_KEY": "${API_KEY}"
+      }
+    }
+  }
+}
+```
+- Write the updated .mcp.json to the project root
+- Report ✅ / ❌ per server
 
 ### Phase 6: INSTRUCTIONS
-Use the `/context-instructions` skill to generate Copilot instructions.
+Generate/update .github/copilot-instructions.md with:
+- Enterprise context section documenting ALL MCP servers (existing + new)
+- Per-tool instructions: when to use which tool, team conventions
+- Cross-tool workflows (bug triage, deployment, security review)
+- Reference actual tool names that Copilot can invoke
 
 ### Phase 7: CONFIGURE
-Use the `/context-configure` skill to set up authentication for each server.
+For each MCP server that needs auth:
+- Explain what credentials are needed
+- Ask where to store them (env var, .env file, Azure Key Vault, system keychain)
+- Guide setup (never store credentials directly)
+- Test connection if possible
+- At the end, offer to commit changes to the repo
 
 ## Rules
 

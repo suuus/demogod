@@ -471,6 +471,18 @@ app.get("/api/changelog", async (_req, res) => {
   }
 });
 
+// Serve the context wizard agent prompt
+app.get("/api/wizard-prompt", async (_req, res) => {
+  try {
+    const content = await readFile(resolve(__dirname, "..", ".github", "agents", "context-wizard.agent.md"), "utf-8");
+    // Strip YAML frontmatter
+    const body = content.replace(/^---[\s\S]*?---\s*/, "");
+    res.json({ prompt: body });
+  } catch {
+    res.status(404).json({ error: "Wizard prompt not found" });
+  }
+});
+
 
 
 app.get("/api/models", async (_req, res) => {

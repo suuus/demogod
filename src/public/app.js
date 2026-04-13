@@ -1036,16 +1036,32 @@
 
         case "capabilities_loaded":
           this.handleCapabilitiesLoaded(msg);
-          if (msg.kind === "mcp_servers" && msg.items) this.cachedMcpServers = msg.items;
+          if (msg.kind === "mcp_servers" && msg.items) {
+            // Merge — don't replace. New servers may arrive after initial load.
+            const existingNames = new Set(this.cachedMcpServers.map(s => s.name));
+            for (const srv of msg.items) {
+              if (existingNames.has(srv.name)) {
+                const existing = this.cachedMcpServers.find(s => s.name === srv.name);
+                if (existing) Object.assign(existing, srv);
+              } else {
+                this.cachedMcpServers.push(srv);
+              }
+            }
+          }
           if (msg.kind === "skills" && msg.items) this.cachedSkills = msg.items;
           if (window._capabilitiesOpen) window._renderCapabilities();
           break;
 
         case "mcp_status":
           console.log("[MCP] " + msg.serverName + ": " + msg.status);
-          if (msg.serverName && this.cachedMcpServers.length > 0) {
+          if (msg.serverName) {
             const srv = this.cachedMcpServers.find(s => s.name === msg.serverName);
-            if (srv) srv.status = msg.status;
+            if (srv) {
+              srv.status = msg.status;
+            } else {
+              // New server appeared (project-level MCP discovered after initial list)
+              this.cachedMcpServers.push({ name: msg.serverName, status: msg.status });
+            }
             if (window._capabilitiesOpen) window._renderCapabilities();
           }
           break;
