@@ -237,9 +237,9 @@ Class-based architecture. Major sections:
 
 #### `index.html` — Structure
 
-- **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, record button, background color
+- **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, settings, background color
 - **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch; shows yellow `auto-approve` text when auto-approve is enabled)
-- **Bottom-right controls**: version badge (`<a>` tag — click to view `CHANGELOG.md` in a tab via `GET /api/changelog`) and settings icon
+- **Bottom-right controls**: version badge (`<a>` tag — click to view `CHANGELOG.md` in a tab via `GET /api/changelog`), reset-session button (`↻`), and record button
 - **Overlay dialogs**: project picker, file browser, user input dialog, capability picker
 
 #### `styles.css` — Theming
