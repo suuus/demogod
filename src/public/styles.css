@@ -2088,6 +2088,17 @@ button:focus-visible,
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* Form inputs keep their own border-based focus styles — suppress outline */
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.settings-select:focus-visible,
+.cappicker-search:focus-visible,
+.capabilities-filter:focus-visible,
+.dialog-field input:focus-visible,
+.dialog-field select:focus-visible {
+  outline: none;
+}
 .session-input:focus-visible {
   outline: none;
   box-shadow: 0 1px 0 var(--accent);
