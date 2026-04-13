@@ -3293,6 +3293,7 @@
     { name: "Copilot Dark", cls: "bg-copilot-dark" },
     { name: "Copilot Light", cls: "bg-copilot-light" },
     { name: "Aurora Borealis", cls: "bg-aurora" },
+    { name: "Aurora Intense", cls: "bg-aurora-intense" },
     { name: "Off-white", cls: "bg-offwhite" },
     { name: "Dark Blue", cls: "bg-darkblue" },
     { name: "White", cls: "bg-white" },
@@ -3358,16 +3359,22 @@
   const swedishTag = $("#swedish-tag");
 
   function updateSwedishTag(cls) {
-    swedishTag.style.display = cls === "bg-aurora" ? "flex" : "none";
-    swedishTag.classList.remove("fading");
-  }
-
-  // Fade the tag on first click anywhere
-  document.addEventListener("click", () => {
-    if (swedishTag.style.display === "flex" && !swedishTag.classList.contains("fading")) {
-      swedishTag.classList.add("fading");
+    const show = cls === "bg-aurora" || cls === "bg-aurora-intense";
+    swedishTag.style.display = show ? "flex" : "none";
+    if (show) {
+      swedishTag.classList.remove("fading");
+      // Fade out on next click or keypress
+      const fadeOut = () => {
+        if (swedishTag.style.display === "flex" && !swedishTag.classList.contains("fading")) {
+          swedishTag.classList.add("fading");
+        }
+        document.removeEventListener("click", fadeOut);
+        document.removeEventListener("keydown", fadeOut);
+      };
+      document.addEventListener("click", fadeOut, { once: true });
+      document.addEventListener("keydown", fadeOut, { once: true });
     }
-  }, { once: true });
+  }
 
   settingBg.addEventListener("change", () => {
     const cls = settingBg.value;

@@ -87,6 +87,10 @@
         <span>🎬</span>
         <span>Studio</span>
       </button>
+      <button id="btn-onboarding" class="ctrl-btn" title="Context Setup Wizard" aria-label="Context Setup Wizard">
+        <span>🧭</span>
+        <span>Onboard</span>
+      </button>
       <button id="btn-settings" class="ctrl-btn" title="Settings" aria-label="Settings">
         <span>⚙️</span>
         <span>Settings</span>
@@ -184,6 +188,7 @@
               <option value="bg-copilot-dark">Copilot Dark</option>
               <option value="bg-copilot-light">Copilot Light</option>
               <option value="bg-aurora">Aurora Borealis</option>
+              <option value="bg-aurora-intense">Aurora Intense</option>
               <option value="bg-offwhite">Off-white</option>
               <option value="bg-darkblue">Dark Blue</option>
               <option value="bg-white">White</option>
@@ -409,6 +414,38 @@
     </div>
   </div>
 
+  <!-- Context Setup Wizard overlay -->
+  <div id="onboarding-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Context Setup Wizard">
+    <div id="onboarding-window" class="window dialog-window" style="width: min(900px, 90vw); height: min(620px, 80vh); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+      <div class="window-titlebar">
+        <div class="traffic-lights">
+          <span class="dot dot-close" id="onboarding-close" role="button" tabindex="0" aria-label="Close wizard"></span>
+          <span class="dot dot-minimize"></span>
+          <span class="dot dot-maximize"></span>
+        </div>
+        <div class="window-title">
+          <span class="window-title-icon">🧭</span>
+          Context Setup Wizard
+        </div>
+        <div class="window-titlebar-spacer"></div>
+      </div>
+      <div class="window-body" style="display: flex; height: calc(100% - 36px); padding: 0; overflow: hidden;">
+        <!-- Sidebar: phase progress -->
+        <div id="onboarding-sidebar" style="width: 160px; min-width: 160px; background: var(--mantle); border-right: 1px solid var(--surface0); padding: 16px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+          <div class="onboarding-step active" data-phase="1"><span class="onboarding-step-icon">○</span> Detect</div>
+          <div class="onboarding-step" data-phase="2"><span class="onboarding-step-icon">○</span> Tools</div>
+          <div class="onboarding-step" data-phase="3"><span class="onboarding-step-icon">○</span> Docs</div>
+          <div class="onboarding-step" data-phase="4"><span class="onboarding-step-icon">○</span> Review</div>
+          <div class="onboarding-step" data-phase="5"><span class="onboarding-step-icon">○</span> Install</div>
+          <div class="onboarding-step" data-phase="6"><span class="onboarding-step-icon">○</span> Instructions</div>
+          <div class="onboarding-step" data-phase="7"><span class="onboarding-step-icon">○</span> Configure</div>
+        </div>
+        <!-- Session area: full TerminalSession rendered here -->
+        <div id="onboarding-session" style="flex: 1; overflow: hidden;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Demo Studio overlay -->
   <div id="studio-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Demo Studio">
     <div id="studio-window" class="window dialog-window" style="width: 540px;">
@@ -454,5 +491,6 @@
   <script src="app.js"></script>
   <script type="module" src="terminal.js"></script>
   <script type="module" src="demo-studio.js"></script>
+  <script type="module" src="onboarding.js"></script>
 </body>
 </html>

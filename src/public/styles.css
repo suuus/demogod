@@ -182,6 +182,22 @@ html, body {
   animation: auroraDrift 20s ease-in-out infinite alternate;
 }
 
+#backdrop.bg-aurora-intense {
+  background: #060e1a;
+  overflow: hidden;
+}
+#backdrop.bg-aurora-intense::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 20%, rgba(30,107,78,.75), transparent),
+    radial-gradient(ellipse 50% 35% at 70% 30%, rgba(123,45,142,.6), transparent),
+    radial-gradient(ellipse 40% 30% at 50% 60%, rgba(30,80,120,.5), transparent),
+    radial-gradient(ellipse 70% 50% at 60% 10%, rgba(62,142,126,.5), transparent);
+  animation: auroraDrift 16s ease-in-out infinite alternate;
+}
+
 /* Swedish tag — bottom-left, only on aurora theme */
 .swedish-tag {
   display: none;
@@ -2061,6 +2077,17 @@ body.recording #record-icon {
 .cap-toggle input:checked + .cap-toggle-slider::before {
   transform: translateX(16px); background: #fff;
 }
+
+/* ─── Context Wizard Sidebar ───────────────────── */
+.onboarding-step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 6px;
+  color: var(--body-dim); cursor: default;
+}
+.onboarding-step.active { color: var(--accent); font-weight: 600; }
+.onboarding-step.complete { color: var(--green); }
+.onboarding-step.failed { color: var(--red); }
+.onboarding-step-icon { width: 18px; text-align: center; font-size: 14px; }
 
 /* ─── Reduced Motion ────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
