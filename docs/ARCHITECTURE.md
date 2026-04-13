@@ -524,7 +524,7 @@ DemoGod has comprehensive ARIA role attributes throughout its UI, enabling scree
 | Element | ARIA attributes | Notes |
 |---------|----------------|-------|
 | `#controls` | `role="toolbar"` + `aria-label` | Top control bar |
-| All control bar buttons | `aria-label` (deterministic names) | 16 buttons with getByRole-compatible names |
+| All control bar buttons | `aria-label` (deterministic names) | Deterministic `aria-label`s support `getByRole` locators |
 | `.session-tab-bar` | `role="tablist"` | Session tab strip |
 | Dynamic session tabs | `role="tab"` + `aria-selected` | `aria-selected` managed by `switchTo()` |
 | Tab close buttons | `<button>` + `aria-label` | Changed from `<span>` for keyboard access |
