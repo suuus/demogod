@@ -83,7 +83,7 @@
         <span>⬛</span>
         <span>Terminal</span>
       </button>
-      <button id="btn-studio" class="ctrl-btn" title="Demo Studio" aria-label="Demo Studio">
+      <button id="btn-studio" class="ctrl-btn hidden" title="Demo Studio" aria-label="Demo Studio">
         <span>🎬</span>
         <span>Studio</span>
       </button>
@@ -91,13 +91,13 @@
         <span>🧭</span>
         <span>Onboard</span>
       </button>
-      <button id="btn-settings" class="ctrl-btn" title="Settings" aria-label="Settings">
-        <span>⚙️</span>
-        <span>Settings</span>
-      </button>
       <button id="btn-capabilities" class="ctrl-btn" title="Capabilities" aria-label="Capabilities">
         <span>🔌</span>
         <span>Capabilities</span>
+      </button>
+      <button id="btn-settings" class="ctrl-btn" title="Settings" aria-label="Settings">
+        <span>⚙️</span>
+        <span>Settings</span>
       </button>
     </div>
   </div>
@@ -237,6 +237,16 @@
               <span class="settings-toggle-slider"></span>
             </label>
           </div>
+          <div class="settings-row">
+            <div class="settings-label">
+              <span>Ambient Music</span>
+              <span class="settings-hint">Soft background loop for demos</span>
+            </div>
+            <label class="settings-toggle">
+              <input type="checkbox" id="setting-ambient">
+              <span class="settings-toggle-slider"></span>
+            </label>
+          </div>
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Experimental</div>
@@ -245,10 +255,11 @@
               <span>Integrated Terminal</span>
               <span class="settings-hint">Embedded terminal panel (Ctrl+`)</span>
             </div>
-            <label class="settings-toggle">
-              <input type="checkbox" id="setting-terminal">
-              <span class="settings-toggle-slider"></span>
-            </label>
+            <select id="setting-terminal" class="settings-select">
+              <option value="disabled">Disabled</option>
+              <option value="classic">Classic (bottom panel)</option>
+              <option value="tab">Tab</option>
+            </select>
           </div>
           <div class="settings-row">
             <div class="settings-label">
@@ -272,21 +283,21 @@
           </div>
           <div class="settings-row">
             <div class="settings-label">
-              <span>Ambient Music</span>
-              <span class="settings-hint">Soft background loop for demos</span>
-            </div>
-            <label class="settings-toggle">
-              <input type="checkbox" id="setting-ambient">
-              <span class="settings-toggle-slider"></span>
-            </label>
-          </div>
-          <div class="settings-row">
-            <div class="settings-label">
               <span>Context Wizard</span>
               <span class="settings-hint">Enterprise onboarding &amp; MCP setup wizard</span>
             </div>
             <label class="settings-toggle">
               <input type="checkbox" id="setting-context-wizard">
+              <span class="settings-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">
+              <span>Demo Studio</span>
+              <span class="settings-hint">AI-powered demo script generator</span>
+            </div>
+            <label class="settings-toggle">
+              <input type="checkbox" id="setting-demo-studio">
               <span class="settings-toggle-slider"></span>
             </label>
           </div>

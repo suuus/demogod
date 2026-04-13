@@ -2194,6 +2194,12 @@
       const session = this.sessions.get(id);
       if (!session) return;
 
+      if (session.isTerminal) {
+        // Terminal sessions are cleaned up by terminal.js
+        if (window.__terminalModule?.closePty) window.__terminalModule.closePty();
+        return;
+      }
+
       session.disconnect();
 
       if (session.floatingEl) {
@@ -2244,12 +2250,19 @@
         tab.setAttribute("tabindex", "0");
       }
 
-      session.dom.inputEl.focus();
-      this._syncControlBar(session);
-      window.__demogodActiveSession = session;
+      if (session.isTerminal) {
+        // External terminal session — notify terminal module
+        if (window.__terminalModule?.onSessionActivated) {
+          window.__terminalModule.onSessionActivated(id);
+        }
+      } else {
+        session.dom.inputEl.focus();
+        this._syncControlBar(session);
+        window.__demogodActiveSession = session;
 
-      // Re-fetch capabilities if panel is open (different session = different data)
-      if (window._capabilitiesOpen) session.send("list_capabilities");
+        // Re-fetch capabilities if panel is open (different session = different data)
+        if (window._capabilitiesOpen) session.send("list_capabilities");
+      }
 
       if (this.layoutMode === "floating") {
         this.floatingManager.bringToFront(id);
@@ -2261,6 +2274,23 @@
 
     getActive() {
       return this.sessions.get(this.activeSessionId);
+    }
+
+    /** Register a non-Copilot session (e.g., terminal) for tab switching */
+    _registerExternalSession(id, sessionObj) {
+      this.sessions.set(id, sessionObj);
+    }
+
+    _unregisterExternalSession(id) {
+      this.sessions.delete(id);
+      if (this.activeSessionId === id) {
+        const remaining = [...this.sessions.keys()];
+        if (remaining.length > 0) {
+          this.switchTo(remaining[remaining.length - 1]);
+        } else {
+          this.activeSessionId = null;
+        }
+      }
     }
 
     _addSessionToLayout(session) {
@@ -2302,7 +2332,16 @@
       if (!session.floatingEl) {
         session.floatingEl = document.createElement("div");
         session.floatingEl.className = "floating-window";
-        const chrome = session._createFloatingChrome();
+
+        let chrome;
+        if (session.isTerminal) {
+          // Simple titlebar for terminal sessions
+          chrome = document.createElement("div");
+          chrome.className = "floating-chrome";
+          chrome.innerHTML = '<span class="floating-title">⬛ Terminal</span>';
+        } else {
+          chrome = session._createFloatingChrome();
+        }
         session.floatingEl.appendChild(chrome);
         session.floatingEl.appendChild(session.dom.container);
         session.dom.container.style.display = "";
@@ -3337,6 +3376,7 @@
   const settingAutoFileTabs = $("#setting-auto-file-tabs");
   const settingAmbient = $("#setting-ambient");
   const settingContextWizard = $("#setting-context-wizard");
+  const settingDemoStudio = $("#setting-demo-studio");
 
   // Ambient music — loops at 8% volume, starts on first user interaction
   let ambientAudio = null;
@@ -3352,10 +3392,16 @@
   }
 
   // Init settings from localStorage
-  settingBg.value = localStorage.getItem("dg-bg") || "bg-chroma";
+  const bgClass = localStorage.getItem("dg-bg") || "bg-aurora";
+  settingBg.value = bgClass;
+  backdrop.className = bgClass;
   settingVersion.checked = localStorage.getItem("dg-show-version") === "1";
   settingDialogMode.value = localStorage.getItem("dg-dialog-mode") || "inline";
-  settingTerminal.checked = localStorage.getItem("dg-terminal") === "1";
+  // Terminal mode: backward-compat "1" → "classic", "0" → "disabled"
+  const rawTermMode = localStorage.getItem("dg-terminal") || "disabled";
+  const termMode = rawTermMode === "1" ? "classic" : rawTermMode === "0" ? "disabled" : rawTermMode;
+  settingTerminal.value = termMode;
+  if (termMode !== rawTermMode) localStorage.setItem("dg-terminal", termMode);
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
   settingTodoPanel.checked = localStorage.getItem("dg-todo-panel") !== "0";
   settingAutoApprove.checked = localStorage.getItem("dg-auto-approve") !== "0";
@@ -3364,6 +3410,9 @@
   settingContextWizard.checked = localStorage.getItem("dg-context-wizard") === "1";
   const btnOnboarding = $("#btn-onboarding");
   if (btnOnboarding) btnOnboarding.classList.toggle("hidden", !settingContextWizard.checked);
+  settingDemoStudio.checked = localStorage.getItem("dg-demo-studio") === "1";
+  const btnStudio = $("#btn-studio");
+  if (btnStudio) btnStudio.classList.toggle("hidden", !settingDemoStudio.checked);
 
   // Auto-start ambient on first interaction if enabled
   if (settingAmbient.checked) {
@@ -3404,7 +3453,7 @@
   });
 
   // Init swedish tag on load
-  updateSwedishTag(localStorage.getItem("dg-bg") || "bg-chroma");
+  updateSwedishTag(localStorage.getItem("dg-bg") || "bg-aurora");
 
   settingVersion.addEventListener("change", () => {
     localStorage.setItem("dg-show-version", settingVersion.checked ? "1" : "0");
@@ -3418,9 +3467,14 @@
   });
 
   settingTerminal.addEventListener("change", () => {
-    localStorage.setItem("dg-terminal", settingTerminal.checked ? "1" : "0");
+    const mode = settingTerminal.value;
+    localStorage.setItem("dg-terminal", mode);
     const btnTerm = $("#btn-terminal");
-    btnTerm.style.display = (settingTerminal.checked || window.__TAURI_INTERNALS__) ? "" : "none";
+    btnTerm.style.display = (mode !== "disabled" || window.__TAURI_INTERNALS__) ? "" : "none";
+    // Close any open terminal when switching modes
+    if (typeof window.__terminalModule?.closePty === "function") {
+      window.__terminalModule.closePty();
+    }
   });
 
   settingAgentTabs.addEventListener("change", () => {
@@ -3440,6 +3494,11 @@
   settingContextWizard.addEventListener("change", () => {
     localStorage.setItem("dg-context-wizard", settingContextWizard.checked ? "1" : "0");
     if (btnOnboarding) btnOnboarding.classList.toggle("hidden", !settingContextWizard.checked);
+  });
+
+  settingDemoStudio.addEventListener("change", () => {
+    localStorage.setItem("dg-demo-studio", settingDemoStudio.checked ? "1" : "0");
+    if (btnStudio) btnStudio.classList.toggle("hidden", !settingDemoStudio.checked);
   });
 
   settingAutoApprove.addEventListener("change", () => {
@@ -3708,6 +3767,7 @@
 
   const manager = new SessionManager();
   window.__demogodManager = manager;
+  window.__demogodSessionManager = manager;
   manager.createSession();
   loadModels();
 
