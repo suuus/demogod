@@ -3336,6 +3336,7 @@
   const settingAutoApprove = $("#setting-auto-approve");
   const settingAutoFileTabs = $("#setting-auto-file-tabs");
   const settingAmbient = $("#setting-ambient");
+  const settingContextWizard = $("#setting-context-wizard");
 
   // Ambient music — loops at 8% volume, starts on first user interaction
   let ambientAudio = null;
@@ -3360,6 +3361,9 @@
   settingAutoApprove.checked = localStorage.getItem("dg-auto-approve") !== "0";
   settingAutoFileTabs.checked = localStorage.getItem("dg-auto-file-tabs") !== "0";
   settingAmbient.checked = localStorage.getItem("dg-ambient") === "1";
+  settingContextWizard.checked = localStorage.getItem("dg-context-wizard") === "1";
+  const btnOnboarding = $("#btn-onboarding");
+  if (btnOnboarding) btnOnboarding.classList.toggle("hidden", !settingContextWizard.checked);
 
   // Auto-start ambient on first interaction if enabled
   if (settingAmbient.checked) {
@@ -3431,6 +3435,11 @@
     localStorage.setItem("dg-ambient", settingAmbient.checked ? "1" : "0");
     if (settingAmbient.checked) startAmbient();
     else stopAmbient();
+  });
+
+  settingContextWizard.addEventListener("change", () => {
+    localStorage.setItem("dg-context-wizard", settingContextWizard.checked ? "1" : "0");
+    if (btnOnboarding) btnOnboarding.classList.toggle("hidden", !settingContextWizard.checked);
   });
 
   settingAutoApprove.addEventListener("change", () => {

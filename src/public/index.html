@@ -87,7 +87,7 @@
         <span>🎬</span>
         <span>Studio</span>
       </button>
-      <button id="btn-onboarding" class="ctrl-btn" title="Context Setup Wizard" aria-label="Context Setup Wizard">
+      <button id="btn-onboarding" class="ctrl-btn hidden" title="Context Setup Wizard" aria-label="Context Setup Wizard">
         <span>🧭</span>
         <span>Onboard</span>
       </button>
@@ -277,6 +277,16 @@
             </div>
             <label class="settings-toggle">
               <input type="checkbox" id="setting-ambient">
+              <span class="settings-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">
+              <span>Context Wizard</span>
+              <span class="settings-hint">Enterprise onboarding &amp; MCP setup wizard</span>
+            </div>
+            <label class="settings-toggle">
+              <input type="checkbox" id="setting-context-wizard">
               <span class="settings-toggle-slider"></span>
             </label>
           </div>
