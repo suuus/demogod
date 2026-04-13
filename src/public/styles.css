@@ -2090,6 +2090,7 @@ button:focus-visible,
 }
 /* Form inputs keep their own border-based focus styles — suppress outline */
 select:focus-visible,
+select option,
 input:focus-visible,
 textarea:focus-visible,
 .settings-select:focus-visible,
