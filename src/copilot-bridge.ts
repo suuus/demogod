@@ -47,9 +47,10 @@ export class CopilotBridge extends EventEmitter {
   // Track excluded tools (enforced in onPreToolUse hook)
   excludedTools: Set<string> = new Set();
 
-  constructor() {
+  constructor(cwd?: string) {
     super();
-    this.client = new CopilotClient();
+    console.log(`[Bridge] Creating CopilotClient with cwd: ${cwd || "(default: process.cwd)"}`);
+    this.client = new CopilotClient(cwd ? { cwd } : undefined);
   }
 
   /** Ensure the underlying CLI client is connected (auto-starts if needed). */
@@ -66,6 +67,7 @@ export class CopilotBridge extends EventEmitter {
   }
 
   async createSession(model?: string, workingDirectory?: string, customAgents?: Array<{name: string; displayName?: string; description?: string; prompt: string}>, skillDirectories?: string[], mcpServers?: Record<string, any>): Promise<void> {
+    console.log(`[Bridge] createSession — model: ${model || "(default)"}, workingDirectory: ${workingDirectory || "(none)"}, mcpServers: ${mcpServers ? Object.keys(mcpServers).join(", ") : "(none)"}, enableConfigDiscovery: true`);
     this.session = await this.client.createSession({
       ...(model ? { model } : {}),
       streaming: true,
@@ -333,6 +335,10 @@ export class CopilotBridge extends EventEmitter {
         });
         break;
       }
+      case "session.tools_updated":
+        // Tool list changed (MCP server connected/disconnected) — notify consumers
+        this.emit("tools_updated");
+        break;
     }
   }
 

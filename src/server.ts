@@ -519,21 +519,28 @@ wss.on("connection", (ws) => {
       try { await bridge.stop(); } catch (e: any) { console.debug("[Bridge] Stop error:", e.message); }
     }
 
-    bridge = new CopilotBridge();
+    console.log(`[Session] Creating bridge with workingDirectory: ${workingDirectory || "(none)"}`);
+    bridge = new CopilotBridge(workingDirectory);
     currentWorkingDir = workingDirectory;
 
-    // Read project-level .mcp.json if it exists and pass servers explicitly
-    // (enableConfigDiscovery should handle this, but as a fallback)
+    // Read project-level MCP config — check both .mcp.json and .github/mcp.json
     let projectMcpServers: Record<string, any> | undefined;
     if (workingDirectory) {
-      try {
-        const mcpPath = resolve(workingDirectory, ".mcp.json");
-        const mcpData = JSON.parse(await readFile(mcpPath, "utf-8"));
-        if (mcpData.mcpServers && Object.keys(mcpData.mcpServers).length > 0) {
-          projectMcpServers = mcpData.mcpServers;
-          console.log(`[MCP] Found project .mcp.json: ${Object.keys(projectMcpServers!).join(", ")}`);
-        }
-      } catch { /* no project .mcp.json — that's fine */ }
+      for (const configPath of [".mcp.json", ".github/mcp.json"]) {
+        try {
+          const mcpPath = resolve(workingDirectory, configPath);
+          const mcpData = JSON.parse(await readFile(mcpPath, "utf-8"));
+          if (mcpData.mcpServers && Object.keys(mcpData.mcpServers).length > 0) {
+            // Normalize: ensure type and tools are set (SDK requires these)
+            for (const [name, cfg] of Object.entries(mcpData.mcpServers) as [string, any][]) {
+              if (!cfg.type) cfg.type = "local";
+              if (!cfg.tools) cfg.tools = ["*"];
+            }
+            projectMcpServers = { ...projectMcpServers, ...mcpData.mcpServers };
+            console.log(`[MCP] Found ${configPath}: ${Object.keys(mcpData.mcpServers).join(", ")}`);
+          }
+        } catch { /* not found — try next */ }
+      }
     }
 
     // Apply queued auto-approve setting
@@ -614,11 +621,33 @@ wss.on("connection", (ws) => {
     });
 
     bridge.on("mcp_status", (data: any) => {
+      console.log(`[MCP] Status event: ${data.serverName} → ${data.status}`);
       safeSend(ws, { type: "mcp_status", serverName: data.serverName, status: data.status });
     });
 
     bridge.on("mcp_tools_discovered", (data: any) => {
       safeSend(ws, { type: "mcp_tools_discovered", serverName: data.serverName, tools: data.tools });
+    });
+
+    bridge.on("tools_updated", async () => {
+      if (!bridge) return;
+      try {
+        const tools = await bridge.listTools();
+        const servers = await bridge.listMcpServers().catch(() => []);
+        const serverNames = servers.map((s: any) => s.name);
+        const mcpToolMap: Record<string, any[]> = {};
+        for (const t of tools) {
+          for (const srv of serverNames) {
+            if (t.name.startsWith(srv + "-") || t.name.startsWith(srv + "_")) {
+              if (!mcpToolMap[srv]) mcpToolMap[srv] = [];
+              mcpToolMap[srv].push(t);
+              break;
+            }
+          }
+        }
+        console.log(`[MCP] Tools updated: ${tools.length} total, MCP: ${Object.entries(mcpToolMap).map(([k, v]) => `${k}:${v.length}`).join(", ") || "none"}`);
+        safeSend(ws, { type: "capabilities_update", tools, mcpTools: mcpToolMap });
+      } catch (e: any) { console.debug("[MCP] Tools update error:", e.message); }
     });
 
     bridge.on("permission_request", (data: any) => {
@@ -639,16 +668,30 @@ wss.on("connection", (ws) => {
       }
       console.log(`[MCP] Initial: ${mcpServers.length} servers (${mcpServers.map((s: any) => s.name).join(", ")})`);
 
-      // Re-fetch after a delay — project-level MCP servers may still be loading
+      // Re-fetch after a delay — project MCP servers may still be connecting
       setTimeout(async () => {
         if (!bridge) return;
         try {
           const updated = await bridge.listMcpServers();
-          if (updated.length > mcpServers.length) {
-            console.log(`[MCP] Delayed: ${updated.length} servers (${updated.map((s: any) => s.name).join(", ")})`);
-            safeSend(ws, { type: "capabilities_loaded", kind: "mcp_servers", items: updated });
+          console.log(`[MCP] Delayed: ${updated.length} servers (${updated.map((s: any) => `${s.name}:${s.status}`).join(", ")})`);
+          safeSend(ws, { type: "capabilities_loaded", kind: "mcp_servers", items: updated });
+
+          // Re-fetch tools — now includes tools from newly connected MCP servers
+          const tools = await bridge.listTools();
+          const serverNames = updated.map((s: any) => s.name);
+          const mcpToolMap: Record<string, any[]> = {};
+          for (const t of tools) {
+            for (const srv of serverNames) {
+              if (t.name.startsWith(srv + "-") || t.name.startsWith(srv + "_")) {
+                if (!mcpToolMap[srv]) mcpToolMap[srv] = [];
+                mcpToolMap[srv].push(t);
+                break;
+              }
+            }
           }
-        } catch {}
+          console.log(`[MCP] Delayed tools: ${tools.length} total, MCP: ${Object.entries(mcpToolMap).map(([k, v]) => `${k}:${v.length}`).join(", ") || "none"}`);
+          safeSend(ws, { type: "capabilities_update", tools, mcpTools: mcpToolMap });
+        } catch (e: any) { console.debug("[MCP] Delayed fetch error:", e.message); }
       }, 5000);
 
       // Detect git branch if working directory is a git repo
