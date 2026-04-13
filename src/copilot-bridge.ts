@@ -42,9 +42,10 @@ export class CopilotBridge extends EventEmitter {
   private activeTaskAgents: { agentName: string; agentDisplayName: string }[] = [];
   // Map background agent IDs to their agentName for routing read_agent results
   private backgroundAgentMap = new Map<string, string>();
-  // Track discovered MCP tools by server name
-  private mcpServerNames: string[] = [];
+  // MCP tools discovered at runtime (legacy — now populated via list_capabilities)
   discoveredMcpTools: Record<string, string[]> = {};
+  // Track excluded tools (enforced in onPreToolUse hook)
+  excludedTools: Set<string> = new Set();
 
   constructor() {
     super();
@@ -71,7 +72,7 @@ export class CopilotBridge extends EventEmitter {
       ...(workingDirectory ? { workingDirectory } : {}),
       ...(customAgents?.length ? { customAgents } : {}),
       ...(skillDirectories?.length ? { skillDirectories } : {}),
-      // No availableTools/excludedTools — all tools accessible
+      ...(this.excludedTools.size > 0 ? { excludedTools: [...this.excludedTools] } : {}),
       // No disabledSkills — all skills accessible
       enableConfigDiscovery: true,
       infiniteSessions: { enabled: true },
@@ -135,21 +136,14 @@ export class CopilotBridge extends EventEmitter {
       },
       hooks: {
         onPreToolUse: (input) => {
+          // Block excluded tools — check full name
+          if (this.excludedTools.has(input.toolName)) {
+            return { permissionDecision: "deny" as const, permissionDecisionReason: "Tool excluded by user" };
+          }
           this.emit("tool_start", {
             toolName: input.toolName,
             toolArgs: input.toolArgs,
           });
-          // Track MCP tools by matching name prefix against known server names
-          for (const srv of this.mcpServerNames) {
-            if (input.toolName.startsWith(srv + "-") || input.toolName.startsWith(srv + "_")) {
-              if (!this.discoveredMcpTools[srv]) this.discoveredMcpTools[srv] = [];
-              if (!this.discoveredMcpTools[srv].includes(input.toolName)) {
-                this.discoveredMcpTools[srv].push(input.toolName);
-                this.emit("mcp_tools_discovered", { serverName: srv, tools: this.discoveredMcpTools[srv] });
-              }
-              break;
-            }
-          }
           // Detect sub-agent launch via the "task" tool
           if (input.toolName === "task") {
             const args = typeof input.toolArgs === "string"
@@ -396,7 +390,6 @@ export class CopilotBridge extends EventEmitter {
   async listMcpServers(): Promise<any[]> {
     if (!this.session) return [];
     const result = await this.session.rpc.mcp.list();
-    this.mcpServerNames = result.servers.map((s: any) => s.name);
     return result.servers;
   }
 

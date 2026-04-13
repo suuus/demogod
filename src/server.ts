@@ -117,24 +117,24 @@ async function getMcpToolMap(): Promise<Record<string, McpToolInfo[]>> {
     // Add its well-known tools from the MCP server definition.
     if (!cachedMcpToolMap["github-mcp-server"]) {
       cachedMcpToolMap["github-mcp-server"] = [
-        { name: "get_file_contents", description: "Get file/directory contents from a GitHub repo" },
-        { name: "list_commits", description: "List commits in a repository" },
-        { name: "get_commit", description: "Get details for a specific commit" },
-        { name: "list_branches", description: "List branches in a repository" },
-        { name: "search_code", description: "Search code across GitHub repositories" },
-        { name: "search_repositories", description: "Search for GitHub repositories" },
-        { name: "search_users", description: "Search for GitHub users" },
-        { name: "list_issues", description: "List issues in a repository" },
-        { name: "issue_read", description: "Get issue details, comments, sub-issues, or labels" },
-        { name: "search_issues", description: "Search for issues across repositories" },
-        { name: "list_pull_requests", description: "List pull requests in a repository" },
-        { name: "pull_request_read", description: "Get PR details, diff, status, files, or reviews" },
-        { name: "search_pull_requests", description: "Search for pull requests" },
-        { name: "actions_list", description: "List workflows, runs, jobs, or artifacts" },
-        { name: "actions_get", description: "Get workflow, run, job, or artifact details" },
-        { name: "get_job_logs", description: "Get logs for workflow jobs" },
-        { name: "list_copilot_spaces", description: "List accessible Copilot Spaces" },
-        { name: "get_copilot_space", description: "Get content from a Copilot Space" },
+        { name: "github-mcp-server-get_file_contents", description: "Get file/directory contents from a GitHub repo" },
+        { name: "github-mcp-server-list_commits", description: "List commits in a repository" },
+        { name: "github-mcp-server-get_commit", description: "Get details for a specific commit" },
+        { name: "github-mcp-server-list_branches", description: "List branches in a repository" },
+        { name: "github-mcp-server-search_code", description: "Search code across GitHub repositories" },
+        { name: "github-mcp-server-search_repositories", description: "Search for GitHub repositories" },
+        { name: "github-mcp-server-search_users", description: "Search for GitHub users" },
+        { name: "github-mcp-server-list_issues", description: "List issues in a repository" },
+        { name: "github-mcp-server-issue_read", description: "Get issue details, comments, sub-issues, or labels" },
+        { name: "github-mcp-server-search_issues", description: "Search for issues across repositories" },
+        { name: "github-mcp-server-list_pull_requests", description: "List pull requests in a repository" },
+        { name: "github-mcp-server-pull_request_read", description: "Get PR details, diff, status, files, or reviews" },
+        { name: "github-mcp-server-search_pull_requests", description: "Search for pull requests" },
+        { name: "github-mcp-server-actions_list", description: "List workflows, runs, jobs, or artifacts" },
+        { name: "github-mcp-server-actions_get", description: "Get workflow, run, job, or artifact details" },
+        { name: "github-mcp-server-get_job_logs", description: "Get logs for workflow jobs" },
+        { name: "github-mcp-server-list_copilot_spaces", description: "List accessible Copilot Spaces" },
+        { name: "github-mcp-server-get_copilot_space", description: "Get content from a Copilot Space" },
       ];
     }
     for (const [name, tools] of Object.entries(cachedMcpToolMap)) {
@@ -901,9 +901,26 @@ wss.on("connection", (ws) => {
               let tools: any[] = [];
               try { tools = await bridge.listTools(); } catch (e: any) { console.warn("[Capabilities] Tools list failed:", e.message); }
               console.log(`[Capabilities] ${mcpServers.length} MCP servers, ${skills.length} skills, ${tools.length} tools`);
-              const mcpToolMap = await getMcpToolMap();
-              const allMcpTools = { ...mcpToolMap, ...bridge.discoveredMcpTools };
-              safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools, mcpTools: allMcpTools });
+
+              // Build MCP tool map by matching tool names to server prefixes
+              const mcpToolMap: Record<string, any[]> = {};
+              const serverNames = mcpServers.map((s: any) => s.name);
+              for (const t of tools) {
+                for (const srv of serverNames) {
+                  if (t.name.startsWith(srv + "-") || t.name.startsWith(srv + "_")) {
+                    if (!mcpToolMap[srv]) mcpToolMap[srv] = [];
+                    mcpToolMap[srv].push(t);
+                    break;
+                  }
+                }
+              }
+              // Merge with hardcoded fallback for servers not yet in the tool list
+              const hardcodedMap = await getMcpToolMap();
+              for (const [srv, srvTools] of Object.entries(hardcodedMap)) {
+                if (!mcpToolMap[srv]) mcpToolMap[srv] = srvTools;
+              }
+
+              safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools, mcpTools: mcpToolMap });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to list capabilities: ${err.message}` });
             }
@@ -943,6 +960,17 @@ wss.on("connection", (ws) => {
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to toggle skill: ${err.message}` });
             }
+          }
+          break;
+
+        case "toggle_tool":
+          if (bridge && msg.name) {
+            if (msg.excluded) {
+              bridge.excludedTools.add(msg.name);
+            } else {
+              bridge.excludedTools.delete(msg.name);
+            }
+            safeSend(ws, { type: "tool_exclusion_updated", name: msg.name, excluded: msg.excluded });
           }
           break;
 

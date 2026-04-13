@@ -1026,7 +1026,14 @@
 
         case "mcp_tools_discovered":
           if (msg.serverName && msg.tools) {
-            this.discoveredMcpTools[msg.serverName] = msg.tools;
+            // Merge new tools into existing list (don't replace — list_capabilities provides the baseline)
+            const existing = this.discoveredMcpTools[msg.serverName] || [];
+            const existingSet = new Set(existing.map(t => typeof t === "string" ? t : t.name));
+            for (const t of msg.tools) {
+              const name = typeof t === "string" ? t : t.name;
+              if (!existingSet.has(name)) existing.push(t);
+            }
+            this.discoveredMcpTools[msg.serverName] = existing;
             if (window._capabilitiesOpen) window._renderCapabilities();
           }
           break;
@@ -1125,6 +1132,15 @@
           } else {
             this.appendSystemMessage(`Demo "${msg.name}" saved! Select it from the demo picker to play.`, "info");
           }
+          break;
+
+        case "tool_exclusion_updated":
+          this.appendSystemMessage(
+            msg.excluded
+              ? `Tool "${msg.name}" excluded.`
+              : `Tool "${msg.name}" re-enabled.`,
+            "info"
+          );
           break;
       }
     }
@@ -3495,13 +3511,14 @@
         html += '<div class="cap-tools">';
         for (const t of serverTools) {
           const toolName = t.name;
+          const displayName = toolName.replace(s.name + '-', '').replace(s.name + '_', '');
           const isExcluded = session.excludedTools.has(toolName);
           const matchesFilter = filter && toolName.toLowerCase().includes(filter);
           html += '<span class="cap-tool-chip' + (isExcluded ? ' excluded' : '') + '"' +
             ' data-tool="' + escapeHtml(toolName) + '"' +
             ' title="' + escapeHtml(t.description || toolName) + '"' +
             (matchesFilter ? ' style="border-color:var(--accent)"' : '') +
-            '>' + escapeHtml(toolName) + '</span>';
+            '>' + escapeHtml(displayName) + '</span>';
         }
         html += '</div>';
       } else {
@@ -3579,13 +3596,15 @@
       const toolChip = e.target.closest('[data-tool]');
       if (toolChip) {
         const toolName = toolChip.dataset.tool;
-        if (session.excludedTools.has(toolName)) {
-          session.excludedTools.delete(toolName);
-          toolChip.classList.remove("excluded");
-        } else {
+        const nowExcluded = !session.excludedTools.has(toolName);
+        if (nowExcluded) {
           session.excludedTools.add(toolName);
           toolChip.classList.add("excluded");
+        } else {
+          session.excludedTools.delete(toolName);
+          toolChip.classList.remove("excluded");
         }
+        session.send("toggle_tool", { name: toolName, excluded: nowExcluded });
         return;
       }
       const sectionHeader = e.target.closest('.cap-section-header');
