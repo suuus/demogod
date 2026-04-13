@@ -5,6 +5,23 @@
       "args": ["@playwright/mcp", "--headless=false"],
       "type": "local",
       "tools": ["*"]
+    },
+    "azure": {
+      "command": "npx",
+      "args": ["-y", "@azure/mcp@latest", "server", "start"],
+      "type": "local",
+      "tools": ["*"]
+    },
+    "teams": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/teams-mcp@latest"],
+      "type": "local",
+      "tools": ["*"],
+      "env": {
+        "MICROSOFT_TENANT_ID": "${MICROSOFT_TENANT_ID}",
+        "MICROSOFT_CLIENT_ID": "${MICROSOFT_CLIENT_ID}",
+        "MICROSOFT_CLIENT_SECRET": "${MICROSOFT_CLIENT_SECRET}"
+      }
     }
   }
 }

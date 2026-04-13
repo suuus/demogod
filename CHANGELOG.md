@@ -2,6 +2,19 @@
 
 All notable changes to DemoGod are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] — 2026-04-13
+
+### Added
+- **Context Setup Wizard** — enterprise onboarding wizard with dedicated panel, progress sidebar, and 7 skills (detect, discover, docs, review, install, instructions, configure)
+- `@context-wizard` agent with inlined phase prompts for MCP server discovery chain
+
+### Fixed
+- Project-level `.mcp.json` servers now appear in Capabilities panel (merge instead of replace)
+- MCP server configs normalized with `type: "local"` and `tools: ["*"]` for SDK compatibility
+- Pass project CWD to `CopilotClient` so `enableConfigDiscovery` finds the correct git root
+- **MCP server tools now discovered via direct JSON-RPC queries** — `client.rpc.tools.list()` only returns built-in tools; now spawns short-lived MCP server processes to query `tools/list`
+- All tool-listing code paths (delayed fetch, tools_updated, list_capabilities, toggle_mcp) use direct MCP queries
+
 ## [0.2.2] — 2026-04-13
 
 ### Fixed

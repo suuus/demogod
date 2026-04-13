@@ -1,0 +1,10 @@
+{
+  "title": "Test",
+  "steps": [
+    {
+      "type": "command",
+      "text": "hi",
+      "response": "hello"
+    }
+  ]
+}
