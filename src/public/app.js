@@ -31,6 +31,21 @@
   }
 
   // ─── Dialog focus trap + Escape-to-close ─────────────────
+  let _dialogFocusTrigger = null; // saved element to restore focus on close
+
+  function openOverlay(overlayId) {
+    _dialogFocusTrigger = document.activeElement;
+    document.getElementById(overlayId)?.classList.remove("hidden");
+  }
+
+  function closeOverlayAndRestoreFocus(overlayId) {
+    document.getElementById(overlayId)?.classList.add("hidden");
+    if (_dialogFocusTrigger && typeof _dialogFocusTrigger.focus === "function") {
+      _dialogFocusTrigger.focus();
+      _dialogFocusTrigger = null;
+    }
+  }
+
   function setupDialogOverlay(overlayId, closeCallback) {
     const overlay = document.getElementById(overlayId);
     if (!overlay) return;
@@ -449,7 +464,7 @@
 
       const inputLine = document.createElement("div");
       inputLine.className = "input-line";
-      inputLine.innerHTML = '<span class="prompt-symbol">\u276f</span><span class="session-input" contenteditable="true" spellcheck="false" role="textbox" aria-label="Chat input" aria-multiline="false"></span>';
+      inputLine.innerHTML = '<span class="prompt-symbol">\u276f</span><span class="session-input" contenteditable="true" spellcheck="false" role="textbox" aria-label="Chat input" aria-multiline="false" aria-placeholder="Ask Copilot anything..."></span>';
 
       const statusBar = document.createElement("div");
       statusBar.className = "window-statusbar";
@@ -735,9 +750,9 @@
       chrome.innerHTML = `
         <span class="floating-title">${escapeHtml(this._displayName())}</span>
         <div class="floating-controls">
-          <button class="floating-btn floating-minimize" title="Minimize">\u2212</button>
-          <button class="floating-btn floating-maximize" title="Maximize">\u25A1</button>
-          <button class="floating-btn floating-close" title="Close">\u00d7</button>
+          <button class="floating-btn floating-minimize" title="Minimize" aria-label="Minimize">\u2212</button>
+          <button class="floating-btn floating-maximize" title="Maximize" aria-label="Maximize">\u25A1</button>
+          <button class="floating-btn floating-close" title="Close" aria-label="Close">\u00d7</button>
         </div>
       `;
 
@@ -1555,6 +1570,7 @@
       div.appendChild(input);
       dialogFields.appendChild(div);
 
+      _dialogFocusTrigger = document.activeElement;
       dialogOverlay.classList.remove("hidden");
       requestAnimationFrame(() => input.focus());
     }
@@ -1577,6 +1593,7 @@
 
       buildFormFields(dialogFields, schema, choices);
 
+      _dialogFocusTrigger = document.activeElement;
       dialogOverlay.classList.remove("hidden");
 
       requestAnimationFrame(() => {
@@ -2080,6 +2097,17 @@
       this.floatingManager = new FloatingWindowManager(
         document.getElementById("floating-container")
       );
+      // Arrow key navigation on session tab bar
+      document.getElementById("session-tab-bar").addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        const tabs = [...document.querySelectorAll(".session-tab")];
+        if (tabs.length < 2) return;
+        const idx = tabs.findIndex(t => t.getAttribute("aria-selected") === "true");
+        const next = e.key === "ArrowRight" ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
+        const sessionId = tabs[next].dataset.sessionTab;
+        this.switchTo(sessionId);
+        tabs[next].focus();
+      });
     }
 
     createSession(opts = {}) {
@@ -2137,11 +2165,13 @@
       document.querySelectorAll(".session-tab").forEach(t => {
         t.classList.remove("active");
         t.setAttribute("aria-selected", "false");
+        t.setAttribute("tabindex", "-1");
       });
       const tab = document.querySelector('[data-session-tab="' + id + '"]');
       if (tab) {
         tab.classList.add("active");
         tab.setAttribute("aria-selected", "true");
+        tab.setAttribute("tabindex", "0");
       }
 
       session.dom.inputEl.focus();
@@ -2172,8 +2202,9 @@
       tab.dataset.sessionTab = session.id;
       tab.setAttribute("role", "tab");
       tab.setAttribute("aria-selected", "false");
+      tab.setAttribute("tabindex", "-1");
       tab.innerHTML =
-        '<span class="session-tab-dot" style="background: #28c840"></span>' +
+        '<span class="session-tab-dot" style="background: #28c840" aria-label="Ready"></span>' +
         '<span class="session-tab-name">' + escapeHtml(session._displayName()) + '</span>' +
         '<button class="session-tab-close" aria-label="Close session" title="Close">\u00d7</button>';
 
@@ -2224,6 +2255,7 @@
       const dot = tab.querySelector(".session-tab-dot");
       if (dot) {
         dot.style.background = isProcessing ? "#febc2e" : "#28c840";
+        dot.setAttribute("aria-label", isProcessing ? "Processing" : "Ready");
       }
     }
 
@@ -2575,7 +2607,7 @@
       });
       session.setProcessing(true);
     }
-    dialogOverlay.classList.add("hidden");
+    closeOverlayAndRestoreFocus("dialog-overlay");
     pendingDialogRequestId = null;
     pendingDialogSession = null;
   }
@@ -2690,12 +2722,13 @@
 
   function openPicker() {
     const session = manager.getActive();
+    _dialogFocusTrigger = document.activeElement;
     pickerOverlay.classList.remove("hidden");
     browseTo(session?.selectedProject || null);
   }
 
   function closePicker() {
-    pickerOverlay.classList.add("hidden");
+    closeOverlayAndRestoreFocus("picker-overlay");
   }
 
   function selectProject(path) {
@@ -2809,12 +2842,13 @@
 
   function openFileBrowser() {
     const session = manager.getActive();
+    _dialogFocusTrigger = document.activeElement;
     fbOverlay.classList.remove("hidden");
     fbBrowseTo(session?.selectedProject || null);
   }
 
   function closeFileBrowser() {
-    fbOverlay.classList.add("hidden");
+    closeOverlayAndRestoreFocus("filebrowser-overlay");
   }
 
   btnBrowseFile.addEventListener("click", openFileBrowser);
@@ -2944,12 +2978,13 @@
       })));
     }
 
+    _dialogFocusTrigger = document.activeElement;
     cappickerOverlay.classList.remove("hidden");
     cappickerSearch.focus();
   }
 
   function closeCapPicker() {
-    cappickerOverlay.classList.add("hidden");
+    closeOverlayAndRestoreFocus("cappicker-overlay");
     cappickerMode = null;
   }
 
@@ -3332,8 +3367,8 @@
     }
   });
 
-  function openSettings() { settingsOverlay.classList.remove("hidden"); }
-  function closeSettings() { settingsOverlay.classList.add("hidden"); }
+  function openSettings() { openOverlay("settings-overlay"); }
+  function closeSettings() { closeOverlayAndRestoreFocus("settings-overlay"); }
 
   $("#btn-settings").addEventListener("click", openSettings);
   $("#settings-close").addEventListener("click", closeSettings);
@@ -3349,6 +3384,7 @@
   window._capabilitiesOpen = false;
 
   function openCapabilities() {
+    _dialogFocusTrigger = document.activeElement;
     capOverlay.classList.remove("hidden");
     window._capabilitiesOpen = true;
     capFilter.value = "";
@@ -3359,7 +3395,7 @@
   }
 
   function closeCapabilities() {
-    capOverlay.classList.add("hidden");
+    closeOverlayAndRestoreFocus("capabilities-overlay");
     window._capabilitiesOpen = false;
   }
 
@@ -3638,7 +3674,7 @@
   //
 
   document.addEventListener("keydown", (e) => {
-    const isMac = navigator.platform.startsWith("Mac");
+    const isMac = navigator.userAgentData?.platform === "macOS" || /Mac/.test(navigator.platform || "");
     const mod = isMac ? (e.ctrlKey && !e.metaKey) : e.altKey;
     if (!mod) return;
 
