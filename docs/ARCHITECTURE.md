@@ -52,7 +52,7 @@ DemoGod is a web-based tool for creating interactive demo videos of GitHub Copil
 │  ┌──────────────────────────────────────────────────┐           │
 │  │  REST API (Express)                              │           │
 │  │  /api/browse  /api/file  /api/demos/:name        │           │
-│  │  /api/browse-files  /api/models                  │           │
+│  │  /api/browse-files  /api/models  /api/changelog  │           │
 │  └──────────────────────────────────────────────────┘           │
 └─────────────────────────────────────────────────────────────────┘
                           │
@@ -167,6 +167,7 @@ Additionally, the server includes a manual MCP tool discovery system (`queryMcpS
 | `GET /api/demos` | List available demo scripts | None (local only) |
 | `GET /api/demos/:name` | Load demo script JSON | Sanitized name (`[a-zA-Z0-9_-]`), path under `DEMOS_DIR` |
 | `GET /api/models` | List available Copilot models | None (local only) |
+| `GET /api/changelog` | Serve `CHANGELOG.md` content | None (local only) |
 
 #### WebSocket Handler
 
@@ -238,6 +239,7 @@ Class-based architecture. Major sections:
 
 - **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, record button, background color
 - **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch; shows yellow `auto-approve` text when auto-approve is enabled)
+- **Bottom-right controls**: version badge (`<a>` tag — click to view `CHANGELOG.md` in a tab via `GET /api/changelog`) and settings icon
 - **Overlay dialogs**: project picker, file browser, user input dialog, capability picker
 
 #### `styles.css` — Theming
@@ -512,6 +514,52 @@ Session containers use mode-colored subtle separator lines via the `--titlebar-b
 1. Add HTML toggle/dropdown in `#settings-window` in `index.html`
 2. Add a `dg-*` localStorage key
 3. Wire up event listener + init in the settings panel section of `app.js`
+
+## ARIA Accessibility
+
+DemoGod has comprehensive ARIA role attributes throughout its UI, enabling screen reader support and making it compatible with Playwright's `getByRole` locators for automated testing.
+
+### Role Map
+
+| Element | ARIA attributes | Notes |
+|---------|----------------|-------|
+| `#controls` | `role="toolbar"` + `aria-label` | Top control bar |
+| All control bar buttons | `aria-label` (deterministic names) | 16 buttons with getByRole-compatible names |
+| `.session-tab-bar` | `role="tablist"` | Session tab strip |
+| Dynamic session tabs | `role="tab"` + `aria-selected` | `aria-selected` managed by `switchTo()` |
+| Tab close buttons | `<button>` + `aria-label` | Changed from `<span>` for keyboard access |
+| `#tab-bar` | `role="tablist"` | Inner file/report tab bar |
+| Chat tab + dynamic tabs | `role="tab"` + `aria-selected` | Managed by `switchTab()` |
+| Tab panels | `role="tabpanel"` + `aria-label` | Chat, file view, report panels |
+| `.session-input` (contenteditable) | `role="textbox"` + `aria-label="Chat input"` | Chat prompt input |
+| `.status-text` | `role="status"` | Announces status changes to screen readers |
+| Picker lists | `role="listbox"` | `#picker-list`, `#filebrowser-list`, `#cappicker-list` |
+| Picker items | `role="option"` | Dynamic items in all pickers |
+| Dialog close dots | `role="button"` + `tabindex=0` + `aria-label` | All 7 traffic-light close controls |
+
+### Focus Visibility
+
+- Global `:focus-visible` rule: 2px solid accent outline for all focusable elements
+- Custom focus style for `.session-input`: bottom border glow using `--accent`
+
+## Playwright MCP Server
+
+DemoGod ships a `.mcp.json` in the project root that configures `@playwright/mcp` as a dev-time MCP server for Copilot. This gives Copilot live browser tools (navigate, screenshot, click, type, snapshot/accessibility tree) when working on demo specs.
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp", "--headless=false"],
+      "type": "local",
+      "tools": ["*"]
+    }
+  }
+}
+```
+
+The `--headless=false` flag opens a visible browser window so Copilot can inspect the live DemoGod UI rather than guessing selectors from documentation. This transforms Playwright spec generation from "guess and iterate" to "inspect, click, verify."
 
 ## Testing
 
