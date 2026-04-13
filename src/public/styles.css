@@ -2072,7 +2072,19 @@ body.recording #record-icon {
 }
 
 /* Global focus-visible indicator for keyboard navigation */
-:focus-visible {
+/* Scoped to buttons and interactive elements — form inputs use their own border-based focus styles */
+button:focus-visible,
+.ctrl-btn:focus-visible,
+.session-tab:focus-visible,
+.tab:focus-visible,
+.dot-close:focus-visible,
+.bottom-right-btn:focus-visible,
+.version-badge:focus-visible,
+.floating-btn:focus-visible,
+.picker-item:focus-visible,
+.cappicker-item:focus-visible,
+.cap-tool-chip:focus-visible,
+.dialog-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
