@@ -262,3 +262,57 @@ When modifying Tauri config, edit `src-tauri/tauri.conf.json`. Rust code is in `
 | Record a demo | `npm run record` (interactive) or `npm run record -- --demo name` (automated) |
 | Dev server | `npm run dev` (hot reload on :3456) |
 | Desktop dev | `npm run desktop` (Tauri + Node hot reload) |
+
+## Enterprise Context
+
+### Documentation Sources
+
+| Source | Location | When to use |
+|--------|----------|-------------|
+| Architecture decisions | `docs/` in this repo | First stop for "how does X work?" and design rationale |
+| Engineering docs | [SharePoint – danielscc](https://danielsdijkdrenth.sharepoint.com/sites/danielscc) | Team onboarding, how-to guides, broader engineering standards |
+| Security & compliance | [SharePoint – danielscc](https://danielsdijkdrenth.sharepoint.com/sites/danielscc) | Security policies, compliance requirements, audit documentation |
+| Runbooks & incidents | [SharePoint – danielscc](https://danielsdijkdrenth.sharepoint.com/sites/danielscc) | Operational runbooks, incident procedures, troubleshooting guides |
+
+When asked about project architecture or design decisions, check `docs/` first. For engineering standards, security policies, runbooks, or incident procedures, use the **WorkIQ** tool (`ask_work_iq`) to search the SharePoint site.
+
+### MCP Servers
+
+Three MCP servers are configured in `.mcp.json`:
+
+| Server | When to use |
+|--------|-------------|
+| **playwright** | Browser automation, E2E test inspection, live DOM snapshots. Use `browser_snapshot`, `browser_click`, `browser_navigate` for interactive testing. |
+| **azure** | Managing Azure resources, deployments, and infrastructure queries. Use when the user asks about cloud resources, deployments, or Azure services. Requires `az login` session. |
+| **teams** | Reading/sending Teams messages, searching conversations, and accessing SharePoint content via Microsoft Graph. Use when the user references team discussions or needs to look up SharePoint docs. |
+
+**WorkIQ** (user-level, not in `.mcp.json`): Use `ask_work_iq` to search SharePoint docs, emails, meetings, and OneDrive files. This is the primary tool for querying the team's SharePoint knowledge base at `danielsdijkdrenth.sharepoint.com/sites/danielscc/`.
+
+Prefer MCP tools over CLI equivalents when both are available (e.g., use the `azure` MCP server instead of raw `az` CLI commands).
+
+### Skills & Agents
+
+| Resource | When to use |
+|----------|-------------|
+| `azure-prepare` skill | Creating or modernizing apps for Azure deployment |
+| `azure-deploy` skill | Executing deployments (`azd up`, `terraform apply`) |
+| `azure-validate` skill | Pre-deployment validation and readiness checks |
+| `context-wizard` agent | Reconfiguring this MCP/instructions setup |
+| `playwright-test-planner` agent | Creating comprehensive E2E test plans |
+| `playwright-test-generator` agent | Generating Playwright test specs from plans |
+| `playwright-test-healer` agent | Debugging and fixing failing Playwright tests |
+| `code-quality` agent | Code maintainability and best practices review |
+| `security-auditor` agent | Security vulnerability assessment |
+| `performance-engineer` agent | Rendering bottlenecks, memory leaks, resource exhaustion review |
+| `tech-debt` agent | Dead code, stale docs, unused dependencies, architectural debt |
+| `ux-accessibility` agent | WCAG compliance, keyboard nav, screen reader, color contrast audit |
+
+### Cross-Tool Workflows
+
+**Bug triage**: Look up issue in GitHub Issues → check Teams for discussion context → investigate code → open PR with fix → verify CI passes
+
+**Deployment**: Validate with `azure-validate` → prepare infra with `azure-prepare` → deploy with `azure-deploy` → verify in Azure MCP
+
+**E2E test creation**: Plan tests with `playwright-test-planner` → generate specs with `playwright-test-generator` → run with Playwright MCP for live inspection → heal failures with `playwright-test-healer`
+
+**Documentation update**: Make code change → update `docs/` if architecture affected → notify team via Teams if significant
