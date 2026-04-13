@@ -7,6 +7,14 @@ All notable changes to DemoGod are documented here. Format follows [Keep a Chang
 ### Added
 - **Context Setup Wizard** — enterprise onboarding wizard with dedicated panel, progress sidebar, and 7 skills (detect, discover, docs, review, install, instructions, configure)
 - `@context-wizard` agent with inlined phase prompts for MCP server discovery chain
+- **Integrated Terminal modes** — dropdown (disabled / classic / tab): classic opens bottom panel, tab opens as a session-level tab alongside Copilot sessions
+- **Experimental feature flags** — Context Wizard and Demo Studio gated behind Settings → Experimental toggles
+- Terminal floating window support — terminal session becomes a draggable/resizable floating window in float layout
+
+### Changed
+- Default background theme changed from Chroma to **Aurora Borealis**
+- Settings button moved to last position in control bar
+- Terminal setting changed from checkbox to dropdown
 
 ### Fixed
 - Project-level `.mcp.json` servers now appear in Capabilities panel (merge instead of replace)

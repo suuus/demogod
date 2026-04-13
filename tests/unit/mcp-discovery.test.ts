@@ -244,3 +244,81 @@ describe("github-mcp-server hardcoded tools", () => {
     expect(unique.size).toBe(tools.length);
   });
 });
+
+// ── queryProjectMcpServerTools ──────────────────────────────────────────────
+// Mirrors the logic in server.ts — queries project MCP servers for tools.
+
+async function queryProjectMcpServerTools(
+  configs: Record<string, any> | undefined,
+  connectedServers?: string[],
+): Promise<Record<string, McpToolInfo[]>> {
+  const result: Record<string, McpToolInfo[]> = {};
+  if (!configs) return result;
+  const queries = Object.entries(configs).map(async ([name, cfg]) => {
+    const s = cfg as any;
+    if (!s.command) return;
+    if (connectedServers && !connectedServers.includes(name)) return;
+    try {
+      const tools = await queryMcpServerTools(s.command, s.args || [], s.env);
+      if (tools.length > 0) result[name] = tools;
+    } catch { /* skip */ }
+  });
+  await Promise.all(queries);
+  return result;
+}
+
+describe("queryProjectMcpServerTools", () => {
+  it("returns empty object for undefined configs", async () => {
+    const result = await queryProjectMcpServerTools(undefined);
+    expect(result).toEqual({});
+  });
+
+  it("returns empty object for empty configs", async () => {
+    const result = await queryProjectMcpServerTools({});
+    expect(result).toEqual({});
+  });
+
+  it("skips servers not in connectedServers filter", async () => {
+    const configs = {
+      "my-server": { command: "echo", args: ["hello"] },
+    };
+    const result = await queryProjectMcpServerTools(configs, ["other-server"]);
+    expect(result).toEqual({});
+  });
+
+  it("skips configs without command field", async () => {
+    const configs = {
+      "no-cmd": { url: "https://example.com" },
+    };
+    const result = await queryProjectMcpServerTools(configs);
+    expect(result).toEqual({});
+  });
+
+  it("queries server and returns tools when connectedServers matches", async () => {
+    const script = `
+      process.stdin.setEncoding("utf-8");
+      let buf = "";
+      process.stdin.on("data", (chunk) => {
+        buf += chunk;
+        let idx;
+        while ((idx = buf.indexOf("\\n")) !== -1) {
+          const line = buf.slice(0, idx).trim();
+          buf = buf.slice(idx + 1);
+          if (!line) continue;
+          const msg = JSON.parse(line);
+          if (msg.method === "initialize") {
+            process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { capabilities: {} } }) + "\\n");
+          } else if (msg.method === "tools/list") {
+            process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { tools: [{ name: "test_tool", description: "A test" }] } }) + "\\n");
+          }
+        }
+      });
+    `;
+    const configs = {
+      "test-server": { command: "node", args: ["-e", script] },
+    };
+    const result = await queryProjectMcpServerTools(configs, ["test-server"]);
+    expect(result["test-server"]).toHaveLength(1);
+    expect(result["test-server"][0].name).toBe("test_tool");
+  }, 15000);
+});

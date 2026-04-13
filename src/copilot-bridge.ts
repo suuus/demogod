@@ -42,8 +42,6 @@ export class CopilotBridge extends EventEmitter {
   private activeTaskAgents: { agentName: string; agentDisplayName: string }[] = [];
   // Map background agent IDs to their agentName for routing read_agent results
   private backgroundAgentMap = new Map<string, string>();
-  // MCP tools discovered at runtime (legacy — now populated via list_capabilities)
-  discoveredMcpTools: Record<string, string[]> = {};
   // Track excluded tools (enforced in onPreToolUse hook)
   excludedTools: Set<string> = new Set();
 

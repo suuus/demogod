@@ -82,7 +82,7 @@ docs/ARCHITECTURE.md     # Deep architecture reference
 5. **`textContent` for text-only, `classList` for classes, `dataset` for data attributes**.
 6. **`requestAnimationFrame` for high-frequency DOM updates** — streaming deltas coalesce via rAF.
 7. **`aria-live` management** — set `"off"` during streaming, restore `"polite"` when idle.
-8. **Settings use `localStorage` with `dg-` prefix** — keys: `dg-bg`, `dg-dialog-mode`, `dg-terminal`, `dg-agent-tabs`, `dg-show-version`, `dg-layout`, `dg-auto-approve`, `dg-todo-panel`.
+8. **Settings use `localStorage` with `dg-` prefix** — keys: `dg-bg`, `dg-dialog-mode`, `dg-terminal`, `dg-agent-tabs`, `dg-show-version`, `dg-layout`, `dg-auto-approve`, `dg-todo-panel`, `dg-ambient`, `dg-context-wizard`, `dg-demo-studio`, `dg-auto-file-tabs`.
 9. **Dialogs must have `role="dialog"`, `aria-modal="true"`, focus trapping, and Escape-to-close** — use `setupDialogOverlay()`.
 
 ### CSS Conventions
@@ -137,7 +137,7 @@ JSON files in `demos/` with a `steps` array. Each step has a `type`:
 The ⚙️ Settings button opens a panel with three sections:
 - **Appearance**: Background color (including Aurora Borealis animated theme), dialog mode (inline/popup), show version badge
 - **Features**: (reserved for future toggles)
-- **Experimental**: Integrated terminal, sub-agent activity tabs
+- **Experimental**: Integrated terminal (dropdown: disabled/classic/tab), sub-agent activity tabs, todo panel, ambient music, Context Wizard, Demo Studio
 
 Settings are persisted to `localStorage` with a `dg-` prefix.
 

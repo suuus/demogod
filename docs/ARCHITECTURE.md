@@ -155,7 +155,10 @@ The server is a single-file Express + WebSocket application with these sections:
 
 The SDK handles plugin and config discovery automatically via `enableConfigDiscovery: true` in the session config. This auto-discovers agents, skills, and MCP servers from `~/.copilot/installed-plugins/` and project-local configs (`.mcp.json`, `.github/agents/`, chatmodes). The server does **not** manually pass `customAgents` or `skillDirectories` to session creation.
 
-Additionally, the server includes a manual MCP tool discovery system (`queryMcpServerTools()`, `discoverAllMcpTools()`) that spawns MCP server processes via stdio to query their tool lists. This is used only for the capabilities panel to show MCP server tools alongside SDK-discovered tools.
+Additionally, the server includes a manual MCP tool discovery system that spawns MCP server processes via stdio to query their tool lists (JSON-RPC `initialize` + `tools/list`). This is necessary because `client.rpc.tools.list()` only returns built-in tools — MCP server tools are not included. Three functions handle this:
+- `queryMcpServerTools(command, args, env)` — spawns a single MCP server process and collects its tools
+- `discoverAllMcpTools()` / `getMcpToolMap()` — scans `~/.copilot/installed-plugins/` for MCP configs
+- `queryProjectMcpServerTools(configs, connectedServers)` — queries project-level `.mcp.json` servers directly, filtered to connected servers only
 
 #### REST API
 
@@ -270,6 +273,8 @@ When a session is created, the server creates a fresh `CopilotBridge` on the cor
 - Destroys sessions (tears down the WS connection and removes the tab/DOM)
 - Switches the active session (hides the old output area, shows the new one)
 - Responds to keyboard shortcuts (macOS: `Ctrl+T/W/N/P`, other: `Alt+T/W/N/P`)
+- Registers external (non-Copilot) sessions via `_registerExternalSession(id, obj)` — used by the integrated terminal tab mode. External sessions must have `{ dom: { container }, isTerminal: true }`.
+- Exposed on `window.__demogodSessionManager` for cross-module access.
 
 ### FloatingWindowManager
 
@@ -318,10 +323,16 @@ Tauri uses a **sidecar** approach to run the Node.js server:
 
 ### PTY Terminal (`src/pty-server.ts` + `src/public/terminal.js`)
 
-The integrated terminal is an optional feature (enabled via Settings → Experimental or always visible in Tauri). The PTY server spawns a shell process and bridges it to the browser via a dedicated `/pty` WebSocket endpoint.
+The integrated terminal has three modes, controlled via Settings → Experimental → Integrated Terminal:
+- **Disabled** (default) — terminal button hidden
+- **Classic** — bottom panel below the main window (original behavior)
+- **Tab** — opens as a session-level tab in the session tab bar, alongside Copilot sessions. In floating layout mode, becomes a draggable/resizable floating window.
+
+Mode is persisted to `localStorage` as `dg-terminal` (`"disabled"` / `"classic"` / `"tab"`). Backward-compatible: `"1"` → `"classic"`, `"0"` → `"disabled"`.
 
 - **Backend** (`pty-server.ts`): `setupPtyServer(server, verifyWsClient)` creates a `WebSocketServer`, validates the shell against `ALLOWED_SHELLS`, restricts `cwd` to `homedir()` via shared `path-utils.ts`, and handles resize/data/cleanup.
-- **Frontend** (`terminal.js`): ES module that manages xterm.js lifecycle, WebSocket connection, and keyboard shortcut (Ctrl+`).
+- **Frontend** (`terminal.js`): ES module that manages xterm.js lifecycle, WebSocket connection, and keyboard shortcut (Ctrl+`). In tab mode, creates a session via `SessionManager._registerExternalSession()` and uses `ResizeObserver` for auto-fitting.
+- **Cross-module API**: `window.__demogodSessionManager` exposes `switchTo()`, `_registerExternalSession()`, `_unregisterExternalSession()` for terminal.js to integrate with the session tab bar.
 
 ### Path Security (`src/path-utils.ts`)
 
@@ -514,6 +525,17 @@ Session containers use mode-colored subtle separator lines via the `--titlebar-b
 1. Add HTML toggle/dropdown in `#settings-window` in `index.html`
 2. Add a `dg-*` localStorage key
 3. Wire up event listener + init in the settings panel section of `app.js`
+
+### Experimental Feature Flags
+
+| localStorage Key | Type | Default | Description |
+|-----------------|------|---------|-------------|
+| `dg-terminal` | `"disabled"` / `"classic"` / `"tab"` | `"disabled"` | Integrated terminal mode |
+| `dg-agent-tabs` | `"0"` / `"1"` | `"0"` | Sub-agent activity tabs |
+| `dg-todo-panel` | `"0"` / `"1"` | `"1"` | Live task list panel |
+| `dg-ambient` | `"0"` / `"1"` | `"0"` | Ambient background music |
+| `dg-context-wizard` | `"0"` / `"1"` | `"0"` | Context Setup Wizard button |
+| `dg-demo-studio` | `"0"` / `"1"` | `"0"` | Demo Studio button |
 
 ## ARIA Accessibility
 
