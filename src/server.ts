@@ -623,6 +623,19 @@ wss.on("connection", (ws) => {
       if (mcpServers.length > 0) {
         safeSend(ws, { type: "capabilities_loaded", kind: "mcp_servers", items: mcpServers });
       }
+      console.log(`[MCP] Initial: ${mcpServers.length} servers (${mcpServers.map((s: any) => s.name).join(", ")})`);
+
+      // Re-fetch after a delay — project-level MCP servers may still be loading
+      setTimeout(async () => {
+        if (!bridge) return;
+        try {
+          const updated = await bridge.listMcpServers();
+          if (updated.length > mcpServers.length) {
+            console.log(`[MCP] Delayed: ${updated.length} servers (${updated.map((s: any) => s.name).join(", ")})`);
+            safeSend(ws, { type: "capabilities_loaded", kind: "mcp_servers", items: updated });
+          }
+        } catch {}
+      }, 5000);
 
       // Detect git branch if working directory is a git repo
       let branch: string | undefined;
