@@ -1025,7 +1025,7 @@
           break;
 
         case "task_complete":
-          if (msg.summary) {
+          if (FEAT_AGENT_TABS && msg.summary) {
             addReportTab("Summary", msg.summary);
           }
           break;
