@@ -498,6 +498,7 @@ wss.on("connection", (ws) => {
   let bridge: CopilotBridge | null = null;
   let demoAbort: AbortController | null = null;
   let pendingAutoApprove: boolean | null = null;
+  let userAutoApprove = true; // the user's global setting (from Settings toggle)
   
   let currentWorkingDir: string | undefined;
 
@@ -807,6 +808,7 @@ wss.on("connection", (ws) => {
           break;
 
         case "set_auto_approve":
+          userAutoApprove = !!msg.enabled;
           if (bridge) {
             bridge.autoApprove = !!msg.enabled;
             console.log(`[Security] Auto-approve: ${bridge.autoApprove}`);
@@ -901,7 +903,15 @@ wss.on("connection", (ws) => {
           if (bridge) {
             try {
               const mode = await bridge.setMode(msg.mode);
-              safeSend(ws, { type: "mode_changed", mode });
+              // Autopilot mode auto-enables permission approval; leaving autopilot restores user setting
+              if (mode === "autopilot") {
+                bridge.autoApprove = true;
+                console.log("[Security] Auto-approve forced ON (autopilot mode)");
+              } else {
+                bridge.autoApprove = userAutoApprove;
+                console.log(`[Security] Auto-approve restored to user setting: ${userAutoApprove}`);
+              }
+              safeSend(ws, { type: "mode_changed", mode, autoApprove: bridge.autoApprove });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to set mode: ${err.message}` });
             }

@@ -1124,6 +1124,14 @@
           // Update border color based on mode
           this.dom.container.dataset.copilotMode = msg.mode;
           if (this.floatingEl) this.floatingEl.dataset.copilotMode = msg.mode;
+          // Update auto-approve indicator when autopilot toggles it
+          if (msg.autoApprove !== undefined) {
+            const approveEl = this.dom.statusBar.querySelector(".status-approve");
+            if (approveEl) {
+              approveEl.textContent = msg.autoApprove ? "auto-approve" : "";
+              approveEl.style.color = msg.autoApprove ? "var(--yellow)" : "";
+            }
+          }
           if (msg.type === "mode_changed") {
             this.appendSystemMessage("Mode switched to " + (modeLabelsMap[msg.mode] || msg.mode), "info");
           }
