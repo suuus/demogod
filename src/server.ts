@@ -70,6 +70,30 @@ async function queryMcpServerTools(command: string, args: string[], env?: Record
   });
 }
 
+// Query tools from project-level MCP server configs (e.g. from .mcp.json)
+async function queryProjectMcpServerTools(
+  configs: Record<string, any> | undefined,
+  connectedServers?: string[],
+): Promise<Record<string, McpToolInfo[]>> {
+  const result: Record<string, McpToolInfo[]> = {};
+  if (!configs) return result;
+  const queries = Object.entries(configs).map(async ([name, cfg]) => {
+    const s = cfg as any;
+    if (!s.command) return;
+    // Only query servers that are connected (if we know)
+    if (connectedServers && !connectedServers.includes(name)) return;
+    try {
+      const tools = await queryMcpServerTools(s.command, s.args || [], s.env);
+      if (tools.length > 0) result[name] = tools;
+      console.log(`[MCP] ${name}: ${tools.length} tools (${tools.map(t => t.name).join(", ")})`);
+    } catch (err) {
+      console.warn(`[MCP] Failed to query tools for ${name}:`, err);
+    }
+  });
+  await Promise.all(queries);
+  return result;
+}
+
 // Scan all plugin MCP configs and query their tools
 async function discoverAllMcpTools(): Promise<Record<string, McpToolInfo[]>> {
   const result: Record<string, McpToolInfo[]> = {};
@@ -513,6 +537,7 @@ wss.on("connection", (ws) => {
   let userAutoApprove = true; // the user's global setting (from Settings toggle)
   
   let currentWorkingDir: string | undefined;
+  let projectMcpServers: Record<string, any> | undefined;
 
   async function createSession(workingDirectory?: string, model?: string) {
     if (bridge) {
@@ -524,7 +549,7 @@ wss.on("connection", (ws) => {
     currentWorkingDir = workingDirectory;
 
     // Read project-level MCP config — check both .mcp.json and .github/mcp.json
-    let projectMcpServers: Record<string, any> | undefined;
+    projectMcpServers = undefined;
     if (workingDirectory) {
       for (const configPath of [".mcp.json", ".github/mcp.json"]) {
         try {
@@ -536,7 +561,7 @@ wss.on("connection", (ws) => {
               if (!cfg.type) cfg.type = "local";
               if (!cfg.tools) cfg.tools = ["*"];
             }
-            projectMcpServers = { ...projectMcpServers, ...mcpData.mcpServers };
+            projectMcpServers = { ...(projectMcpServers || {}), ...mcpData.mcpServers };
             console.log(`[MCP] Found ${configPath}: ${Object.keys(mcpData.mcpServers).join(", ")}`);
           }
         } catch { /* not found — try next */ }
@@ -634,18 +659,14 @@ wss.on("connection", (ws) => {
       try {
         const tools = await bridge.listTools();
         const servers = await bridge.listMcpServers().catch(() => []);
-        const serverNames = servers.map((s: any) => s.name);
-        const mcpToolMap: Record<string, any[]> = {};
-        for (const t of tools) {
-          for (const srv of serverNames) {
-            if (t.name.startsWith(srv + "-") || t.name.startsWith(srv + "_")) {
-              if (!mcpToolMap[srv]) mcpToolMap[srv] = [];
-              mcpToolMap[srv].push(t);
-              break;
-            }
-          }
-        }
-        console.log(`[MCP] Tools updated: ${tools.length} total, MCP: ${Object.entries(mcpToolMap).map(([k, v]) => `${k}:${v.length}`).join(", ") || "none"}`);
+        const connectedNames = servers.filter((s: any) => s.status === "connected").map((s: any) => s.name);
+
+        // Query project MCP servers directly for their tools
+        const projectTools = await queryProjectMcpServerTools(projectMcpServers, connectedNames);
+        const pluginTools = await getMcpToolMap();
+        const mcpToolMap: Record<string, McpToolInfo[]> = { ...pluginTools, ...projectTools };
+
+        console.log(`[MCP] Tools updated: ${tools.length} built-in, MCP: ${Object.entries(mcpToolMap).map(([k, v]) => `${k}:${v.length}`).join(", ") || "none"}`);
         safeSend(ws, { type: "capabilities_update", tools, mcpTools: mcpToolMap });
       } catch (e: any) { console.debug("[MCP] Tools update error:", e.message); }
     });
@@ -673,23 +694,19 @@ wss.on("connection", (ws) => {
         if (!bridge) return;
         try {
           const updated = await bridge.listMcpServers();
+          const connectedNames = updated.filter((s: any) => s.status === "connected").map((s: any) => s.name);
           console.log(`[MCP] Delayed: ${updated.length} servers (${updated.map((s: any) => `${s.name}:${s.status}`).join(", ")})`);
           safeSend(ws, { type: "capabilities_loaded", kind: "mcp_servers", items: updated });
 
-          // Re-fetch tools — now includes tools from newly connected MCP servers
+          // Query project MCP servers directly for their tools
+          const projectTools = await queryProjectMcpServerTools(projectMcpServers, connectedNames);
+          // Also get installed-plugin tools
+          const pluginTools = await getMcpToolMap();
+          const mcpToolMap: Record<string, McpToolInfo[]> = { ...pluginTools, ...projectTools };
+
+          // Get built-in tools too
           const tools = await bridge.listTools();
-          const serverNames = updated.map((s: any) => s.name);
-          const mcpToolMap: Record<string, any[]> = {};
-          for (const t of tools) {
-            for (const srv of serverNames) {
-              if (t.name.startsWith(srv + "-") || t.name.startsWith(srv + "_")) {
-                if (!mcpToolMap[srv]) mcpToolMap[srv] = [];
-                mcpToolMap[srv].push(t);
-                break;
-              }
-            }
-          }
-          console.log(`[MCP] Delayed tools: ${tools.length} total, MCP: ${Object.entries(mcpToolMap).map(([k, v]) => `${k}:${v.length}`).join(", ") || "none"}`);
+          console.log(`[MCP] Delayed tools: ${tools.length} built-in, MCP: ${Object.entries(mcpToolMap).map(([k, v]) => `${k}:${v.length}`).join(", ") || "none"}`);
           safeSend(ws, { type: "capabilities_update", tools, mcpTools: mcpToolMap });
         } catch (e: any) { console.debug("[MCP] Delayed fetch error:", e.message); }
       }, 5000);
@@ -1009,25 +1026,13 @@ wss.on("connection", (ws) => {
               ]);
               let tools: any[] = [];
               try { tools = await bridge.listTools(); } catch (e: any) { console.warn("[Capabilities] Tools list failed:", e.message); }
-              console.log(`[Capabilities] ${mcpServers.length} MCP servers, ${skills.length} skills, ${tools.length} tools`);
 
-              // Build MCP tool map by matching tool names to server prefixes
-              const mcpToolMap: Record<string, any[]> = {};
-              const serverNames = mcpServers.map((s: any) => s.name);
-              for (const t of tools) {
-                for (const srv of serverNames) {
-                  if (t.name.startsWith(srv + "-") || t.name.startsWith(srv + "_")) {
-                    if (!mcpToolMap[srv]) mcpToolMap[srv] = [];
-                    mcpToolMap[srv].push(t);
-                    break;
-                  }
-                }
-              }
-              // Merge with hardcoded fallback for servers not yet in the tool list
-              const hardcodedMap = await getMcpToolMap();
-              for (const [srv, srvTools] of Object.entries(hardcodedMap)) {
-                if (!mcpToolMap[srv]) mcpToolMap[srv] = srvTools;
-              }
+              // Query MCP servers directly for their tools
+              const connectedNames = mcpServers.filter((s: any) => s.status === "connected").map((s: any) => s.name);
+              const projectTools = await queryProjectMcpServerTools(projectMcpServers, connectedNames);
+              const pluginTools = await getMcpToolMap();
+              const mcpToolMap: Record<string, McpToolInfo[]> = { ...pluginTools, ...projectTools };
+              console.log(`[Capabilities] ${mcpServers.length} MCP servers, ${skills.length} skills, ${tools.length} built-in tools, ${Object.values(mcpToolMap).reduce((s, t) => s + t.length, 0)} MCP tools`);
 
               safeSend(ws, { type: "capabilities_list", mcpServers, skills, tools, mcpTools: mcpToolMap });
             } catch (err: any) {
@@ -1049,7 +1054,11 @@ wss.on("connection", (ws) => {
                 bridge.listMcpServers(),
                 bridge.listTools(),
               ]);
-              safeSend(ws, { type: "capabilities_update", mcpServers, tools });
+              const connectedNames = mcpServers.filter((s: any) => s.status === "connected").map((s: any) => s.name);
+              const projectTools = await queryProjectMcpServerTools(projectMcpServers, connectedNames);
+              const pluginTools = await getMcpToolMap();
+              const mcpToolMap: Record<string, McpToolInfo[]> = { ...pluginTools, ...projectTools };
+              safeSend(ws, { type: "capabilities_update", mcpServers, tools, mcpTools: mcpToolMap });
             } catch (err: any) {
               safeSend(ws, { type: "error", text: `Failed to toggle MCP server: ${err.message}` });
             }
