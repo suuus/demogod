@@ -1005,8 +1005,8 @@
           break;
 
         case "file_changed":
-          if (msg.path && /\.md$/i.test(msg.path)) {
-            openFileInTab(msg.path);
+          if (msg.path && /\.md$/i.test(msg.path) && localStorage.getItem("dg-auto-file-tabs") !== "0") {
+            openFileInTab(msg.path, true);
           }
           break;
 
@@ -1829,7 +1829,9 @@
       const pending = this.pendingFiles.get(toolName);
       if (!pending) return;
       this.pendingFiles.delete(toolName);
-      openFileInTab(pending.path);
+      if (localStorage.getItem("dg-auto-file-tabs") !== "0") {
+        openFileInTab(pending.path, true);
+      }
     }
 
     selectProject(path) {
@@ -2530,7 +2532,7 @@
   // Global opened-files tracker (dedup across sessions)
   const globalOpenedFiles = new Set();
 
-  async function openFileInTab(filePath) {
+  async function openFileInTab(filePath, background = false) {
     const normalPath = filePath.replace(/^\/+/, "/");
     if (globalOpenedFiles.has(normalPath)) {
       try {
@@ -2554,14 +2556,14 @@
       const data = await res.json();
       const filename = data.filename || filePath.split("/").pop();
       const tabId = "file-" + hashPath(normalPath);
-      addFileTab(tabId, filename, data.content, normalPath);
+      addFileTab(tabId, filename, data.content, normalPath, background);
     } catch (err) {
       console.error("Failed to open file:", err);
       globalOpenedFiles.delete(normalPath);
     }
   }
 
-  function addFileTab(tabId, filename, content, filePath) {
+  function addFileTab(tabId, filename, content, filePath, background = false) {
     const tab = document.createElement("div");
     tab.className = "tab";
     tab.dataset.tab = tabId;
@@ -2596,7 +2598,7 @@
     badge.className = "tab-badge";
     tab.appendChild(badge);
 
-    switchTab(tabId);
+    if (!background) switchTab(tabId);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -3315,6 +3317,7 @@
   const settingAgentTabs = $("#setting-agent-tabs");
   const settingTodoPanel = $("#setting-todo-panel");
   const settingAutoApprove = $("#setting-auto-approve");
+  const settingAutoFileTabs = $("#setting-auto-file-tabs");
   const settingAmbient = $("#setting-ambient");
 
   // Ambient music — loops at 8% volume, starts on first user interaction
@@ -3338,6 +3341,7 @@
   settingAgentTabs.checked = localStorage.getItem("dg-agent-tabs") === "1";
   settingTodoPanel.checked = localStorage.getItem("dg-todo-panel") !== "0";
   settingAutoApprove.checked = localStorage.getItem("dg-auto-approve") !== "0";
+  settingAutoFileTabs.checked = localStorage.getItem("dg-auto-file-tabs") !== "0";
   settingAmbient.checked = localStorage.getItem("dg-ambient") === "1";
 
   // Auto-start ambient on first interaction if enabled
@@ -3417,6 +3421,10 @@
         el.style.color = enabled ? "var(--yellow)" : "";
       }
     }
+  });
+
+  settingAutoFileTabs.addEventListener("change", () => {
+    localStorage.setItem("dg-auto-file-tabs", settingAutoFileTabs.checked ? "1" : "0");
   });
 
   function openSettings() { openOverlay("settings-overlay"); }
