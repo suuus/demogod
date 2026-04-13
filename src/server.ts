@@ -522,6 +522,20 @@ wss.on("connection", (ws) => {
     bridge = new CopilotBridge();
     currentWorkingDir = workingDirectory;
 
+    // Read project-level .mcp.json if it exists and pass servers explicitly
+    // (enableConfigDiscovery should handle this, but as a fallback)
+    let projectMcpServers: Record<string, any> | undefined;
+    if (workingDirectory) {
+      try {
+        const mcpPath = resolve(workingDirectory, ".mcp.json");
+        const mcpData = JSON.parse(await readFile(mcpPath, "utf-8"));
+        if (mcpData.mcpServers && Object.keys(mcpData.mcpServers).length > 0) {
+          projectMcpServers = mcpData.mcpServers;
+          console.log(`[MCP] Found project .mcp.json: ${Object.keys(projectMcpServers!).join(", ")}`);
+        }
+      } catch { /* no project .mcp.json — that's fine */ }
+    }
+
     // Apply queued auto-approve setting
     if (pendingAutoApprove !== null) {
       bridge.autoApprove = pendingAutoApprove;
@@ -612,7 +626,7 @@ wss.on("connection", (ws) => {
     });
 
     try {
-      await bridge.createSession(model, currentWorkingDir);
+      await bridge.createSession(model, currentWorkingDir, undefined, undefined, projectMcpServers);
       console.log("Copilot session created");
 
       // Enable all skills so agents/sub-agents can invoke them

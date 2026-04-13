@@ -65,13 +65,14 @@ export class CopilotBridge extends EventEmitter {
     return this.client.listModels();
   }
 
-  async createSession(model?: string, workingDirectory?: string, customAgents?: Array<{name: string; displayName?: string; description?: string; prompt: string}>, skillDirectories?: string[]): Promise<void> {
+  async createSession(model?: string, workingDirectory?: string, customAgents?: Array<{name: string; displayName?: string; description?: string; prompt: string}>, skillDirectories?: string[], mcpServers?: Record<string, any>): Promise<void> {
     this.session = await this.client.createSession({
       ...(model ? { model } : {}),
       streaming: true,
       ...(workingDirectory ? { workingDirectory } : {}),
       ...(customAgents?.length ? { customAgents } : {}),
       ...(skillDirectories?.length ? { skillDirectories } : {}),
+      ...(mcpServers ? { mcpServers } : {}),
       ...(this.excludedTools.size > 0 ? { excludedTools: [...this.excludedTools] } : {}),
       // No disabledSkills — all skills accessible
       enableConfigDiscovery: true,
