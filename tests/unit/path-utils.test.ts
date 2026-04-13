@@ -32,6 +32,11 @@ describe("path-utils", () => {
       expect(isUnderHome(home + "/Documents")).toBe(true);
     });
 
+    it("returns true for a subdirectory using platform separator", () => {
+      const { sep } = require("path");
+      expect(isUnderHome(home + sep + "Documents")).toBe(true);
+    });
+
     it("returns false for /etc", () => {
       expect(isUnderHome("/etc")).toBe(false);
     });
@@ -43,6 +48,10 @@ describe("path-utils", () => {
     it("returns false for a path that starts with home but is a sibling", () => {
       // e.g., /Users/suzanne-evil when home is /Users/suzanne
       expect(isUnderHome(home + "-evil")).toBe(false);
+    });
+
+    it("returns false for Windows-style paths outside home", () => {
+      expect(isUnderHome("C:\\Windows\\System32")).toBe(false);
     });
   });
 });
