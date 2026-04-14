@@ -240,7 +240,7 @@ Class-based architecture. Major sections:
 
 #### `index.html` — Structure
 
-- **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, settings, background color
+- **Control bar** (top): project picker, mode toggle, popup toggle, file browser, new session, model/agent/skill pickers, 🔌 capabilities, 🧭 context wizard (experimental), background color, settings (last)
 - **Terminal window**: macOS-style chrome with title bar, tab bar, output area, input line, status bar (shows git branch; shows yellow `auto-approve` text when auto-approve is enabled)
 - **Bottom-right controls**: version badge (`<a>` tag — click to view `CHANGELOG.md` in a tab via `GET /api/changelog`), reset-session button (`↻`), and record button
 - **Overlay dialogs**: project picker, file browser, user input dialog, capability picker
@@ -537,6 +537,13 @@ Session containers use mode-colored subtle separator lines via the `--titlebar-b
 | `dg-context-wizard` | `"0"` / `"1"` | `"0"` | Context Setup Wizard button |
 | `dg-demo-studio` | `"0"` / `"1"` | `"0"` | Demo Studio button |
 
+### Feature Settings
+
+| localStorage Key | Type | Default | Description |
+|-----------------|------|---------|-------------|
+| `dg-auto-approve` | `"0"` / `"1"` | `"1"` | Auto-approve all Copilot permission requests |
+| `dg-auto-file-tabs` | `"0"` / `"1"` | `"1"` | Auto-open file tabs when Copilot creates/edits files |
+
 ## ARIA Accessibility
 
 DemoGod has comprehensive ARIA role attributes throughout its UI, enabling screen reader support and making it compatible with Playwright's `getByRole` locators for automated testing.
@@ -582,6 +589,47 @@ DemoGod ships a `.mcp.json` in the project root that configures `@playwright/mcp
 ```
 
 The `--headless=false` flag opens a visible browser window so Copilot can inspect the live DemoGod UI rather than guessing selectors from documentation. This transforms Playwright spec generation from "guess and iterate" to "inspect, click, verify."
+
+## Context Setup Wizard
+
+The Context Setup Wizard is an enterprise onboarding feature (gated behind Settings → Experimental → *Context Wizard*) that guides engineers through configuring their AI-assisted development environment.
+
+### Architecture
+
+The wizard is powered by a `@context-wizard` agent (`.github/agents/context-wizard.md`) that orchestrates 7 phases, each backed by a dedicated skill:
+
+| Phase | Skill | What it does |
+|-------|-------|-------------|
+| 1 | `context-detect` | Scans the project to detect the dev stack, tools, and existing config |
+| 2 | `context-discover` | Finds relevant MCP servers from GitHub catalog, org catalog, and vendor docs |
+| 3 | `context-docs` | Identifies where team documentation and knowledge sources live |
+| 4 | `context-review` | Reviews discovered servers and presents a summary for approval |
+| 5 | `context-install` | Writes approved MCP server entries to `.mcp.json` |
+| 6 | `context-instructions` | Generates `.github/copilot-instructions.md` with enterprise context |
+| 7 | `context-configure` | Guides per-server auth setup and tests connections |
+
+### MCP Server Discovery Chain
+
+The `context-discover` skill searches for MCP servers via four sources in order:
+
+1. **GitHub/MCP official catalog** — `search_repositories` with `topic:mcp-server`
+2. **Organization catalog** — `{org}/.github/mcp-catalog.json`
+3. **Vendor documentation** — `web_search` + `web_fetch`
+4. **Community fallback** — GitHub search for MCP server repositories
+
+### UI
+
+- **🧭 Onboard button** — appears in the control bar when enabled via the experimental toggle
+- **Full-size wizard panel** — overlays the main UI with a progress sidebar showing the 7 steps
+- **Embedded session** — the wizard conversation runs as a `TerminalSession` inside the panel
+- **Phase markers** — HTML comments (`<!-- phase: N -->`) in assistant output are tracked by the sidebar to advance the progress indicator
+- **Auto-start** — Phase 1 (`context-detect`) runs automatically when the panel is opened
+
+### Outputs
+
+The wizard generates two files in the project:
+- `.mcp.json` — MCP server configurations for approved servers
+- `.github/copilot-instructions.md` — Enterprise context, tool references, and cross-tool workflows
 
 ## Testing
 
