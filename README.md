@@ -104,7 +104,9 @@ Clear the noise. Exhale. Then just run it.
 - **Ambient Music** — Settings → Experimental → *Ambient Music*. Plays a seamless looping background track at low volume during demos (starts on first user interaction to satisfy browser autoplay policy). Persisted to `localStorage`.
 - **Accessibility** — Comprehensive ARIA role attributes (toolbar, tablist, tab, tabpanel, listbox, option, textbox, status) and `:focus-visible` styles throughout the UI for screen reader support and Playwright `getByRole` compatibility.
 - **Clickable Version Badge** — When *Show Version* is enabled in Settings, the version number appears in the bottom-right corner; clicking it opens `CHANGELOG.md` in a tab.
-- **Settings Panel** — Configure appearance (including Aurora Borealis background theme), permission behavior, feature flags, and experimental options from ⚙️ Settings
+- **Auto-open File Tabs** — Settings → Features → *Auto-open File Tabs* (on by default). Files created or edited by Copilot open as background tabs without stealing focus from the Chat tab. Disable to prevent any automatic tab opening. Persisted to `localStorage` as `dg-auto-file-tabs`.
+- **Context Setup Wizard** *(experimental)* — Settings → Experimental → *Context Wizard* enables the 🧭 Onboard button. The wizard guides engineers through setting up their AI development environment using a Copilot-driven `@context-wizard` agent that runs 7 phases: detect stack, discover MCP servers, locate docs, review config, install servers, generate Copilot instructions, and configure auth. Outputs `.mcp.json` and `.github/copilot-instructions.md`.
+- **Settings Panel** — Configure appearance (Aurora Borealis animated theme is the default), permission behavior, feature flags, and experimental options from ⚙️ Settings
 
 ## Keyboard Shortcuts
 
@@ -239,11 +241,14 @@ npm run record:demo intro # Automated headless recording
 - [x] Demo UI automation (layout, model, tile)
 - [x] Screen recording (MP4 + WebM)
 - [x] Copy & paste in session windows
-- [x] Custom themes (Aurora Borealis)
+- [x] Custom themes (Aurora Borealis — default)
 - [x] Capabilities panel
 - [x] Per-project discovery
 - [x] Ambient music for demos
 - [x] ARIA accessibility (screen reader + Playwright getByRole support)
+- [x] Integrated terminal as session tab
+- [x] Context Setup Wizard (enterprise onboarding)
+- [x] Auto-open file tabs (background, non-focus-stealing)
 - [ ] Export demos as standalone video files
 - [ ] Saved layout presets
 - [ ] Desktop app production builds (Windows, Linux)
