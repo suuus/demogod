@@ -67,7 +67,7 @@ npm start
 
 Open `http://localhost:3456` in your browser. Customize the port with `PORT=8080 npm start`.
 
-### Desktop App (macOS/WSL/linus)
+### Desktop App (macOS/WSL/linux)
 
 Run DemoGod as a native macOS window using [Tauri v2](https://v2.tauri.app/). Requires the [Rust toolchain](https://rustup.rs/).
 
