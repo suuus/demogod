@@ -8,11 +8,12 @@ Scan the project in the current working directory and report what you find.
 
 ## What to scan
 
+0. **Read current instructions**: Analyze the .github/copilot-instructions.md
 1. **Package files**: package.json, requirements.txt, go.mod, Cargo.toml, pom.xml, build.gradle
 2. **CI/CD**: .github/workflows/, Jenkinsfile, .gitlab-ci.yml, azure-pipelines.yml, .circleci/
 3. **Infrastructure**: bicep/terraform/cloudformation files, Dockerfile, docker-compose.yml, kubernetes manifests
 4. **Existing MCP config**: Read .mcp.json — list ALL currently configured MCP servers. These are already installed and should be preserved.
-5. **Existing Copilot config**: .github/copilot-instructions.md, .github/agents/, .github/skills/
+5. **Existing Copilot config**: .github/copilot-instructions.md, .github/agents/, .github/skills/, and other relevant files under .github/ , .vscode/
 6. **Git history**: check recent commit messages for tool references (JIRA-123, LINEAR-456, ADO-789, etc.)
 7. **Cloud indicators**: .azure/, serverless.yml, cdk.json, pulumi files
 
@@ -33,5 +34,6 @@ Summarize your findings in a clear list:
 - Tool references found in git history
 - **Already configured MCP servers** (from .mcp.json)
 - Existing Copilot configuration
+- cli tools & scripts that are relevant in this context
 
 Then output: `<!--phase:1:complete-->`

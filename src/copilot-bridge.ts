@@ -27,7 +27,7 @@ const DEMO_SYSTEM_INSTRUCTIONS = [
   "1. When you need ANY input, clarification, or decision from the user, you MUST use the ask_user tool. NEVER ask questions in plain text output.",
   "2. Ask exactly ONE question per ask_user call. Do NOT bundle multiple questions. Ask one, wait for the answer, then ask the next if needed.",
   "3. When delegating to sub-agents, explicitly instruct them to follow the same rules: use ask_user, one question at a time, never ask in prose.",
-  "4. Prefer enum / boolean fields over free-text when the options are known. Always set a default value.",
+  '4. Prefer enum / boolean fields over free-text when the options are known, always give the user an option to give their own response "other:" and a free format textbox. If multiple options are possible as selection, give them a multipicker. Always set a default value.',
 ].join("\n");
 
 export class CopilotBridge extends EventEmitter {

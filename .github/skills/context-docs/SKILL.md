@@ -25,6 +25,9 @@ For each, use `ask_user` with multiple choice + an "Other (specify)" freeform fi
 5. **Architecture decisions**: Where are ADRs and design documents?
    - Options: docs/adr/ in repo, Confluence, GitHub Discussions, Other
 
+6  **Product documentation**: Where to find Product and business related documentation, for example: PRD, BRD, BDD, Product strategy
+   -Options: Sharepoint/Onedrive, Google Docs, Confluence, repo /docs folder, Other
+
 For each answer, note:
 - The platform (for MCP server matching)
 - The specific location (space key, repo path, URL pattern)
