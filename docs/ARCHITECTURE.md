@@ -113,7 +113,7 @@ The bridge wraps the `@github/copilot-sdk` and translates SDK events into simple
    - All skills enabled (via `enableAllSkills()` after creation)
    - Infinite sessions mode
    - Auto-approve all permission requests
-   - Custom system instructions for `ask_user` behavior
+   - Custom system instructions for `ask_user` behavior: always include a freeform "Other (specify)" option, use multipicker for multi-select questions, and set a default value
 3. `sendPrompt(text)` — sends a user message (non-blocking via `session.send()`)
 4. `resolveUserInput(requestId, values)` — resolves pending user input/elicitation requests
 5. `abort()` / `stop()` — cancel current operation / tear down session
@@ -144,7 +144,7 @@ The bridge wraps the `@github/copilot-sdk` and translates SDK events into simple
 **Critical design decisions:**
 - Uses `session.send()` not `session.sendAndWait()` — sub-agent tasks can run indefinitely
 - `onPermissionRequest` is configurable at runtime via `bridge.autoApprove` (toggled by `set_auto_approve` WS message). When `true` (default), all permission requests are auto-approved; when `false`, a `permission_request` event is emitted and the frontend shows an inline Allow/Deny prompt — see [Permission Requests](#permission-requests) below.
-- `systemMessage: { mode: "append" }` — adds `ask_user` instructions without replacing the default system prompt
+- `systemMessage: { mode: "append" }` — adds `ask_user` instructions (one question at a time; always include freeform "Other" + multipicker for multi-select; default value required) without replacing the default system prompt
 - `infiniteSessions: { enabled: true }` — session persists across long interactions
 
 ### 2. Server (`src/server.ts`)
@@ -600,9 +600,9 @@ The wizard is powered by a `@context-wizard` agent (`.github/agents/context-wiza
 
 | Phase | Skill | What it does |
 |-------|-------|-------------|
-| 1 | `context-detect` | Scans the project to detect the dev stack, tools, and existing config |
+| 1 | `context-detect` | Reads existing `.github/copilot-instructions.md` and `.vscode/` config first, then scans the project to detect the dev stack, CLI tools, and existing MCP/Copilot config |
 | 2 | `context-discover` | Finds relevant MCP servers from GitHub catalog, org catalog, and vendor docs |
-| 3 | `context-docs` | Identifies where team documentation and knowledge sources live |
+| 3 | `context-docs` | Identifies where team documentation and knowledge sources live across 6 categories: engineering docs, security policies, API specs, runbooks, ADRs, and product/business docs (PRD, BRD, BDD) |
 | 4 | `context-review` | Reviews discovered servers and presents a summary for approval |
 | 5 | `context-install` | Writes approved MCP server entries to `.mcp.json` |
 | 6 | `context-instructions` | Generates `.github/copilot-instructions.md` with enterprise context |
