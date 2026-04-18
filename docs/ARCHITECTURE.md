@@ -144,7 +144,7 @@ The bridge wraps the `@github/copilot-sdk` and translates SDK events into simple
 **Critical design decisions:**
 - Uses `session.send()` not `session.sendAndWait()` — sub-agent tasks can run indefinitely
 - `onPermissionRequest` is configurable at runtime via `bridge.autoApprove` (toggled by `set_auto_approve` WS message). When `true` (default), all permission requests are auto-approved; when `false`, a `permission_request` event is emitted and the frontend shows an inline Allow/Deny prompt — see [Permission Requests](#permission-requests) below.
-- `systemMessage: { mode: "append" }` — adds `ask_user` instructions without replacing the default system prompt
+- `systemMessage: { mode: "append" }` — adds `ask_user` instructions without replacing the default system prompt. The appended instructions require: (1) always use `ask_user` for any input or decision — never ask in plain text, (2) one question per call, (3) sub-agents must follow the same rules, (4) prefer enum/boolean fields over free-text, always include an `"other:"` freeform textbox, use a multipicker when multiple selections are valid, and always set a default value
 - `infiniteSessions: { enabled: true }` — session persists across long interactions
 
 ### 2. Server (`src/server.ts`)
@@ -600,9 +600,9 @@ The wizard is powered by a `@context-wizard` agent (`.github/agents/context-wiza
 
 | Phase | Skill | What it does |
 |-------|-------|-------------|
-| 1 | `context-detect` | Scans the project to detect the dev stack, tools, and existing config |
+| 1 | `context-detect` | Reads existing `copilot-instructions.md` first, then scans the project for dev stack, languages, CI/CD, cloud indicators, `.vscode/` config, CLI tools, and already-configured MCP servers |
 | 2 | `context-discover` | Finds relevant MCP servers from GitHub catalog, org catalog, and vendor docs |
-| 3 | `context-docs` | Identifies where team documentation and knowledge sources live |
+| 3 | `context-docs` | Identifies where team documentation and knowledge sources live — asks about engineering docs, security policies, API specs, runbooks, ADRs, and product documentation (PRDs, BRDs) |
 | 4 | `context-review` | Reviews discovered servers and presents a summary for approval |
 | 5 | `context-install` | Writes approved MCP server entries to `.mcp.json` |
 | 6 | `context-instructions` | Generates `.github/copilot-instructions.md` with enterprise context |
